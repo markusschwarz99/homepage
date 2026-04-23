@@ -1,0 +1,57 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+.vite/
+*.local
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.tar
+docker-compose.override.yml
+
+# Backups
+*.bak
+*.backup
+backups/
+
+# Logs
+*.log
+logs/
+
+# Datenbank
+*.sqlite
+*.sqlite3
+*.db
+
+# Uploads (User-Daten, werden über Docker-Volume gemanagt)
+uploads/
+backend/uploads/
+
+# Frontend-spezifische Env-Files (nur Example wird getrackt)
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
