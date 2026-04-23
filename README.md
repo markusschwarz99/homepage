@@ -34,51 +34,61 @@ Persönliche Homepage mit Blog, Rezepte-Archiv und geteilter Einkaufsliste für 
 ## Setup
 
 ### Voraussetzungen
+
 - Docker + Docker Compose
 - Domain mit DNS-Zugriff (für Email + Cloudflare Tunnel)
 - [Resend](https://resend.com) Account + verifizierte Sender-Domain
 
 ### 1. Repository klonen
-\`\`\`bash
-git clone https://github.com/DEIN-USERNAME/DEIN-REPO.git
-cd DEIN-REPO
-\`\`\`
+
+```bash
+git clone https://github.com/markusschwarz99/homepage.git
+cd homepage
+```
 
 ### 2. Environment-Dateien erstellen
-\`\`\`bash
-# Backend
+
+**Backend:**
+
+```bash
 cp .env.example .env
 nano .env   # Werte ausfüllen
+```
 
-# Frontend
+**Frontend:**
+
+```bash
 cp frontend/.env.example frontend/.env.production
 nano frontend/.env.production   # VITE_API_URL setzen
-\`\`\`
+```
 
-JWT-Secret generieren:
-\`\`\`bash
+**JWT-Secret generieren:**
+
+```bash
 openssl rand -hex 48
-\`\`\`
+```
 
 ### 3. Container bauen + starten
-\`\`\`bash
+
+```bash
 docker compose up -d --build
-\`\`\`
+```
 
 Beim ersten Start werden die Datenbank-Tabellen automatisch angelegt.
 
 ### 4. Admin-User anlegen
-Registriere dich zunächst ganz normal per Frontend, bestätige die Email. Dann direkt in der Datenbank die Rolle auf \`admin\` setzen:
 
-\`\`\`bash
+Registriere dich zunächst ganz normal per Frontend, bestätige die Email. Dann direkt in der Datenbank die Rolle auf `admin` setzen:
+
+```bash
 source .env
-docker compose exec db psql -U "\$POSTGRES_USER" -d "\$POSTGRES_DB" -c \\
+docker compose exec db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c \
   "UPDATE users SET role = 'admin' WHERE email = 'deine@email.com';"
-\`\`\`
+```
 
 ## Projektstruktur
 
-\`\`\`
+```
 .
 ├── backend/
 │   ├── routers/        # API-Endpoints (auth, blog, recipes, tags, shopping, admin)
@@ -96,18 +106,18 @@ docker compose exec db psql -U "\$POSTGRES_USER" -d "\$POSTGRES_DB" -c \\
 │   │   └── types/
 │   └── package.json
 └── docker-compose.yml
-\`\`\`
+```
 
 ## Rollen-Modell
 
 | Rolle | Blog | Rezepte | Einkaufsliste | Admin |
 |-------|:----:|:-------:|:-------------:|:-----:|
-| \`guest\` (default nach Registrierung) | ❌ | ❌ | ❌ | ❌ |
-| \`member\` | ❌ | ✅ | ❌ | ❌ |
-| \`household\` | ❌ | ✅ | ✅ | ❌ |
-| \`admin\` | ✅ | ✅ | ✅ | ✅ |
+| `guest` (default nach Registrierung) | ❌ | ❌ | ❌ | ❌ |
+| `member` | ❌ | ✅ | ❌ | ❌ |
+| `household` | ❌ | ✅ | ✅ | ❌ |
+| `admin` | ✅ | ✅ | ✅ | ✅ |
 
-Neue Registrierungen landen automatisch auf \`guest\` und müssen vom Admin freigegeben werden.
+Neue Registrierungen landen automatisch auf `guest` und müssen vom Admin freigegeben werden.
 
 ## Lizenz
 
