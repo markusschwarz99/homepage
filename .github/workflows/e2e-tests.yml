@@ -1,0 +1,115 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Create .env.test
+        run: |
+          cat > .env.test << 'EOF'
+          ENVIRONMENT=test
+          DATABASE_URL=postgresql://testuser:testpass@db-test:5432/testdb
+          POSTGRES_USER=testuser
+          POSTGRES_PASSWORD=testpass
+          POSTGRES_DB=testdb
+          JWT_SECRET=test-jwt-secret-do-not-use-in-production
+          CORS_ORIGINS=http://localhost:8080
+          RESEND_API_KEY=test-resend-key
+          EOF
+
+      - name: Build and start test stack
+        run: docker compose -f docker-compose.test.yml up -d --build
+
+      - name: Wait for backend
+        run: |
+          for i in {1..60}; do
+            if curl -sf http://localhost:8001/ > /dev/null; then
+              echo "Backend ready"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/60)"
+            sleep 2
+          done
+          echo "Backend not ready after 120s"
+          docker compose -f docker-compose.test.yml logs backend-test
+          exit 1
+
+      - name: Wait for frontend
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:8080/ > /dev/null; then
+              echo "Frontend ready"
+              exit 0
+            fi
+            echo "Waiting for frontend... ($i/30)"
+            sleep 2
+          done
+          echo "Frontend not ready after 60s"
+          docker compose -f docker-compose.test.yml logs frontend-test
+          exit 1
+
+      - name: Seed test data
+        run: docker compose -f docker-compose.test.yml exec -T backend-test python seed_test_data.py
+
+      - name: Install Playwright dependencies
+        working-directory: ./e2e
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: ./e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: ./e2e
+        run: npx playwright test
+        env:
+          CI: 'true'
+          BASE_URL: http://localhost:8080
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 14
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: e2e/test-results/
+          retention-days: 14
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: |
+          echo "===== Backend logs ====="
+          docker compose -f docker-compose.test.yml logs backend-test
+          echo "===== Frontend logs ====="
+          docker compose -f docker-compose.test.yml logs frontend-test
+          echo "===== DB logs ====="
+          docker compose -f docker-compose.test.yml logs db-test
+
+      - name: Stop test stack
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v

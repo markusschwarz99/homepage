@@ -14,7 +14,12 @@ services:
       - db
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: https://api.markus-schwarz.cc
+    environment:
+      API_URL: https://api.markus-schwarz.cc
     restart: always
     ports:
       - "80:80"

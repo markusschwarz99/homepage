@@ -1,0 +1,36 @@
+services:
+  backend-test:
+    build: ./backend
+    ports:
+      - "8001:8000"
+    env_file:
+      - .env.test
+    environment:
+      UPLOAD_DIR: /app/uploads
+    depends_on:
+      db-test:
+        condition: service_healthy
+
+  frontend-test:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8001
+    environment:
+      API_URL: http://localhost:8001
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend-test
+
+  db-test:
+    image: postgres:16
+    env_file:
+      - .env.test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser -d testdb"]
+      interval: 2s
+      timeout: 5s
+      retries: 10

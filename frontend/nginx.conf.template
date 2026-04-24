@@ -15,7 +15,7 @@ server {
     # - style-src 'self' 'unsafe-inline': Tailwind generiert inline-Styles
     # - img-src erlaubt eigene Bilder, data: (SVG-icons) und api.markus-schwarz.cc (uploads)
     # - connect-src: API-Aufrufe zum Backend
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://api.markus-schwarz.cc; font-src 'self' data:; connect-src 'self' https://api.markus-schwarz.cc; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: ${API_URL}; font-src 'self' data:; connect-src 'self' ${API_URL}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
 
     # HSTS wird ohnehin von Cloudflare gesetzt — hier sicherheitshalber nicht nochmal
 
