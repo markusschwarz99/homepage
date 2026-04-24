@@ -11,7 +11,7 @@ from rate_limit import limiter
 import os
 
 Base.metadata.create_all(bind=engine)
-os.makedirs("/app/uploads", exist_ok=True)
+os.makedirs(os.getenv("UPLOAD_DIR", "/app/uploads"), exist_ok=True)
 
 app = FastAPI(title="Markus Homepage API")
 app.state.limiter = limiter
@@ -20,14 +20,14 @@ app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://markus-schwarz.cc"],
+    allow_origins=os.getenv("CORS_ORIGINS", "https://markus-schwarz.cc").split(","),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
     max_age=3600,
 )
 
-app.mount("/uploads", StaticFiles(directory="/app/uploads"), name="uploads")
+app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "/app/uploads")), name="uploads")
 
 app.include_router(auth.router)
 app.include_router(blog.router)

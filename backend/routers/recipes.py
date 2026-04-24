@@ -11,7 +11,7 @@ from upload_utils import save_image
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
-UPLOAD_DIR = "/app/uploads"
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/app/uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
@@ -131,7 +131,7 @@ def list_recipes(
         recipe_ids_by_ingredient = (
             db.query(models.RecipeIngredient.recipe_id)
             .filter(func.lower(models.RecipeIngredient.name).like(like))
-            .subquery()
+            .scalar_subquery()
         )
         query = query.filter(
             (func.lower(models.Recipe.title).like(like))
@@ -156,7 +156,7 @@ def list_recipes(
                 subq = (
                     db.query(models.RecipeTag.recipe_id)
                     .filter(models.RecipeTag.tag_id.in_(cat_tag_ids))
-                    .subquery()
+                    .scalar_subquery()
                 )
                 query = query.filter(models.Recipe.id.in_(subq))
 

@@ -8,7 +8,7 @@ from typing import Optional
 import os
 import uuid
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from upload_utils import save_image
 from email_service import send_verification_email, send_approved_email, send_password_reset_email
 from fastapi import Request
@@ -29,7 +29,7 @@ def _safe_send_password_reset(email: str, name: str, token: str):
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-UPLOAD_DIR = "/app/uploads"
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/app/uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class UserRegister(BaseModel):
@@ -173,7 +173,7 @@ def request_password_reset(
 
     token = secrets.token_urlsafe(32)
     user.reset_token = token
-    user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
+    user.reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
     db.commit()
 
     try:
@@ -198,11 +198,15 @@ def reset_password(
 
     user = db.query(models.User).filter(models.User.reset_token == data.token).first()
 
-    if (
-        not user
-        or not user.reset_token_expires
-        or user.reset_token_expires < datetime.utcnow()
-    ):
+    if not user or not user.reset_token_expires:
+        raise HTTPException(status_code=400, detail="Token ungültig oder abgelaufen")
+
+    # DB speichert evtl. naive datetime (SQLite); als UTC interpretieren
+    expires = user.reset_token_expires
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+
+    if expires < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Token ungültig oder abgelaufen")
 
     user.password = auth.hash_password(data.new_password)

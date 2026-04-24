@@ -9,7 +9,7 @@ from upload_utils import save_image
 
 router = APIRouter(prefix="/blog", tags=["blog"])
 
-UPLOAD_DIR = "/app/uploads"
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/app/uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class PostCreate(BaseModel):
