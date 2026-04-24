@@ -9,11 +9,11 @@ test('Admin kann sich einloggen und sieht seinen Namen', async ({ page }) => {
 
 test('Falsches Passwort zeigt Fehler', async ({ page }) => {
   await page.goto('/login');
-  await page.getByLabel(/email/i).fill(TEST_USERS.admin.email);
-  await page.getByLabel(/passwort/i).fill('WrongPassword');
-  await page.getByRole('button', { name: /anmelden|einloggen|login/i }).click();
+  await page.locator('input[type="email"]').fill(TEST_USERS.admin.email);
+  await page.locator('input[type="password"]').fill('WrongPassword');
+  await page.getByRole('button', { name: /anmelden/i }).click();
 
-  // Wir sind noch auf /login (oder eine Fehlermeldung ist sichtbar)
+  await expect(page.getByText(/login fehlgeschlagen|anmeldedaten/i)).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
 });
 
