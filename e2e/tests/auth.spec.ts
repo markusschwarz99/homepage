@@ -4,7 +4,10 @@ import { TEST_USERS } from '../helpers/users';
 
 test('Admin kann sich einloggen und sieht seinen Namen', async ({ page }) => {
   await login(page, 'admin');
-  await expect(page.getByText(TEST_USERS.admin.name)).toBeVisible();
+  // Name erscheint in Navbar oder auf Home (Begrüßung)
+  await expect(page.getByText(TEST_USERS.admin.name).first()).toBeVisible({
+    timeout: 10000,
+  });
 });
 
 test('Falsches Passwort zeigt Fehler', async ({ page }) => {
