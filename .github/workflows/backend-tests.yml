@@ -26,6 +26,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      - name: Run tests
+      - name: Run tests with coverage
         working-directory: ./backend
-        run: pytest -v
+        run: pytest
+
+      - name: Coverage summary
+        if: always()
+        working-directory: ./backend
+        run: |
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          python -m coverage report >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: backend/htmlcov/
+          retention-days: 14
+
+      - name: Check coverage threshold
+        working-directory: ./backend
+        run: python -m coverage report --fail-under=75

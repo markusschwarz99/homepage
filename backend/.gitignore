@@ -1,0 +1,5 @@
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml

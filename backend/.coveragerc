@@ -1,0 +1,20 @@
+[run]
+source = .
+omit =
+    tests/*
+    .venv/*
+    */__pycache__/*
+    seed_test_data.py
+
+[report]
+precision = 1
+show_missing = True
+skip_covered = False
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+
+[html]
+directory = htmlcov
