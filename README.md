@@ -1,5 +1,11 @@
 # markus-schwarz.cc
 
+[![Backend Tests](https://github.com/markusschwarz99/homepage/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/markusschwarz99/homepage/actions/workflows/backend-tests.yml)
+[![E2E Tests](https://github.com/markusschwarz99/homepage/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/markusschwarz99/homepage/actions/workflows/e2e-tests.yml)
+[![codecov](https://codecov.io/gh/markusschwarz99/homepage/branch/main/graph/badge.svg)](https://codecov.io/gh/markusschwarz99/homepage)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
+
 Persönliche Homepage mit Blog, Rezepte-Archiv und geteilter Einkaufsliste für den Haushalt. Läuft self-hosted auf einem Raspberry Pi hinter einem Cloudflare Tunnel.
 
 ## Features

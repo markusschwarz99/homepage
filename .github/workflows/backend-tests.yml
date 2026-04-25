@@ -47,6 +47,14 @@ jobs:
           path: backend/htmlcov/
           retention-days: 14
 
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend/coverage.xml
+          flags: backend
+          fail_ci_if_error: false
+
       - name: Check coverage threshold
         working-directory: ./backend
         run: python -m coverage report --fail-under=75
