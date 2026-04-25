@@ -11,10 +11,8 @@ test.beforeEach(async () => {
 
 /**
  * Hilfsfunktion: Rezept-Formular ausfüllen.
- * Wir nutzen Selektoren, die mit dem aktuellen Frontend funktionieren:
- * - Titel = erstes <input type="text"> (autoFocus + required)
- * - Anzahl = <input type="number">
- * - Zutat/Menge/Einheit/Schritt via Placeholder
+ * Nutzt jetzt getByLabel — funktioniert weil RecipeForm.tsx
+ * htmlFor/id auf Titel, Anzahl und Einheit hat.
  */
 async function fillRecipeForm(page: import('@playwright/test').Page, options: {
   titel: string;
@@ -22,11 +20,10 @@ async function fillRecipeForm(page: import('@playwright/test').Page, options: {
   ingredients?: { menge?: string; einheit?: string; name: string }[];
   steps?: string[];
 }) {
-  // Titel: erstes Text-Input
-  await page.locator('input[type="text"]').first().fill(options.titel);
+  await page.getByLabel('Titel').fill(options.titel);
 
   if (options.anzahl !== undefined) {
-    await page.locator('input[type="number"]').fill(String(options.anzahl));
+    await page.getByLabel('Anzahl').fill(String(options.anzahl));
   }
 
   const ingredients = options.ingredients ?? [{ name: 'x' }];
@@ -170,8 +167,7 @@ test.describe('Rezept bearbeiten', () => {
     await expect(page.getByRole('heading', { name: titelOriginal, level: 1 })).toBeVisible();
     await page.getByRole('button', { name: /bearbeiten/i }).click();
 
-    // Titel-Input ist wieder das erste Text-Input
-    const titelInput = page.locator('input[type="text"]').first();
+    const titelInput = page.getByLabel('Titel');
     await titelInput.clear();
     await titelInput.fill(titelNeu);
 
@@ -183,7 +179,6 @@ test.describe('Rezept bearbeiten', () => {
   test('Fremder Member sieht keinen Bearbeiten-Button für nicht-eigenes Rezept', async ({ page, browser }) => {
     const titel = `Member-Rezept ${Date.now()}`;
 
-    // Member 1 erstellt Rezept
     await login(page, 'member');
     await page.goto('/rezepte/neu');
     await fillRecipeForm(page, { titel });
@@ -191,7 +186,6 @@ test.describe('Rezept bearbeiten', () => {
     await expect(page.getByRole('heading', { name: titel, level: 1 })).toBeVisible();
     const detailUrl = page.url();
 
-    // Anderer User (household = is_member, aber nicht Autor, nicht Admin)
     const otherContext = await browser.newContext();
     const otherPage = await otherContext.newPage();
     await login(otherPage, 'household');
@@ -214,10 +208,7 @@ test.describe('Rezept löschen', () => {
     await page.getByRole('button', { name: /rezept speichern/i }).click();
     await expect(page.getByRole('heading', { name: titel, level: 1 })).toBeVisible();
 
-    // Löschen-Button auf Detail-Seite öffnet das Modal
     await page.getByRole('button', { name: /^löschen$/i }).click();
-
-    // Im Modal nochmal "Löschen" → der zweite Match (im Modal)
     await page.getByRole('button', { name: /^löschen$/i }).last().click();
 
     await expect(page).toHaveURL(/\/rezepte$/);

@@ -196,8 +196,9 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Titel */}
       <div>
-        <label className="block text-xs text-text-muted mb-2">Titel</label>
+        <label htmlFor="recipe-title" className="block text-xs text-text-muted mb-2">Titel</label>
         <input
+          id="recipe-title"
           type="text"
           value={title}
           onChange={e => setTitle(e.target.value)}
@@ -210,8 +211,9 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
       {/* Portionen */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-text-muted mb-2">Anzahl</label>
+          <label htmlFor="recipe-servings" className="block text-xs text-text-muted mb-2">Anzahl</label>
           <input
+            id="recipe-servings"
             type="number"
             min={1}
             value={servings}
@@ -220,8 +222,9 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
           />
         </div>
         <div>
-          <label className="block text-xs text-text-muted mb-2">Einheit</label>
+          <label htmlFor="recipe-servings-unit" className="block text-xs text-text-muted mb-2">Einheit</label>
           <input
+            id="recipe-servings-unit"
             type="text"
             value={servingsUnit}
             onChange={e => setServingsUnit(e.target.value)}
