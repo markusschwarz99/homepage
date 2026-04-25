@@ -9,6 +9,9 @@ import models
 from routers import auth, blog, shopping, admin, recipes, tags
 from rate_limit import limiter
 import os
+import logging
+
+logger = logging.getLogger("uvicorn")
 
 Base.metadata.create_all(bind=engine)
 os.makedirs(os.getenv("UPLOAD_DIR", "/app/uploads"), exist_ok=True)
@@ -17,7 +20,6 @@ app = FastAPI(title="Markus Homepage API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.getenv("CORS_ORIGINS", "https://markus-schwarz.cc").split(","),
@@ -26,7 +28,6 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
     max_age=3600,
 )
-
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "/app/uploads")), name="uploads")
 
 app.include_router(auth.router)
@@ -35,6 +36,13 @@ app.include_router(shopping.router)
 app.include_router(admin.router)
 app.include_router(recipes.router)
 app.include_router(tags.router)
+
+# Test-Only-Endpoints: NUR registrieren wenn ENVIRONMENT=test
+if os.getenv("ENVIRONMENT") == "test":
+    from routers import test_utils
+    app.include_router(test_utils.router)
+    logger.warning("⚠️  TEST UTILITIES ENABLED — cleanup endpoints are active!")
+
 
 @app.get("/")
 def root():
