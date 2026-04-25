@@ -1,4 +1,5 @@
 """Zentraler Rate-Limiter. Nutzt CF-Connecting-IP hinter Cloudflare Tunnel."""
+import os
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.requests import Request
@@ -17,3 +18,7 @@ def get_client_ip(request: Request) -> str:
 
 
 limiter = Limiter(key_func=get_client_ip)
+
+# In Test-Umgebung deaktivieren — sonst rennen E2E-Tests in Login-Rate-Limits
+if os.getenv("ENVIRONMENT") == "test":
+    limiter.enabled = False
