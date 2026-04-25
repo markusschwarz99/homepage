@@ -8,5 +8,5 @@ bcrypt==4.0.1
 python-multipart
 alembic
 resend
-Pillow>=10.0.0
+Pillow>=12.2.0
 slowapi>=0.1.9
