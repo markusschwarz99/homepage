@@ -44,6 +44,8 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
 - Docker Compose (3 Services: backend, frontend, db) + dedizierte Volumes
   `postgres_data`, `user_uploads`
 - Backend baut aus `./backend/Dockerfile` (non-root user `app`, Port 8000)
+- Backend startet via `entrypoint.sh`: erst `alembic upgrade head`, dann Uvicorn.
+  Schema-Source-of-Truth ist Alembic, NICHT `Base.metadata.create_all`
 - Frontend baut aus `./frontend` mit Build-Arg `VITE_API_URL=https://api.markus-schwarz.cc`,
   serviert über Nginx im Container auf Port 80
 - DB nur intern erreichbar (Container-Netzwerk, kein Port-Mapping)
@@ -100,8 +102,11 @@ homepage/
   `feature/<name>`-Branches
 - **Dependabot** aktiv für backend, frontend, ci
 - **CI**: GitHub Actions — Backend-Tests + E2E-Tests + Codecov, müssen grün sein
-- **Migrations**: Alembic — bei Schema-Änderungen immer Migration generieren, niemals
-  Tabellen direkt ändern
+- **Migrations**: Alembic — bei Schema-Änderungen immer `alembic revision --autogenerate
+  -m "..."` im Backend-Container generieren, dann `docker cp` ins Repo (Backend hat
+  keinen Volume-Mount). Migrations laufen automatisch beim Container-Start via
+  `entrypoint.sh`. Test-DB in `conftest.py` nutzt weiterhin `Base.metadata.create_all`
+  für SQLite-In-Memory — unabhängig von Alembic.
 - **Secrets**: ausschließlich in `.env` (nicht committed). `.env.example` als Template
   pflegen, wenn neue Env-Vars dazukommen
 - **Lizenz**: GPLv3
@@ -127,6 +132,11 @@ auf das System. Daher:
   unklar, frag.
 - **Pfade**: Projekt-Root auf dem Pi ist immer `/home/markus/homepage`. Befehle
   wenn möglich mit absolutem Pfad oder mit explizitem `cd ~/homepage` davor.
+- **Container-Files**: Backend hat KEINEN Volume-Mount aufs Repo. Code-Änderungen
+  in `backend/` werden erst nach `docker compose build backend` im Container sichtbar.
+  Files die im Container generiert werden (z.B. neue Alembic-Migrations) müssen mit
+  `docker cp homepage-backend-1:/app/<pfad> ~/homepage/backend/<pfad>` ins Repo geholt
+  werden.
 
 ## Typische Aufgaben & wie ich Hilfe brauche
 
@@ -160,6 +170,10 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
 - Keine Dependency-Major-Bumps "nebenbei" — die laufen über Dependabot-PRs
 - Bei Änderungen, die Migration brauchen, niemals direkt `models.py` editieren ohne
   Alembic-Schritt mitzunennen
+- Bei Schema-Änderungen IMMER vorher prüfen ob die Migration auch auf einer frischen
+  DB läuft (E2E-Tests bauen DB von 0 auf). Lokal gegen einen Wegwerf-Postgres testen
+  bevor pushen. Eine Migration die auf Prod funktioniert weil bestehende Tabellen da
+  sind, kann auf frischer DB scheitern.
 
 ## Aktuelle Aufgabe
 
