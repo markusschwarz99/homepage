@@ -32,6 +32,16 @@ export function Shopping() {
   const [newQty, setNewQty] = useState('');
   const [modal, setModal] = useState<{ name: string; defaultQty: string } | null>(null);
   const [modalQty, setModalQty] = useState('');
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+
+  function toggleDay(key: string) {
+    setExpandedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!user?.is_household) return;
@@ -222,26 +232,44 @@ export function Shopping() {
           {historyGroups.length === 0 ? (
             <p className="text-text-hint text-sm">Noch kein Verlauf.</p>
           ) : (
-            <div className="space-y-6">
-              {historyGroups.map(group => (
-                <div key={group.key}>
-                  <h3 className="text-sm font-medium text-text-muted mb-2">{formatDayHeader(group.date)}</h3>
-                  <div className="bg-bg-primary rounded-lg border border-border divide-y divide-border overflow-hidden">
-                    {group.items.map(h => (
-                      <div key={h.id} className="flex items-center justify-between p-3 gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm"><span className="font-medium">{h.item_name}</span><span className="text-text-muted"> · Menge: {h.quantity}</span></p>
-                          <p className="text-xs text-text-hint mt-0.5">von {h.user_name} · {formatRelativeTime(h.purchased_at)}</p>
-                        </div>
-                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 whitespace-nowrap">✓ Gekauft</span>
+            <div className="bg-bg-primary rounded-lg border border-border divide-y divide-border overflow-hidden">
+              {historyGroups.map(group => {
+                const isOpen = expandedDays.has(group.key);
+                return (
+                  <div key={group.key}>
+                    <button
+                      onClick={() => toggleDay(group.key)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-bg-secondary transition-colors text-left"
+                      aria-expanded={isOpen}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className={`text-text-muted text-xs transition-transform ${isOpen ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="text-sm font-medium truncate">{formatDayHeader(group.date)}</span>
                       </div>
-                    ))}
+                      <span className="text-xs px-2 py-1 rounded-full bg-bg-secondary text-text-muted whitespace-nowrap shrink-0">
+                        {group.items.length} {group.items.length === 1 ? 'Artikel' : 'Artikel'}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div className="border-t border-border divide-y divide-border bg-bg-secondary/30">
+                        {group.items.map(h => (
+                          <div key={h.id} className="flex items-center justify-between p-3 pl-10 gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm"><span className="font-medium">{h.item_name}</span><span className="text-text-muted"> · Menge: {h.quantity}</span></p>
+                              <p className="text-xs text-text-hint mt-0.5">von {h.user_name} · {formatRelativeTime(h.purchased_at)}</p>
+                            </div>
+                            <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 whitespace-nowrap">✓ Gekauft</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
+
       </div>
 
       {modal && (
