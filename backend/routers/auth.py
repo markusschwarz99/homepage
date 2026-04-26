@@ -100,6 +100,8 @@ def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), db: Ses
         raise HTTPException(status_code=401, detail="Ungültige Anmeldedaten")
     if not user.is_verified:
         raise HTTPException(status_code=401, detail="Bitte bestätige zuerst deine Email-Adresse")
+    user.last_login = datetime.now(timezone.utc)
+    db.commit()
     token = auth.create_token({"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
 

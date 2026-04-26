@@ -13,6 +13,7 @@ interface AdminUser {
   is_verified: boolean;
   avatar_url: string;
   created_at: string;
+  last_login: string | null;
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -21,6 +22,22 @@ const ROLE_COLORS: Record<string, string> = {
   household: 'bg-purple-100 text-purple-800',
   admin: 'bg-blue-100 text-blue-800',
 };
+
+function formatLastLogin(iso: string | null): string {
+  if (!iso) return 'Noch nie';
+  const date = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMin < 1) return 'gerade eben';
+  if (diffMin < 60) return `vor ${diffMin} Min`;
+  if (diffHours < 24) return `vor ${diffHours} Std`;
+  if (diffDays === 1) return 'gestern';
+  if (diffDays < 7) return `vor ${diffDays} Tagen`;
+  return date.toLocaleDateString('de-DE');
+}
 
 export function AdminUsers() {
   const { user } = useAuth();
@@ -134,6 +151,9 @@ export function AdminUsers() {
                 <span className="text-text-hint">
                   Registriert: {new Date(u.created_at).toLocaleDateString('de-DE')}
                 </span>
+                <span className="text-text-hint">
+                  Letzter Login: {formatLastLogin(u.last_login)}
+                </span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <select
@@ -170,6 +190,7 @@ export function AdminUsers() {
                 <th className="text-left p-4 text-xs text-text-muted font-medium">Status</th>
                 <th className="text-left p-4 text-xs text-text-muted font-medium">Rolle</th>
                 <th className="text-left p-4 text-xs text-text-muted font-medium">Registriert</th>
+                <th className="text-left p-4 text-xs text-text-muted font-medium">Letzter Login</th>
                 <th className="p-4"></th>
               </tr>
             </thead>
@@ -203,6 +224,9 @@ export function AdminUsers() {
                   </td>
                   <td className="p-4 text-xs text-text-hint">
                     {new Date(u.created_at).toLocaleDateString('de-DE')}
+                  </td>
+                  <td className="p-4 text-xs text-text-hint">
+                    {formatLastLogin(u.last_login)}
                   </td>
                   <td className="p-4">
                     {u.id !== user?.id && (

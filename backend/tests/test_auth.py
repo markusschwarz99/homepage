@@ -147,7 +147,8 @@ class TestVerify:
 # ========== Integration: /auth/login ==========
 
 class TestLogin:
-    def test_login_success(self, client, test_user):
+    def test_login_success(self, client, test_user, db_session):
+        assert test_user.last_login is None
         response = client.post("/auth/login", data={
             "username": test_user.email,
             "password": "TestPassword123!",
@@ -156,6 +157,26 @@ class TestLogin:
         body = response.json()
         assert "access_token" in body
         assert body["token_type"] == "bearer"
+        db_session.refresh(test_user)
+        assert test_user.last_login is not None
+
+    def test_login_updates_last_login_on_repeat(self, client, test_user, db_session):
+        import time
+        client.post("/auth/login", data={
+            "username": test_user.email,
+            "password": "TestPassword123!",
+        })
+        db_session.refresh(test_user)
+        first = test_user.last_login
+        assert first is not None
+
+        time.sleep(0.05)
+        client.post("/auth/login", data={
+            "username": test_user.email,
+            "password": "TestPassword123!",
+        })
+        db_session.refresh(test_user)
+        assert test_user.last_login > first
 
     def test_login_wrong_password(self, client, test_user):
         response = client.post("/auth/login", data={

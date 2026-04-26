@@ -24,6 +24,8 @@ class TestListUsers:
         assert "avatar_url" in user
         assert "created_at" in user
         assert user["created_at"].endswith("Z")
+        assert "last_login" in user
+        assert user["last_login"] is None
 
     def test_member_forbidden(self, client, auth_headers):
         response = client.get("/admin/users", headers=auth_headers)

@@ -30,7 +30,8 @@ def list_users(
             "role": u.role,
             "is_verified": u.is_verified,
             "avatar_url": u.avatar_url or "",
-            "created_at": u.created_at.isoformat() + "Z"
+            "created_at": u.created_at.isoformat() + "Z",
+            "last_login": u.last_login.isoformat() + "Z" if u.last_login else None
         }
         for u in users
     ]

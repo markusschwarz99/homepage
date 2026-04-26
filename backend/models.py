@@ -15,6 +15,7 @@ class User(Base):
     verification_token = Column(String, nullable=True)
     reset_token = Column(String, nullable=True, index=True)
     reset_token_expires = Column(DateTime, nullable=True)
+    last_login = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=func.now())
 
     @property
