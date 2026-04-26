@@ -3,8 +3,7 @@ uvicorn
 sqlalchemy
 psycopg2-binary
 python-jose[cryptography]
-passlib[bcrypt]
-bcrypt==5.0.0
+bcrypt>=5.0.0
 python-multipart
 alembic
 resend
