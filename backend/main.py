@@ -13,7 +13,6 @@ import logging
 
 logger = logging.getLogger("uvicorn")
 
-Base.metadata.create_all(bind=engine)
 os.makedirs(os.getenv("UPLOAD_DIR", "/app/uploads"), exist_ok=True)
 
 app = FastAPI(title="Markus Homepage API")
