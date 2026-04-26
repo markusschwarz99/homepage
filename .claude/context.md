@@ -106,6 +106,28 @@ homepage/
   pflegen, wenn neue Env-Vars dazukommen
 - **Lizenz**: GPLv3
 
+## Wie du mit mir arbeitest
+
+Ich führe Bash-Befehle selbst auf dem Pi aus — du hast keinen direkten Zugriff
+auf das System. Daher:
+
+- **Liefere mir alle Befehle, die ich ausführen muss, um eine Aufgabe zu erledigen.**
+  Auch wenn der Befehl trivial wirkt — schreib ihn explizit hin, damit ich nichts
+  selbst zusammenbauen muss.
+- **Format**: Code-Block mit `bash`, ein Befehl pro Zeile. Bei mehreren Schritten
+  klar nummerieren oder mit Kommentaren (`# Schritt 1: ...`) trennen.
+- **Wenn du Output brauchst, um weiterzumachen** (z.B. Logs, Statusmeldung,
+  Fehlertext, Inhalt einer Datei): sag das explizit am Ende und liste die Befehle,
+  deren Output ich dir reinkopieren soll.
+- **Bei destruktiven oder nicht-trivialen Befehlen**: kurz erklären was passiert,
+  bevor ich es ausführe — kein "trust me, run this".
+- **Plattform-Hinweis**: Mein lokaler Rechner ist **Windows mit PowerShell**, der
+  Pi ist **Ubuntu/bash**. Wenn ein Befehl von Windows aus laufen soll (z.B. `scp`,
+  `ssh`), gib die PowerShell-Variante; wenn er auf dem Pi läuft, gib bash. Wenn
+  unklar, frag.
+- **Pfade**: Projekt-Root auf dem Pi ist immer `/home/markus/homepage`. Befehle
+  wenn möglich mit absolutem Pfad oder mit explizitem `cd ~/homepage` davor.
+
 ## Typische Aufgaben & wie ich Hilfe brauche
 
 **Bugs / Debugging** — Wenn Logs hilfreich wären, frag nach:
