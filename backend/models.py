@@ -155,3 +155,67 @@ class RecipeTag(Base):
     __tablename__ = "recipe_tags"
     recipe_id = Column(Integer, ForeignKey("recipes.id", ondelete="CASCADE"), primary_key=True)
     tag_id = Column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+
+
+# ============================================================
+# Saisonkalender (Obst & Gemüse)
+# ============================================================
+
+import enum as _enum_seasonal
+from sqlalchemy import Enum as _SAEnum_seasonal
+from db_types import IntArray as _IntArray_seasonal
+
+
+class SeasonalCategory(str, _enum_seasonal.Enum):
+    fruit = "fruit"
+    vegetable = "vegetable"
+
+
+class SeasonalAvailability(str, _enum_seasonal.Enum):
+    regional = "regional"
+    storage = "storage"
+    import_ = "import"
+
+
+class SeasonalItem(Base):
+    __tablename__ = "seasonal_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True, index=True)
+    category = Column(
+        _SAEnum_seasonal(SeasonalCategory, name="seasonal_category"),
+        nullable=False,
+        index=True,
+    )
+    months = Column(_IntArray_seasonal(), nullable=False, default=list)
+    availability = Column(
+        _SAEnum_seasonal(SeasonalAvailability, name="seasonal_availability"),
+        nullable=False,
+        default=SeasonalAvailability.regional,
+        server_default="regional",
+    )
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+# ============================================================
+# Site Settings (Key/Value)
+# ============================================================
+
+class SiteSetting(Base):
+    __tablename__ = "site_settings"
+
+    key = Column(String, primary_key=True, index=True)
+    value = Column(Text, nullable=False, default="")
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )

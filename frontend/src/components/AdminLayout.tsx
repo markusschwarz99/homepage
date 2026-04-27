@@ -19,7 +19,7 @@ export function AdminLayout({ children }: Props) {
   }, [user, loading, navigate]);
 
   const tabClass = ({ isActive }: { isActive: boolean }) =>
-    `px-4 py-2 text-sm rounded-lg transition-colors ${
+    `px-4 py-2 text-sm rounded-lg transition-colors whitespace-nowrap ${
       isActive
         ? 'bg-accent text-bg-primary'
         : 'text-text-muted hover:text-text-primary hover:bg-bg-secondary'
@@ -42,6 +42,8 @@ export function AdminLayout({ children }: Props) {
         <div className="flex gap-2 mb-8 border-b border-border pb-4 overflow-x-auto">
           <NavLink to="/admin/users" className={tabClass}>Nutzer</NavLink>
           <NavLink to="/admin/tags" className={tabClass}>Tags</NavLink>
+          <NavLink to="/admin/saisonkalender" className={tabClass}>Saisonkalender</NavLink>
+          <NavLink to="/admin/einstellungen" className={tabClass}>Einstellungen</NavLink>
         </div>
         {children}
       </div>
