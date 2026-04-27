@@ -129,6 +129,10 @@ auf das System. Daher:
   deren Output ich dir reinkopieren soll.
 - **Bei destruktiven oder nicht-trivialen Befehlen**: kurz erklären was passiert,
   bevor ich es ausführe — kein "trust me, run this".
+- **Auch File-Edits als Befehle**: Wenn Code/Config geändert werden muss, gib
+  konkrete Bash-Befehle (`cat > ... << 'EOF'`, `sed -i`, `python3 << 'PYEOF'`),
+  niemals nur "füge folgende Zeile in Datei X ein". Bei größeren Files das
+  ganze File via Heredoc neu schreiben — sed/awk nur für punktuelle Änderungen.
 - **Plattform-Hinweis**: Mein lokaler Rechner ist **Windows mit PowerShell**, der
   Pi ist **Ubuntu/bash**. Wenn ein Befehl von Windows aus laufen soll (z.B. `scp`,
   `ssh`), gib die PowerShell-Variante; wenn er auf dem Pi läuft, gib bash. Wenn
