@@ -101,7 +101,10 @@ homepage/
 - **Branching**: arbeite direkt auf `main` (Solo-Projekt); für größere Features ggf.
   `feature/<name>`-Branches
 - **Dependabot** aktiv für backend, frontend, ci
-- **CI**: GitHub Actions — Backend-Tests + E2E-Tests + Codecov, müssen grün sein
+- **CI**: GitHub Actions — Backend-Tests + E2E-Tests + Codecov, müssen grün sein.
+  Workflows triggern nur auf `push` zu `main` und auf `pull_request` mit Target
+  `main` — Pushes auf Feature-Branches lösen die CI **nicht** aus, erst der PR
+  startet die Checks.
 - **Migrations**: Alembic — bei Schema-Änderungen immer `alembic revision --autogenerate
   -m "..."` im Backend-Container generieren, dann `docker cp` ins Repo (Backend hat
   keinen Volume-Mount). Migrations laufen automatisch beim Container-Start via
