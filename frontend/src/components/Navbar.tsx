@@ -36,6 +36,9 @@ export function Navbar() {
               {user.is_member && (
                 <Link to="/rezepte" className={linkClass}>Rezepte</Link>
               )}
+              {user.is_member && (
+                <Link to="/saisonkalender" className={linkClass}>Saisonkalender</Link>
+              )}
               {user.is_household && (
                 <Link to="/einkaufsliste" className={linkClass}>Einkaufsliste</Link>
               )}
@@ -105,6 +108,9 @@ export function Navbar() {
                 )}
                 {user.is_member && (
                   <Link to="/rezepte" className={mobileLinkClass}>Rezepte</Link>
+                )}
+                {user.is_member && (
+                  <Link to="/saisonkalender" className={mobileLinkClass}>Saisonkalender</Link>
                 )}
                 {user.is_household && (
                   <Link to="/einkaufsliste" className={mobileLinkClass}>Einkaufsliste</Link>

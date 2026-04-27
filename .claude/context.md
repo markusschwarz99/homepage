@@ -157,6 +157,12 @@ Cloudflare-Tunnel, Backup-Strategie, Logs/Monitoring. Berücksichtige ARM64.
 **DB-Queries / Schema** — Postgres 16, SQLAlchemy ORM. Bei `ALTER TABLE` o.ä. → immer
 über Alembic-Migration. Vor Migrations Backup-Erinnerung.
 
+**Konfigurierbare Texte / Site-Settings** — Editierbare Texte (z.B. Homepage-Intro)
+liegen in der Tabelle `site_settings` (Key/Value, Plain-Text). Für neue editierbare
+Felder: Key zur `ALLOWED_KEYS`-Whitelist in `backend/routers/settings.py` ergänzen,
+im Frontend `getSetting('<key>')` aus `api/settings.ts` mit Fallback verwenden,
+Admin-UI in `pages/AdminSettings.tsx` erweitern.
+
 **Security-Hardening** — Rate Limiting, JWT-Lifetime, Bcrypt-Rounds, Upload-Validation,
 CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
 
@@ -170,6 +176,10 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
 - Keine Dependency-Major-Bumps "nebenbei" — die laufen über Dependabot-PRs
 - Bei Änderungen, die Migration brauchen, niemals direkt `models.py` editieren ohne
   Alembic-Schritt mitzunennen
+- **CORS allow_methods**: Backend erlaubt nur `GET, POST, PATCH, DELETE, OPTIONS`
+  (siehe `backend/main.py`). Niemals `PUT` für neue Endpoints — Update-Konvention im
+  Repo ist **PATCH** (siehe `routers/tags.py`, `routers/settings.py`). Wenn `PUT`
+  wirklich nötig wird, muss `allow_methods` erweitert werden.
 - Bei Schema-Änderungen IMMER vorher prüfen ob die Migration auch auf einer frischen
   DB läuft (E2E-Tests bauen DB von 0 auf). Lokal gegen einen Wegwerf-Postgres testen
   bevor pushen. Eine Migration die auf Prod funktioniert weil bestehende Tabellen da
@@ -178,8 +188,9 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
 ## Aktuelle Aufgabe
 
 <!-- HIER pro Chat ausfüllen: -->
-**Branch**: `main`
-**Was ich machen will**: …
+**Branch**: 
+**Was ich machen will**: 
+
 
 ## Am Ende dieses Chats
 

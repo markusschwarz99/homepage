@@ -116,3 +116,27 @@ export interface RecipeInput {
   images: { url: string }[];
   tag_ids: number[];
 }
+
+// ---------- Saisonkalender ----------
+
+export type SeasonalCategory = 'fruit' | 'vegetable';
+export type SeasonalAvailability = 'regional' | 'storage' | 'import';
+
+export interface SeasonalItem {
+  id: number;
+  name: string;
+  category: SeasonalCategory;
+  months: number[];
+  availability: SeasonalAvailability;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SeasonalItemInput {
+  name: string;
+  category: SeasonalCategory;
+  months: number[];
+  availability: SeasonalAvailability;
+  notes?: string | null;
+}
