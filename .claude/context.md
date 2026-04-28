@@ -35,9 +35,12 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
 
 **Frontend** — Node 22, React 19 + TypeScript 6 + Vite 8
 - React Router 7
-- Tailwind CSS 3.4 + `@tailwindcss/typography` (gepinnt auf `~3.4.x` —
-  v4 ist Major-Rewrite mit neuer Engine, eigenes Migrations-Projekt,
-  nicht über Dependabot bumpen)
+- Tailwind CSS 4.x + `@tailwindcss/postcss` + `@tailwindcss/typography`
+  (CSS-first config: `@theme`-Block und `@plugin`-Direktiven in
+  `frontend/src/index.css`, KEINE `tailwind.config.js` mehr).
+  Mindest-Browser: Safari ≥16.4, Chrome ≥111, Firefox ≥128
+  (CSS Cascade Layers, `@property`, `color-mix()`). `autoprefixer` ist
+  raus — v4 macht das intern.
 - TipTap 3 (Rich-Editor: Image, Link, Placeholder, TextAlign, Underline, StarterKit)
 - DOMPurify für HTML-Sanitization
 - ESLint 10 + typescript-eslint
@@ -153,6 +156,12 @@ auf das System. Daher:
   `docker cp homepage-backend-1:/app/<pfad> ~/homepage/backend/<pfad>` ins Repo geholt
   werden.
 
+- **Primer-Updates** liefere immer als Bash-Befehl (nicht als "ergänze
+  Zeile X in Datei Y"). Die Datei liegt unter `~/homepage/.claude/context.md`.
+  Format wie alle anderen File-Edits: `python3 << 'PYEOF'` für punktuelle
+  Replaces, `cat > ... << 'EOF'` für komplette Abschnitte, `sed -i` für
+  einfache Substitutionen. Ich committe selbst.
+
 ## Typische Aufgaben & wie ich Hilfe brauche
 
 **Bugs / Debugging** — Wenn Logs hilfreich wären, frag nach:
@@ -191,6 +200,11 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
 - Keine Dependency-Major-Bumps "nebenbei" — die laufen über Dependabot-PRs
 - Bei Änderungen, die Migration brauchen, niemals direkt `models.py` editieren ohne
   Alembic-Schritt mitzunennen
+- **Tailwind-Theme-Änderungen**: Neue Custom-Farben/Fonts gehen in den
+  `@theme {}`-Block in `frontend/src/index.css` (CSS-Variablen-Pattern
+  `--color-{namespace}-{name}`, expandiert automatisch zu Utilities wie
+  `bg-<name>`, `text-<name>`, `border-<name>`). NICHT mehr in eine
+  `tailwind.config.js` — die existiert nicht mehr.
 - **CORS allow_methods**: Backend erlaubt nur `GET, POST, PATCH, DELETE, OPTIONS`
   (siehe `backend/main.py`). Niemals `PUT` für neue Endpoints — Update-Konvention im
   Repo ist **PATCH** (siehe `routers/tags.py`, `routers/settings.py`). Wenn `PUT`
