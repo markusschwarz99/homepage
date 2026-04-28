@@ -183,7 +183,7 @@ class SeasonalItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, unique=True, index=True)
     category = Column(
-        _SAEnum_seasonal(SeasonalCategory, name="seasonal_category"),
+        _SAEnum_seasonal(SeasonalCategory, name="seasonal_category", values_callable=lambda e: [m.value for m in e]),
         nullable=False,
         index=True,
     )
@@ -219,7 +219,7 @@ class SeasonalAvailabilityEntry(Base):
     )
     month = Column(Integer, primary_key=True)
     type = Column(
-        _SAEnum_seasonal(SeasonalAvailability, name="seasonal_availability"),
+        _SAEnum_seasonal(SeasonalAvailability, name="seasonal_availability", values_callable=lambda e: [m.value for m in e]),
         primary_key=True,
     )
 

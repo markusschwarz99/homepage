@@ -104,6 +104,24 @@ class TestCRUD:
         assert _types_for_month(data, 1) == ["storage"]
         assert "id" in data
 
+    def test_create_with_import_type(self, client, admin_headers):
+        """Regression: 'import' als Wert (Python-Enum-Member heißt 'import_', Value 'import')."""
+        response = client.post(
+            "/seasonal",
+            json={
+                "name": "Banane", "category": "fruit",
+                "availabilities": [
+                    {"month": 1, "types": ["import"]},
+                    {"month": 6, "types": ["regional", "import"]},
+                ],
+            },
+            headers=admin_headers,
+        )
+        assert response.status_code == 201, response.text
+        data = response.json()
+        assert _types_for_month(data, 1) == ["import"]
+        assert _types_for_month(data, 6) == ["regional", "import"]
+
     def test_create_duplicate_name(self, client, admin_headers, created_item, sample_payload):
         response = client.post("/seasonal", json=sample_payload, headers=admin_headers)
         assert response.status_code == 409
