@@ -1,11 +1,32 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@plugin "@tailwindcss/typography";
+
+@theme {
+  /* Background colors */
+  --color-bg-primary: #F2F2F2;
+  --color-bg-secondary: #D8D9D7;
+  --color-bg-tertiary: #BFBFBD;
+
+  /* Text colors */
+  --color-text-primary: #0D0D0D;
+  --color-text-muted: #73706C;
+  --color-text-hint: #BFBFBD;
+
+  /* Accent colors */
+  --color-accent: #0D0D0D;
+  --color-accent-hover: #73706C;
+
+  /* Border colors */
+  --color-border: #BFBFBD;
+  --color-border-light: #D8D9D7;
+
+  /* Font family */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
 
 @layer base {
   body {
     @apply bg-bg-primary text-text-primary;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    line-height: 1.7;
   }
 }
