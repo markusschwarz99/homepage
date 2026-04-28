@@ -122,12 +122,16 @@ export interface RecipeInput {
 export type SeasonalCategory = 'fruit' | 'vegetable';
 export type SeasonalAvailability = 'regional' | 'storage' | 'import';
 
+export interface MonthAvailability {
+  month: number; // 1..12
+  types: SeasonalAvailability[]; // mind. 1, sortiert: regional, storage, import
+}
+
 export interface SeasonalItem {
   id: number;
   name: string;
   category: SeasonalCategory;
-  months: number[];
-  availability: SeasonalAvailability;
+  availabilities: MonthAvailability[];
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -136,7 +140,6 @@ export interface SeasonalItem {
 export interface SeasonalItemInput {
   name: string;
   category: SeasonalCategory;
-  months: number[];
-  availability: SeasonalAvailability;
+  availabilities: MonthAvailability[];
   notes?: string | null;
 }

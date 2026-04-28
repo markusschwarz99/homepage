@@ -168,6 +168,18 @@ auf das System. Daher:
 `docker compose logs -f backend` / `docker compose logs -f frontend`. Bei DB-Fragen:
 `docker compose exec db psql -U $POSTGRES_USER $POSTGRES_DB`.
 
+**Backend-Tests lokal laufen lassen**: dev-deps installieren mit
+`docker compose exec -T backend pip install -r requirements-dev.txt`
+(verschwinden bei nächstem Container-Restart, gewollt). Dann
+`docker compose exec -T backend python -m pytest --no-cov` —
+nicht `pytest` direkt, da installiert in `/home/app/.local/bin`
+(nicht im PATH).
+
+**Standalone-Maintenance-Skripte** liegen unter `backend/scripts/`,
+werden mit `docker compose exec -T backend python scripts/<name>.py`
+ausgeführt. Beispiel: `scripts/refine_seasonal_data.py`. Skripte
+sollten idempotent sein und einen `--dry-run`-Modus anbieten.
+
 **Neue Features** — Schlage Code vor, der zum bestehenden Stil passt
 (FastAPI-Router-Pattern, React-Function-Components mit Hooks, Tailwind-Klassen).
 Wenn DB-Schema betroffen ist: Alembic-Migration mitliefern.
@@ -209,6 +221,12 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   (siehe `backend/main.py`). Niemals `PUT` für neue Endpoints — Update-Konvention im
   Repo ist **PATCH** (siehe `routers/tags.py`, `routers/settings.py`). Wenn `PUT`
   wirklich nötig wird, muss `allow_methods` erweitert werden.
+- **SQLAlchemy-Enums mit reserved-word-Workaround**: Wenn ein Python-Enum-Member
+  einen Underscore-Suffix hat (z.B. `import_` mit value `"import"`, weil `import`
+  reserved word ist), muss bei der Spalten-Definition `values_callable=lambda e:
+  [m.value for m in e]` gesetzt werden. Sonst schreibt SQLAlchemy den
+  Member-Namen (`import_`) und Postgres-Enums lehnen ab. Beispiel siehe
+  `SeasonalAvailability` in `backend/models.py`.
 - Bei Schema-Änderungen IMMER vorher prüfen ob die Migration auch auf einer frischen
   DB läuft (E2E-Tests bauen DB von 0 auf). Lokal gegen einen Wegwerf-Postgres testen
   bevor pushen. Eine Migration die auf Prod funktioniert weil bestehende Tabellen da
