@@ -5,11 +5,13 @@ einem Raspberry Pi. Antworte bitte auf Deutsch, sei direkt und pragmatisch.
 
 ## Was die Seite macht
 
-Persönliche Homepage mit drei Hauptbereichen:
+Persönliche Homepage mit vier Hauptbereichen:
 - **Blog** (Admin-only, TipTap-Rich-Editor mit Bild-Upload)
 - **Rezepte-Archiv** (strukturierte Zutaten mit Portions-Skalierung, Schritt-für-Schritt,
   Bilder-Galerie, Tag-Filter)
 - **Einkaufsliste** (geteilt im Haushalt, mit Frequent-Items und History)
+- **Saisonkalender** (zeigt regional/saisonal verfügbare Lebensmittel,
+  Verwaltung unter `/admin/saisonkalender`, Backend-Router `seasonal.py`)
 
 Vier Rollen: **Guest / Member / Household / Admin**.
 Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
@@ -33,7 +35,9 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
 
 **Frontend** — Node 22, React 19 + TypeScript 6 + Vite 8
 - React Router 7
-- Tailwind CSS 3.4 + `@tailwindcss/typography`
+- Tailwind CSS 3.4 + `@tailwindcss/typography` (gepinnt auf `~3.4.x` —
+  v4 ist Major-Rewrite mit neuer Engine, eigenes Migrations-Projekt,
+  nicht über Dependabot bumpen)
 - TipTap 3 (Rich-Editor: Image, Link, Placeholder, TextAlign, Underline, StarterKit)
 - DOMPurify für HTML-Sanitization
 - ESLint 10 + typescript-eslint
@@ -50,10 +54,14 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
   serviert über Nginx im Container auf Port 80
 - DB nur intern erreichbar (Container-Netzwerk, kein Port-Mapping)
 - Backend hat IPv6 disabled via sysctl
-- **Nginx Proxy Manager** als Reverse Proxy (separates Compose-Setup unter
-  `~/nginx-proxy-manager/`)
-- **Cloudflare Tunnel** (`cloudflared` als systemd-Service) — kein Port-Forwarding, keine
-  öffentliche IP
+- **Cloudflare Tunnel** (`cloudflared` als systemd-Service, Token-Mode) zeigt direkt
+  auf die Container — kein Reverse Proxy dazwischen, kein Port-Forwarding, keine
+  öffentliche IP. Public Hostnames werden im Cloudflare Zero Trust Dashboard
+  konfiguriert, KEINE lokale `config.yml`. Token steht im systemd-Override unter
+  `/etc/systemd/system/cloudflared.service.d/override.conf`. **Wichtig:** Bei
+  Debugging niemals `systemctl status cloudflared` ohne `| head` ausführen — der
+  Output zeigt die volle Command-Line inkl. Token. Stattdessen
+  `systemctl is-active cloudflared` und `journalctl -u cloudflared` nutzen.
 - **Portainer** auf Port 9000 für Container-Verwaltung
 
 ## Projekt-Struktur
@@ -90,8 +98,8 @@ homepage/
 
 ## Externer Zugriff
 
-- Frontend: `https://markus-schwarz.cc` → Cloudflare Tunnel → NPM → Frontend-Container :80
-- Backend: `https://api.markus-schwarz.cc` → Cloudflare Tunnel → NPM → Backend-Container :8000
+- Frontend: `https://markus-schwarz.cc` → Cloudflare Tunnel → Frontend-Container :80
+- Backend: `https://api.markus-schwarz.cc` → Cloudflare Tunnel → Backend-Container :8000
 - SSH: nur lokal/LAN
 
 ## Konventionen & Workflows
