@@ -4,15 +4,22 @@
  */
 
 import { api } from '../lib/api';
-import type { SeasonalItem, SeasonalItemInput, SeasonalCategory } from '../types';
+import type {
+  SeasonalItem,
+  SeasonalItemInput,
+  SeasonalCategory,
+  SeasonalAvailability,
+} from '../types';
 
 export async function listSeasonalItems(params?: {
   category?: SeasonalCategory;
   month?: number;
+  type?: SeasonalAvailability;
 }): Promise<SeasonalItem[]> {
   const query = new URLSearchParams();
   if (params?.category) query.set('category', params.category);
   if (params?.month !== undefined) query.set('month', String(params.month));
+  if (params?.type) query.set('type', params.type);
   const qs = query.toString();
   return api<SeasonalItem[]>(`/seasonal${qs ? '?' + qs : ''}`);
 }
@@ -33,7 +40,7 @@ export async function updateSeasonalItem(
   payload: Partial<SeasonalItemInput>,
 ): Promise<SeasonalItem> {
   return api<SeasonalItem>(`/seasonal/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: JSON.stringify(payload),
   });
 }

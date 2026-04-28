@@ -5,17 +5,58 @@ import { Button } from '../components/Button';
 import { useAuth } from '../hooks/useAuth';
 import { listSeasonalItems } from '../api/seasonal';
 import { NotFound } from './NotFound';
-import type { SeasonalItem, SeasonalCategory, SeasonalAvailability } from '../types';
+import type {
+  SeasonalItem,
+  SeasonalCategory,
+  SeasonalAvailability,
+
+} from '../types';
 
 const MONTH_NAMES = ['Jän', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
 const AVAILABILITY_LABEL: Record<SeasonalAvailability, string> = {
-  regional: 'Regional',
+  regional: 'Saison',
   storage: 'Lagerware',
   import: 'Import',
 };
 
+const AVAILABILITY_COLOR: Record<SeasonalAvailability, string> = {
+  regional: 'bg-green-600',
+  storage: 'bg-amber-500',
+  import: 'bg-sky-600',
+};
+
+// Hex-Werte für inline gradient backgrounds (entsprechen den Tailwind-Farben oben)
+const AVAILABILITY_HEX: Record<SeasonalAvailability, string> = {
+  regional: '#16a34a',
+  storage: '#f59e0b',
+  import: '#0284c7',
+};
+
+const AVAILABILITY_ORDER: Record<SeasonalAvailability, number> = {
+  regional: 0,
+  storage: 1,
+  import: 2,
+};
+
 type ViewMode = 'current' | 'month' | 'year';
+type AvailabilityFilter = 'all' | SeasonalAvailability;
+
+function getAvailabilityForMonth(item: SeasonalItem, month: number): SeasonalAvailability[] {
+  return item.availabilities.find((a) => a.month === month)?.types ?? [];
+}
+
+function hasAvailability(item: SeasonalItem, month: number): boolean {
+  return getAvailabilityForMonth(item, month).length > 0;
+}
+
+function hasAvailabilityType(item: SeasonalItem, month: number, type: SeasonalAvailability): boolean {
+  return getAvailabilityForMonth(item, month).includes(type);
+}
+
+function sortTypes(types: SeasonalAvailability[]): SeasonalAvailability[] {
+  return [...types].sort((a, b) => AVAILABILITY_ORDER[a] - AVAILABILITY_ORDER[b]);
+}
 
 export function SeasonalCalendar() {
   const { user, loading } = useAuth();
@@ -27,6 +68,7 @@ export function SeasonalCalendar() {
   const [viewMode, setViewMode] = useState<ViewMode>('current');
   const [selectedMonth, setSelectedMonth] = useState<number>(currentMonth);
   const [categoryFilter, setCategoryFilter] = useState<SeasonalCategory | 'all'>('all');
+  const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>('all');
 
   useEffect(() => {
     if (loading || !user?.is_member) return;
@@ -41,17 +83,35 @@ export function SeasonalCalendar() {
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
-      if (viewMode === 'current' && !item.months.includes(currentMonth)) return false;
-      if (viewMode === 'month' && !item.months.includes(selectedMonth)) return false;
+
+      // Monat-Filter (außer im Year-Modus)
+      const monthToCheck = viewMode === 'current' ? currentMonth : viewMode === 'month' ? selectedMonth : null;
+
+      if (monthToCheck !== null) {
+        if (availabilityFilter === 'all') {
+          if (!hasAvailability(item, monthToCheck)) return false;
+        } else {
+          if (!hasAvailabilityType(item, monthToCheck, availabilityFilter)) return false;
+        }
+      } else {
+        // Year-Modus: filter auf availabilityFilter über alle Monate
+        if (availabilityFilter !== 'all') {
+          const matches = item.availabilities.some((a) => a.types.includes(availabilityFilter));
+          if (!matches) return false;
+        }
+      }
+
       return true;
     });
-  }, [items, categoryFilter, viewMode, selectedMonth, currentMonth]);
+  }, [items, categoryFilter, viewMode, selectedMonth, currentMonth, availabilityFilter]);
 
   const fruits = filteredItems.filter((i) => i.category === 'fruit');
   const vegetables = filteredItems.filter((i) => i.category === 'vegetable');
 
   if (loading) return null;
   if (!user?.is_member) return <NotFound />;
+
+  const referenceMonth = viewMode === 'year' ? null : viewMode === 'current' ? currentMonth : selectedMonth;
 
   return (
     <Layout>
@@ -121,6 +181,45 @@ export function SeasonalCalendar() {
                 </ViewBtn>
               </div>
             </div>
+
+            <div>
+              <label className="block text-sm text-text-muted mb-2">Verfügbarkeit</label>
+              <div className="inline-flex rounded-lg overflow-hidden border border-border">
+                <ViewBtn
+                  active={availabilityFilter === 'all'}
+                  onClick={() => setAvailabilityFilter('all')}
+                  testid="avail-all"
+                >
+                  Alle
+                </ViewBtn>
+                <ViewBtn
+                  active={availabilityFilter === 'regional'}
+                  onClick={() => setAvailabilityFilter('regional')}
+                  testid="avail-regional"
+                >
+                  Saison
+                </ViewBtn>
+                <ViewBtn
+                  active={availabilityFilter === 'storage'}
+                  onClick={() => setAvailabilityFilter('storage')}
+                  testid="avail-storage"
+                >
+                  Lager
+                </ViewBtn>
+                <ViewBtn
+                  active={availabilityFilter === 'import'}
+                  onClick={() => setAvailabilityFilter('import')}
+                  testid="avail-import"
+                >
+                  Import
+                </ViewBtn>
+              </div>
+            </div>
+          </div>
+
+          {/* Legende */}
+          <div className="mt-4 flex flex-wrap gap-4 text-xs text-text-muted">
+            <LegendDot type="regional" /> <LegendDot type="storage" /> <LegendDot type="import" />
           </div>
         </div>
 
@@ -134,10 +233,10 @@ export function SeasonalCalendar() {
             ) : (
               <div className="space-y-8">
                 {(categoryFilter === 'all' || categoryFilter === 'fruit') && fruits.length > 0 && (
-                  <CategorySection title="Obst" items={fruits} />
+                  <CategorySection title="Obst" items={fruits} referenceMonth={referenceMonth} />
                 )}
                 {(categoryFilter === 'all' || categoryFilter === 'vegetable') && vegetables.length > 0 && (
-                  <CategorySection title="Gemüse" items={vegetables} />
+                  <CategorySection title="Gemüse" items={vegetables} referenceMonth={referenceMonth} />
                 )}
               </div>
             )}
@@ -175,24 +274,41 @@ function ViewBtn({
   );
 }
 
-function CategorySection({ title, items }: { title: string; items: SeasonalItem[] }) {
+function LegendDot({ type }: { type: SeasonalAvailability }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`inline-block w-3 h-3 rounded-sm ${AVAILABILITY_COLOR[type]}`} />
+      {AVAILABILITY_LABEL[type]}
+    </span>
+  );
+}
+
+function CategorySection({
+  title,
+  items,
+  referenceMonth,
+}: {
+  title: string;
+  items: SeasonalItem[];
+  referenceMonth: number | null;
+}) {
   return (
     <section>
       <h2 className="text-xl font-medium text-text-primary mb-4">{title}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {items.map((item) => (
-          <ItemCard key={item.id} item={item} />
+          <ItemCard key={item.id} item={item} referenceMonth={referenceMonth} />
         ))}
       </div>
     </section>
   );
 }
 
-function ItemCard({ item }: { item: SeasonalItem }) {
+function ItemCard({ item, referenceMonth }: { item: SeasonalItem; referenceMonth: number | null }) {
   const currentMonth = new Date().getMonth() + 1;
-
-  const colorForAvailability = (avail: SeasonalAvailability) =>
-    avail === 'regional' ? 'bg-green-600' : avail === 'storage' ? 'bg-amber-500' : 'bg-text-muted';
+  // Im Year-Modus zeigen wir den aktuellen Monat als "current", aber kein Badge
+  const badgeMonth = referenceMonth;
+  const badgeTypes = badgeMonth !== null ? sortTypes(getAvailabilityForMonth(item, badgeMonth)) : [];
 
   return (
     <article
@@ -200,29 +316,59 @@ function ItemCard({ item }: { item: SeasonalItem }) {
       data-testid="seasonal-item-card"
       data-item-name={item.name}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-3 gap-2">
         <h3 className="font-medium text-text-primary">{item.name}</h3>
-        <span
-          className={`text-xs px-2 py-0.5 rounded-full text-white ${colorForAvailability(
-            item.availability,
-          )}`}
-        >
-          {AVAILABILITY_LABEL[item.availability]}
-        </span>
+        {badgeTypes.length > 0 && (
+          <div className="flex gap-1 flex-wrap justify-end">
+            {badgeTypes.map((t) => (
+              <span
+                key={t}
+                className={`text-[10px] px-2 py-0.5 rounded-full text-white whitespace-nowrap ${AVAILABILITY_COLOR[t]}`}
+              >
+                {AVAILABILITY_LABEL[t]}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-12 gap-0.5 mb-3" aria-label="Saisonale Monate">
         {MONTH_NAMES.map((name, idx) => {
           const month = idx + 1;
-          const active = item.months.includes(month);
+          const types = sortTypes(getAvailabilityForMonth(item, month));
           const isCurrent = month === currentMonth;
+          const isReference = referenceMonth !== null && month === referenceMonth;
+
+          // Hintergrund: gradient bei mehreren Types, solid bei einem, neutral bei keinem
+          const backgroundStyle: React.CSSProperties = (() => {
+            if (types.length === 0) return {};
+            if (types.length === 1) return { backgroundColor: AVAILABILITY_HEX[types[0]] };
+            // Vertikale Streifen via linear-gradient
+            const stops: string[] = [];
+            const step = 100 / types.length;
+            types.forEach((t, i) => {
+              const start = i * step;
+              const end = (i + 1) * step;
+              stops.push(`${AVAILABILITY_HEX[t]} ${start}% ${end}%`);
+            });
+            return { background: `linear-gradient(180deg, ${stops.join(', ')})` };
+          })();
+
+          const tooltip =
+            types.length === 0
+              ? `${name}: nicht verfügbar`
+              : `${name}: ${types.map((t) => AVAILABILITY_LABEL[t]).join(' + ')}`;
+
           return (
             <div
               key={month}
-              title={name}
+              title={tooltip}
+              data-month={month}
+              data-types={types.join(',')}
+              style={backgroundStyle}
               className={`h-6 text-[10px] flex items-center justify-center rounded ${
-                active ? `${colorForAvailability(item.availability)} text-white` : 'bg-bg-tertiary text-text-hint'
-              } ${isCurrent ? 'ring-2 ring-accent' : ''}`}
+                types.length === 0 ? 'bg-bg-tertiary text-text-hint' : 'text-white'
+              } ${isCurrent ? 'ring-2 ring-accent' : ''} ${isReference && !isCurrent ? 'ring-1 ring-accent/60' : ''}`}
             >
               {name.charAt(0)}
             </div>
