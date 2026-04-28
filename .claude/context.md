@@ -231,6 +231,15 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   DB läuft (E2E-Tests bauen DB von 0 auf). Lokal gegen einen Wegwerf-Postgres testen
   bevor pushen. Eine Migration die auf Prod funktioniert weil bestehende Tabellen da
   sind, kann auf frischer DB scheitern.
+- **Branch-Wechsel + Container-Rebuild**: Wenn auf einem Feature-Branch
+  Migrations laufen und du dann zu `main` wechselst (PR noch nicht gemergt),
+  läuft der nächste Container-Build mit altem Code gegen eine DB im neuen
+  Stand. Symptom: `alembic upgrade head` failt mit `Can't locate revision
+  identified by '<rev>'`, weil die Migration nur auf dem Feature-Branch
+  existiert. Faustregel: **vor jedem `docker compose build` checken auf
+  welchem Branch du bist** (`git branch --show-current`). Bei Inkonsistenz
+  entweder zurück auf den Feature-Branch oder PR mergen, BEVOR rebuilt
+  wird.
 
 ## Aktuelle Aufgabe
 
