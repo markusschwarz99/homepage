@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, Float, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, Float, UniqueConstraint, CheckConstraint, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -187,13 +187,6 @@ class SeasonalItem(Base):
         nullable=False,
         index=True,
     )
-    months = Column(_IntArray_seasonal(), nullable=False, default=list)
-    availability = Column(
-        _SAEnum_seasonal(SeasonalAvailability, name="seasonal_availability"),
-        nullable=False,
-        default=SeasonalAvailability.regional,
-        server_default="regional",
-    )
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(
@@ -202,6 +195,42 @@ class SeasonalItem(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    availabilities = relationship(
+        "SeasonalAvailabilityEntry",
+        back_populates="item",
+        cascade="all, delete-orphan",
+        order_by="SeasonalAvailabilityEntry.month",
+    )
+
+
+class SeasonalAvailabilityEntry(Base):
+    """
+    Verfügbarkeits-Eintrag pro (Item, Monat, Typ).
+    Composite-PK: ein Item kann pro Monat mehrere Typen haben (z.B. regional + storage).
+    """
+
+    __tablename__ = "seasonal_availabilities"
+
+    item_id = Column(
+        Integer,
+        ForeignKey("seasonal_items.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    month = Column(Integer, primary_key=True)
+    type = Column(
+        _SAEnum_seasonal(SeasonalAvailability, name="seasonal_availability"),
+        primary_key=True,
+    )
+
+    item = relationship("SeasonalItem", back_populates="availabilities")
+
+    __table_args__ = (
+        CheckConstraint("month >= 1 AND month <= 12", name="ck_seasonal_avail_month_range"),
+        Index("ix_seasonal_avail_month", "month"),
+        Index("ix_seasonal_avail_type", "type"),
+    )
+
 
 
 # ============================================================
