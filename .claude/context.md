@@ -109,8 +109,10 @@ homepage/
 
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `deps(backend):`, `deps(frontend):`,
   `deps(ci):`, `chore:`, `docs:`, `test:`, `refactor:`)
-- **Branching**: arbeite direkt auf `main` (Solo-Projekt); für größere Features ggf.
-  `feature/<name>`-Branches
+- **Branching**: für jede nicht-triviale Änderung (Code, Schema, Config,
+  Dependencies) ein `feature/<name>`-Branch + PR + grüne CI vor Merge.
+  Hintergrund: siehe Abschnitt "Prod-Deploy-Disziplin". Triviale Änderungen
+  (README, Kommentare, Primer-Updates, `.env.example`) dürfen direkt auf `main`.
 - **Dependabot** aktiv für backend, frontend, ci
 - **CI**: GitHub Actions — Backend-Tests + E2E-Tests + Codecov, müssen grün sein.
   Workflows triggern nur auf `push` zu `main` und auf `pull_request` mit Target
@@ -240,6 +242,49 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   welchem Branch du bist** (`git branch --show-current`). Bei Inkonsistenz
   entweder zurück auf den Feature-Branch oder PR mergen, BEVOR rebuilt
   wird.
+
+## Prod-Deploy-Disziplin
+
+**Wichtig zum Verständnis**: Es gibt KEIN Auto-Deploy. Ein `git push` auf `main`
+deployed nichts. Code landet erst auf Prod, wenn ich auf dem Pi explizit
+`git pull && docker compose build <service> && docker compose up -d <service>`
+ausführe. Der Pi-Rebuild ist der einzige Deploy-Hebel.
+
+Trotzdem gilt: **`main` muss jederzeit in deploy-bereitem Zustand sein.**
+Hintergrund: Wenn ich auf dem Pi mal ohne genau hinzuschauen pulle und
+rebuilde (oder falls ein Chat unterwegs abbricht und ich später nicht mehr
+weiß, was Sache war), darf `main` mich nicht mit einem kaputten Backend,
+Frontend oder einer kaputten Migration überraschen.
+
+Daraus folgt:
+
+- **Feature-Branch-Workflow für alles, was Backend, Frontend, DB oder
+  Compose-Setup berührt.** Ablauf:
+  1. `git checkout -b feature/<name>` — vom aktuellen `main` aus
+  2. Code-Änderungen, lokale Tests
+  3. Push: `git push -u origin feature/<name>`
+  4. PR auf GitHub öffnen → CI muss grün werden (Backend-Tests + E2E)
+  5. **Erst nach grüner CI mergen**, niemals "rot mergen und später fixen".
+     Damit ist `main` immer deploy-bereit.
+  6. Nach Merge: `git checkout main && git pull && git branch -d feature/<name>`
+- **Pi-Deploy ist ein bewusster, separater Schritt** — kommt nach dem Merge,
+  nicht automatisch. Reihenfolge auf dem Pi:
+  `git pull && docker compose build <service> && docker compose up -d <service>`.
+- **Bei Schema-Änderungen zusätzlich**: vor dem Pi-Deploy DB-Backup ziehen
+  (`./scripts/backup-db.sh`), und die Migration vorher auf einer frischen DB
+  testen (siehe Hinweis im "Was du *nicht* tun sollst"-Abschnitt zu
+  Branch-Wechsel + Container-Rebuild).
+- **Wenn ein Chat unterwegs abbricht** (Tokens leer, Verbindung weg): solange
+  nichts auf `main` gemergt wurde, ist Prod sicher — der Pi läuft auf dem
+  letzten gemergten Stand weiter. Der Feature-Branch kann im nächsten Chat
+  weiterbearbeitet werden. Deshalb: **lieber zu früh committen und pushen**
+  (auf den Feature-Branch) als zu spät — uncommittete Änderungen sind im
+  Worst Case verloren.
+- **Hotfixes** (Prod brennt, muss schnell raus): direkter `main`-Push ist OK,
+  aber Backend-Tests vorher lokal grün gesehen haben.
+
+Faustregel beim Aufgabenstart: *"Würde ich diese Änderung gerade auf Prod
+ausrollen wollen, ohne sie vorher gesehen zu haben?"* Wenn nein → Feature-Branch.
 
 ## Aktuelle Aufgabe
 
