@@ -46,5 +46,10 @@ export async function api<T = any>(
     throw new Error(error.detail || 'Fehler');
   }
 
+  // 204 No Content (z.B. DELETE) und andere leere Bodies behandeln —
+  // response.json() würde sonst auf "" einen JSON-Parse-Error werfen.
+  if (response.status === 204 || response.headers.get('content-length') === '0') {
+    return undefined as T;
+  }
   return response.json();
 }

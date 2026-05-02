@@ -236,6 +236,9 @@ class TestDeleteComment:
             headers=auth_headers,
         )
         assert response.status_code == 204
+        # Body MUSS leer sein — Frontend-api()-Wrapper würde sonst beim
+        # JSON-Parse einen "Unexpected end of JSON input"-Fehler werfen.
+        assert response.content == b""
         assert db_session.query(models.RecipeComment).filter_by(id=comment_id).first() is None
 
     def test_member_cannot_delete_others(self, client, auth_headers, recipe, db_session):
