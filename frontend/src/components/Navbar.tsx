@@ -28,6 +28,7 @@ export function Navbar() {
         </Link>
 
         <div className="hidden md:flex gap-6">
+          <Link to="/impostor" className={linkClass}>Impostor</Link>
           {user && (
             <>
               {user.is_admin && (
@@ -101,6 +102,7 @@ export function Navbar() {
           onClick={() => setOpen(false)}
         >
           <div className="px-6 py-4" onClick={e => e.stopPropagation()}>
+            <Link to="/impostor" className={mobileLinkClass}>Impostor</Link>
             {user ? (
               <>
                 {user.is_admin && (

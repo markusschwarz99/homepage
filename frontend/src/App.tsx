@@ -20,6 +20,8 @@ import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { SeasonalCalendar } from './pages/SeasonalCalendar';
 import { SeasonalCalendarAdmin } from './pages/SeasonalCalendarAdmin';
+import { Impostor } from './pages/Impostor';
+import { AdminImpostor } from './pages/AdminImpostor';
 
 function App() {
   return (
@@ -40,11 +42,13 @@ function App() {
         {/* Alte URL → neue Admin-URL */}
         <Route path="/saisonkalender/admin" element={<Navigate to="/admin/saisonkalender" replace />} />
         <Route path="/einkaufsliste" element={<Shopping />} />
+        <Route path="/impostor" element={<Impostor />} />
         <Route path="/account" element={<Account />} />
         <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/tags" element={<AdminTags />} />
         <Route path="/admin/saisonkalender" element={<SeasonalCalendarAdmin />} />
+        <Route path="/admin/impostor" element={<AdminImpostor />} />
         <Route path="/admin/einstellungen" element={<AdminSettings />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
