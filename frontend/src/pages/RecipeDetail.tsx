@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { Modal } from '../components/Modal';
+import { RecipeComments } from '../components/RecipeComments';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import { formatAmount, scaleAmount } from '../lib/recipe';
@@ -221,6 +222,10 @@ export function RecipeDetail() {
           </div>
         </div>
       </div>
+
+      {user && (
+        <RecipeComments recipeId={recipe.id} currentUser={user} />
+      )}
 
       {deleteModal && (
         <Modal
