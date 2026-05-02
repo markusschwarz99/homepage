@@ -287,3 +287,36 @@ class ImpostorWord(Base):
     )
 
     category = relationship("ImpostorCategory", back_populates="words")
+
+
+class RecipeComment(Base):
+    __tablename__ = "recipe_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    recipe_id = Column(
+        Integer,
+        ForeignKey("recipes.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    content = Column(String(2000), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+    edited = Column(Boolean, nullable=False, default=False, server_default="false")
+
+    recipe = relationship("Recipe", backref="comments")
+    user = relationship("User")
+
+    __table_args__ = (
+        Index("ix_recipe_comments_recipe_created", "recipe_id", "created_at"),
+    )
