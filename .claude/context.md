@@ -150,6 +150,15 @@ auf das System. Daher:
   konkrete Bash-Befehle (`cat > ... << 'EOF'`, `sed -i`, `python3 << 'PYEOF'`),
   niemals nur "füge folgende Zeile in Datei X ein". Bei größeren Files das
   ganze File via Heredoc neu schreiben — sed/awk nur für punktuelle Änderungen.
+- **Bei `python3`-File-Patches mit `text.replace()`**: IMMER vorher prüfen ob
+  das `old`-Pattern auch wirklich matcht (z.B. via
+  `if text.count(old) != 1: raise SystemExit(...)`). `text.replace()` gibt den
+  Original-String zurück wenn nichts matcht — ohne Fehler. Stolperfalle:
+  unsichtbare Whitespace-Diffs (Leerzeilen, Tabs vs Spaces) lassen den Match
+  still scheitern. Nach jedem Patch zur Verifikation `grep` oder `git diff`
+  ausführen, BEVOR committed wird. Vor `git commit` immer `git status` zur
+  Kontrolle: wenn die erwartete Datei NICHT als modified auftaucht, ist der
+  Patch nicht durchgegangen.
 - **Plattform-Hinweis**: Mein lokaler Rechner ist **Windows mit PowerShell**, der
   Pi ist **Ubuntu/bash**. Wenn ein Befehl von Windows aus laufen soll (z.B. `scp`,
   `ssh`), gib die PowerShell-Variante; wenn er auf dem Pi läuft, gib bash. Wenn
