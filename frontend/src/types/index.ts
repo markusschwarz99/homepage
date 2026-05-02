@@ -143,3 +143,31 @@ export interface SeasonalItemInput {
   availabilities: MonthAvailability[];
   notes?: string | null;
 }
+
+// ---------- Impostor-Spiel ----------
+
+export interface ImpostorCategoryPublic {
+  id: number;
+  name: string;
+  word_count: number;
+}
+
+export interface ImpostorCategoryAdmin {
+  id: number;
+  name: string;
+  is_active: boolean;
+  sort_order: number;
+  word_count: number;
+  created_at: string;
+}
+
+export interface ImpostorWord {
+  id: number;
+  word: string;
+}
+
+export interface ImpostorRandomResponse {
+  word: string;
+  category_id: number;
+  category_name: string;
+}
