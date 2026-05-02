@@ -228,6 +228,20 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   `error TS6133` failen. Beim Hinzufügen von Code: jede deklarierte Funktion
   muss tatsächlich aufgerufen werden, sonst raus damit. Gleiches gilt für
   ungenutzte Imports.
+- **`docker compose build` IST ein Prod-Deploy.** Der Standard-Compose-Stack
+  ist gleichzeitig Prod. Jeder `docker compose build` (auch auf einem
+  Feature-Branch!) überschreibt das `:latest`-Image, und das nächste
+  `up -d` deployed sofort. Konsequenzen für Tests:
+  - **Backend-pytest im Container**: NICHT mit `docker compose build backend
+    && docker compose exec backend pytest` (= Prod-Deploy). Stattdessen
+    `docker compose -f docker-compose.test.yml up -d --build backend-test`
+    nutzen — separate Container, separate Ports, kein Prod-Impact. Container
+    danach mit `docker compose -f docker-compose.test.yml down -v` wieder weg.
+  - **Frontend-TS-Check**: gleiche Falle. Lokal über den Test-Stack bauen,
+    nicht über den Prod-Stack.
+  - **Schema-Migrations** sind besonders heikel: ein Build auf dem
+    Feature-Branch lässt `entrypoint.sh` die neue Migration auch auf der
+    Prod-DB durchlaufen. Das ist nicht trivial rückgängig zu machen.
 - **CORS allow_methods**: Backend erlaubt nur `GET, POST, PATCH, DELETE, OPTIONS`
   (siehe `backend/main.py`). Niemals `PUT` für neue Endpoints — Update-Konvention im
   Repo ist **PATCH** (siehe `routers/tags.py`, `routers/settings.py`). Wenn `PUT`
