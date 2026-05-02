@@ -12,6 +12,10 @@ Persönliche Homepage mit vier Hauptbereichen:
 - **Einkaufsliste** (geteilt im Haushalt, mit Frequent-Items und History)
 - **Saisonkalender** (zeigt regional/saisonal verfügbare Lebensmittel,
   Verwaltung unter `/admin/saisonkalender`, Backend-Router `seasonal.py`)
+- **Impostor-Spiel** (öffentlich unter `/impostor`, kein Login nötig — Setup,
+  Tap-and-Hold-Reveal, Auflösung. Kategorien & Wörter sind DB-backed,
+  Verwaltung unter `/admin/impostor`, Backend-Router `impostor.py`,
+  Tabellen `impostor_categories` + `impostor_words`)
 
 Vier Rollen: **Guest / Member / Household / Admin**.
 Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
@@ -219,6 +223,11 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   `--color-{namespace}-{name}`, expandiert automatisch zu Utilities wie
   `bg-<name>`, `text-<name>`, `border-<name>`). NICHT mehr in eine
   `tailwind.config.js` — die existiert nicht mehr.
+- **TypeScript noUnusedLocals**: Frontend-Build (`tsc -b && vite build`) ist
+  strikt — ungenutzte Variablen, Funktionen oder Imports lassen den Build mit
+  `error TS6133` failen. Beim Hinzufügen von Code: jede deklarierte Funktion
+  muss tatsächlich aufgerufen werden, sonst raus damit. Gleiches gilt für
+  ungenutzte Imports.
 - **CORS allow_methods**: Backend erlaubt nur `GET, POST, PATCH, DELETE, OPTIONS`
   (siehe `backend/main.py`). Niemals `PUT` für neue Endpoints — Update-Konvention im
   Repo ist **PATCH** (siehe `routers/tags.py`, `routers/settings.py`). Wenn `PUT`
