@@ -248,3 +248,42 @@ class SiteSetting(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+
+# ==================== Impostor-Spiel ====================
+
+class ImpostorCategory(Base):
+    __tablename__ = "impostor_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True, index=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    sort_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    words = relationship(
+        "ImpostorWord",
+        back_populates="category",
+        cascade="all, delete-orphan",
+        order_by="ImpostorWord.word",
+    )
+
+
+class ImpostorWord(Base):
+    __tablename__ = "impostor_words"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(
+        Integer,
+        ForeignKey("impostor_categories.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    word = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("category_id", "word", name="uq_impostor_word_per_category"),
+    )
+
+    category = relationship("ImpostorCategory", back_populates="words")
