@@ -266,6 +266,25 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   entweder zurück auf den Feature-Branch oder PR mergen, BEVOR rebuilt
   wird.
 
+- **SQLite-In-Memory in pytest unterscheidet sich von Prod-Postgres**:
+  - `ON DELETE CASCADE` und `ON DELETE SET NULL` werden in SQLite nicht
+    automatisch durchgesetzt (FK-Pragma + ORM-Verhalten weichen ab). Tests, die
+    Cascade-/SET-NULL-Verhalten prüfen, werden mit `@pytest.mark.skip` markiert
+    und stattdessen via `docker-compose.test.yml` gegen frische Postgres
+    verifiziert (Migration läuft auf leerer DB durch).
+  - Boolean-Spalten brauchen NEBEN `server_default="false"` zusätzlich
+    `default=False` (Python-seitig), sonst ist der Initialwert in SQLite-Tests
+    nicht zuverlässig False. Beispiel siehe `RecipeComment.edited` in
+    `models.py`.
+- **Schnell-Iteration im laufenden Backend-Container** (für Tests, ohne
+  Prod-Rebuild): Code-Änderungen direkt rüberkopieren mit
+  `docker cp ~/homepage/backend/<datei> homepage-backend-1:/app/<datei>`,
+  dann `docker compose exec -T backend python -m pytest <pfad> --no-cov`.
+  Achtung: Der laufende Container ist Prod — die kopierten Files sind sofort
+  live, bis der Container neu gebaut wird. Nur für additive/risikofreie
+  Änderungen geeignet (neue Endpoints, Tests). Bei Änderungen an bestehenden
+  Endpoints lieber den Test-Stack nutzen.
+
 ## Prod-Deploy-Disziplin
 
 **Wichtig zum Verständnis**: Es gibt KEIN Auto-Deploy. Ein `git push` auf `main`
