@@ -171,3 +171,14 @@ export interface ImpostorRandomResponse {
   category_id: number;
   category_name: string;
 }
+
+export interface RecipeComment {
+  id: number;
+  recipe_id: number;
+  user_id: number | null;
+  user_name: string;
+  content: string;
+  edited: boolean;
+  created_at: string;
+  updated_at: string;
+}
