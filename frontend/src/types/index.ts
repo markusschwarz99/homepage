@@ -112,7 +112,7 @@ export interface RecipeInput {
 // ---------- Saisonkalender ----------
 
 export type SeasonalCategory = 'fruit' | 'vegetable';
-export type SeasonalAvailability = 'regional' | 'storage' | 'import';
+export type SeasonalAvailability = 'regional' | 'storage';
 
 export interface MonthAvailability {
   month: number; // 1..12

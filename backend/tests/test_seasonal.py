@@ -104,24 +104,6 @@ class TestCRUD:
         assert _types_for_month(data, 1) == ["storage"]
         assert "id" in data
 
-    def test_create_with_import_type(self, client, admin_headers):
-        """Regression: 'import' als Wert (Python-Enum-Member heißt 'import_', Value 'import')."""
-        response = client.post(
-            "/seasonal",
-            json={
-                "name": "Banane", "category": "fruit",
-                "availabilities": [
-                    {"month": 1, "types": ["import"]},
-                    {"month": 6, "types": ["regional", "import"]},
-                ],
-            },
-            headers=admin_headers,
-        )
-        assert response.status_code == 201, response.text
-        data = response.json()
-        assert _types_for_month(data, 1) == ["import"]
-        assert _types_for_month(data, 6) == ["regional", "import"]
-
     def test_create_duplicate_name(self, client, admin_headers, created_item, sample_payload):
         response = client.post("/seasonal", json=sample_payload, headers=admin_headers)
         assert response.status_code == 409
@@ -185,14 +167,14 @@ class TestCRUD:
             f"/seasonal/{created_item['id']}",
             json={
                 "availabilities": [
-                    {"month": 5, "types": ["regional", "import"]},
+                    {"month": 5, "types": ["regional", "storage"]},
                 ]
             },
             headers=admin_headers,
         )
         assert response.status_code == 200
         data = response.json()
-        assert _types_for_month(data, 5) == ["regional", "import"]
+        assert _types_for_month(data, 5) == ["regional", "storage"]
 
     def test_update_not_found(self, client, admin_headers):
         response = client.patch("/seasonal/99999", json={"notes": "x"}, headers=admin_headers)

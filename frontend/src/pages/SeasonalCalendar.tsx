@@ -17,26 +17,22 @@ const MONTH_NAMES = ['Jän', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', '
 const AVAILABILITY_LABEL: Record<SeasonalAvailability, string> = {
   regional: 'Saison',
   storage: 'Lagerware',
-  import: 'Import',
 };
 
 const AVAILABILITY_COLOR: Record<SeasonalAvailability, string> = {
   regional: 'bg-green-600',
   storage: 'bg-amber-500',
-  import: 'bg-sky-600',
 };
 
 // Hex-Werte für inline gradient backgrounds (entsprechen den Tailwind-Farben oben)
 const AVAILABILITY_HEX: Record<SeasonalAvailability, string> = {
   regional: '#16a34a',
   storage: '#f59e0b',
-  import: '#0284c7',
 };
 
 const AVAILABILITY_ORDER: Record<SeasonalAvailability, number> = {
   regional: 0,
   storage: 1,
-  import: 2,
 };
 
 type ViewMode = 'current' | 'month' | 'year';
@@ -206,20 +202,13 @@ export function SeasonalCalendar() {
                 >
                   Lager
                 </ViewBtn>
-                <ViewBtn
-                  active={availabilityFilter === 'import'}
-                  onClick={() => setAvailabilityFilter('import')}
-                  testid="avail-import"
-                >
-                  Import
-                </ViewBtn>
               </div>
             </div>
           </div>
 
           {/* Legende */}
           <div className="mt-4 flex flex-wrap gap-4 text-xs text-text-muted">
-            <LegendDot type="regional" /> <LegendDot type="storage" /> <LegendDot type="import" />
+            <LegendDot type="regional" /> <LegendDot type="storage" />
           </div>
         </div>
 
