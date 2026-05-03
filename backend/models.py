@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, Float, UniqueConstraint, CheckConstraint, Index
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date, Time, Text, ForeignKey, Float, UniqueConstraint, CheckConstraint, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -299,3 +299,47 @@ class RecipeComment(Base):
     __table_args__ = (
         Index("ix_recipe_comments_recipe_created", "recipe_id", "created_at"),
     )
+
+
+# ============================================================
+# Foto-Tagebuch (Admin-only)
+# ============================================================
+
+class PhotoDiaryEntry(Base):
+    __tablename__ = "photo_diary_entries"
+    id = Column(Integer, primary_key=True, index=True)
+    entry_date = Column(Date, nullable=False, index=True)
+    entry_time = Column(Time, nullable=False, server_default=func.current_time())
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    images = relationship(
+        "PhotoDiaryImage",
+        back_populates="entry",
+        cascade="all, delete-orphan",
+        order_by="PhotoDiaryImage.position",
+    )
+
+
+class PhotoDiaryImage(Base):
+    __tablename__ = "photo_diary_images"
+    id = Column(Integer, primary_key=True, index=True)
+    entry_id = Column(
+        Integer,
+        ForeignKey("photo_diary_entries.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    url = Column(String, nullable=False)
+    thumb_url = Column(String, nullable=False)
+    caption = Column(String(500), nullable=True)
+    position = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    entry = relationship("PhotoDiaryEntry", back_populates="images")
