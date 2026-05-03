@@ -282,6 +282,18 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   ist über `index=True` allein nicht unique, aber wenn Uniqueness gewünscht ist, dann
   entweder `UniqueConstraint(...)` in `__table_args__` ODER `Index(..., unique=True)`,
   nicht `unique=True` direkt am Column. Beispiel-Fix siehe Migration `adae80cc7b19`.
+- **Alembic-Autogenerate kann Drift mitliefern, der nichts mit der aktuellen
+  Änderung zu tun hat**: Wenn das DB-Schema in der Vergangenheit anders war
+  als das aktuelle Model (Reste von alten `unique=True`/`index=True`-
+  Definitionen), erzeugt `alembic revision --autogenerate` zusätzliche
+  `op.drop_index(...)` / `op.create_index(...)`-Statements für Indizes, die
+  mit dem eigentlichen Feature nichts zu tun haben. **Diese Bonus-Statements
+  IMMER aus der Migration entfernen** — eine Migration namens
+  `add_photo_diary_tables` darf nur Photo-Diary-Tabellen anlegen. Sonst (a)
+  werden möglicherweise nützliche Indizes versehentlich gedroppt und (b)
+  schlägt die Migration auf einer frischen DB fehl, weil dort der zu droppende
+  Index gar nicht existiert. Den Drift entweder bewusst in einer separaten
+  Migration adressieren, oder als TODO im Repo notieren.
 - Bei Schema-Änderungen IMMER vorher prüfen ob die Migration auch auf einer frischen
   DB läuft (E2E-Tests bauen DB von 0 auf). Lokal gegen einen Wegwerf-Postgres testen
   bevor pushen. Eine Migration die auf Prod funktioniert weil bestehende Tabellen da
@@ -314,6 +326,12 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   live, bis der Container neu gebaut wird. Nur für additive/risikofreie
   Änderungen geeignet (neue Endpoints, Tests). Bei Änderungen an bestehenden
   Endpoints lieber den Test-Stack nutzen.
+- **Frontend-API-Wrapper für Multipart-Uploads**: Der zentrale `api()`-Helper
+  in `frontend/src/lib/api.ts` setzt `Content-Type: application/json`
+  hardcoded. Für Multipart/Form-Data-Uploads muss der Browser die Boundary
+  selbst setzen — also NICHT `api()` nutzen, sondern direkt `fetch()` mit
+  `FormData`-Body und manuell den Auth-Header via `getToken()` setzen.
+  Beispiel: `uploadImages()` in `frontend/src/api/diary.ts`.
 
 ## Prod-Deploy-Disziplin
 
@@ -339,6 +357,11 @@ Daraus folgt:
   5. **Erst nach grüner CI mergen**, niemals "rot mergen und später fixen".
      Damit ist `main` immer deploy-bereit.
   6. Nach Merge: `git checkout main && git pull && git branch -d feature/<name>`
+- **PR-Erstellung & Merge laufen über `gh` CLI**, nicht über den Browser. Beim
+  Aufgeben von "PR öffnen" o.ä. liefere ich (Claude) immer den vollen
+  `gh pr create ...` Befehl mit Title + Body als Heredoc, plus die Merge-
+  Befehle (`gh pr merge --squash --delete-branch`). Squash-Merge ist Default,
+  damit `main` eine flache Commit-History behält.
 - **Pi-Deploy ist ein bewusster, separater Schritt** — kommt nach dem Merge,
   nicht automatisch. Reihenfolge auf dem Pi:
   `git pull && docker compose build <service> && docker compose up -d <service>`.
