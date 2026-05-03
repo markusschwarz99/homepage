@@ -4,18 +4,16 @@ Seasonal Calendar: korrekte Verfügbarkeitsdaten für Österreich/Mitteleuropa.
 Ersetzt die Verfügbarkeiten der bestehenden seasonal_items mit handgepflegten
 Werten basierend auf österreichischen Saisonkalendern (AMA, Land schafft Leben).
 
-Format pro Item: {month_int: [type, ...]} mit type ∈ {"regional", "storage", "import"}
+Format pro Item: {month_int: [type, ...]} mit type ∈ {"regional", "storage"}
 - "regional" = heimisch frisch geerntet/verfügbar
 - "storage" = heimisch aus Lagerung
-- "import" = überwiegend Import aus dem Ausland
+- Monate ohne Eintrag = nicht verfügbar (z.B. weil nur Importware)
 
 Heuristik:
 - Frische Saison: nur regional
-- Lagerware-Klassiker: regional in Erntezeit + storage über Winter, ggf. import
-  im Übergang (z.B. Kartoffel-Frühkartoffel-Import)
-- Frischgemüse (Tomate, Paprika, Zucchini etc.): regional in Saison, sonst import
-- Beeren/Steinobst: regional in Saison, import in den Hauptmonaten der typischen
-  Importware (Erdbeere/Himbeere häufig importiert)
+- Lagerware-Klassiker: regional in Erntezeit + storage über Winter
+- Frischgemüse (Tomate, Paprika, Zucchini etc.): nur regional in Saison
+- Beeren/Steinobst: nur regional in Saison
 
 Aufruf (im Backend-Container):
   python scripts/refine_seasonal_data.py [--dry-run]
@@ -40,7 +38,6 @@ import models  # noqa: E402
 # Type-Aliases für Lesbarkeit
 R = "regional"
 L = "storage"
-I = "import"
 
 # ---------- Datendefinition ----------
 # Pro Item: dict[Monat 1..12] -> Liste von Verfügbarkeitstypen
@@ -50,221 +47,196 @@ I = "import"
 ITEMS: dict[str, dict[int, list[str]]] = {
     # ===== OBST =====
     "Apfel": {
-        1: [L, I], 2: [L, I], 3: [L, I], 4: [L, I], 5: [I], 6: [I], 7: [I],
-        8: [R], 9: [R], 10: [R, L], 11: [L], 12: [L],
+        1: [L], 2: [L], 3: [L], 4: [L], 8: [R], 9: [R], 10: [R, L], 11: [L], 12: [L]
     },
     "Birne": {
-        1: [L, I], 2: [L, I], 3: [I], 4: [I], 5: [I], 6: [I], 7: [I],
-        8: [R], 9: [R], 10: [R, L], 11: [L], 12: [L, I],
+        1: [L], 2: [L], 8: [R], 9: [R], 10: [R, L], 11: [L], 12: [L]
     },
     "Erdbeere": {
-        1: [I], 2: [I], 3: [I], 4: [I], 5: [R], 6: [R], 7: [R],
-        8: [I], 9: [I], 10: [I], 11: [I], 12: [I],
+        5: [R], 6: [R], 7: [R]
     },
     "Himbeere": {
-        1: [I], 2: [I], 3: [I], 4: [I], 5: [I],
-        6: [R], 7: [R], 8: [R], 9: [R],
-        10: [I], 11: [I], 12: [I],
+        6: [R], 7: [R], 8: [R], 9: [R]
     },
     "Brombeere": {
-        7: [R], 8: [R], 9: [R],
+        7: [R], 8: [R], 9: [R]
     },
     "Heidelbeere": {
-        1: [I], 2: [I], 3: [I], 4: [I], 5: [I], 6: [I],
-        7: [R, I], 8: [R, I], 9: [R, I],
-        10: [I], 11: [I], 12: [I],
+        7: [R], 8: [R], 9: [R]
     },
     "Johannisbeere": {
-        6: [R], 7: [R], 8: [R],
+        6: [R], 7: [R], 8: [R]
     },
     "Stachelbeere": {
-        6: [R], 7: [R], 8: [R],
+        6: [R], 7: [R], 8: [R]
     },
     "Kirsche": {
-        6: [R], 7: [R], 8: [R],
+        6: [R], 7: [R], 8: [R]
     },
     "Marille": {
-        6: [R], 7: [R], 8: [R],
+        6: [R], 7: [R], 8: [R]
     },
     "Pfirsich": {
-        7: [R], 8: [R], 9: [R],
+        7: [R], 8: [R], 9: [R]
     },
     "Nektarine": {
-        7: [R], 8: [R], 9: [R],
+        7: [R], 8: [R], 9: [R]
     },
     "Pflaume": {
-        7: [R], 8: [R], 9: [R], 10: [R],
+        7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Zwetschge": {
-        8: [R], 9: [R], 10: [R],
+        8: [R], 9: [R], 10: [R]
     },
     "Weintraube": {
-        8: [R], 9: [R], 10: [R], 11: [R],
+        8: [R], 9: [R], 10: [R], 11: [R]
     },
     "Rhabarber": {
-        4: [R], 5: [R], 6: [R],
+        4: [R], 5: [R], 6: [R]
     },
     "Quitte": {
-        9: [R], 10: [R], 11: [R],
+        9: [R], 10: [R], 11: [R]
     },
     "Holunderbeere": {
-        8: [R], 9: [R],
+        8: [R], 9: [R]
     },
 
     # ===== GEMÜSE =====
     "Kartoffel": {
-        1: [L], 2: [L], 3: [L], 4: [L, I], 5: [L, I],
+        1: [L], 2: [L], 3: [L], 4: [L], 5: [L],
         6: [R, L], 7: [R], 8: [R], 9: [R], 10: [R, L],
-        11: [L], 12: [L],
+        11: [L], 12: [L]
     },
     "Karotte": {
-        1: [L], 2: [L], 3: [L], 4: [L, I], 5: [I],
-        6: [R], 7: [R], 8: [R], 9: [R, L], 10: [R, L],
-        11: [L], 12: [L],
+        1: [L], 2: [L], 3: [L], 4: [L], 6: [R], 7: [R], 8: [R], 9: [R, L], 10: [R, L],
+        11: [L], 12: [L]
     },
     "Zwiebel": {
-        1: [L], 2: [L], 3: [L], 4: [L], 5: [L, I],
-        6: [I], 7: [R, I], 8: [R], 9: [R, L], 10: [R, L],
-        11: [L], 12: [L],
+        1: [L], 2: [L], 3: [L], 4: [L], 5: [L],
+        7: [R], 8: [R], 9: [R, L], 10: [R, L],
+        11: [L], 12: [L]
     },
     "Knoblauch": {
-        1: [L, I], 2: [L, I], 3: [I], 4: [I], 5: [I], 6: [I],
-        7: [R], 8: [R, L], 9: [L], 10: [L], 11: [L], 12: [L],
+        1: [L], 2: [L], 7: [R], 8: [R, L], 9: [L], 10: [L], 11: [L], 12: [L]
     },
     "Lauch": {
         1: [R], 2: [R], 3: [R], 4: [R],
-        9: [R], 10: [R], 11: [R], 12: [R],
+        9: [R], 10: [R], 11: [R], 12: [R]
     },
     "Rote Rübe": {
         1: [L], 2: [L], 3: [L],
         6: [R], 7: [R], 8: [R], 9: [R, L], 10: [R, L],
-        11: [L], 12: [L],
+        11: [L], 12: [L]
     },
     "Sellerie": {
         1: [L], 2: [L], 3: [L],
-        8: [R], 9: [R, L], 10: [R, L], 11: [L], 12: [L],
+        8: [R], 9: [R, L], 10: [R, L], 11: [L], 12: [L]
     },
     "Pastinake": {
         1: [L], 2: [L], 3: [L],
-        10: [R, L], 11: [L], 12: [L],
+        10: [R, L], 11: [L], 12: [L]
     },
     "Kürbis": {
         1: [L],
-        8: [R], 9: [R], 10: [R, L], 11: [L], 12: [L],
+        8: [R], 9: [R], 10: [R, L], 11: [L], 12: [L]
     },
     "Spinat": {
         3: [R], 4: [R], 5: [R],
-        9: [R], 10: [R], 11: [R],
+        9: [R], 10: [R], 11: [R]
     },
     "Mangold": {
-        5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R],
+        5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Salat": {
-        1: [I], 2: [I], 3: [I],
-        4: [R], 5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R],
-        11: [I], 12: [I],
+        4: [R], 5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Vogerlsalat": {
         1: [R], 2: [R], 3: [R],
-        10: [R], 11: [R], 12: [R],
+        10: [R], 11: [R], 12: [R]
     },
     "Chicorée": {
         1: [R], 2: [R], 3: [R], 4: [R],
-        10: [R], 11: [R], 12: [R],
+        10: [R], 11: [R], 12: [R]
     },
     "Radicchio": {
-        6: [R], 7: [R], 8: [R], 9: [R], 10: [R], 11: [R], 12: [R],
+        6: [R], 7: [R], 8: [R], 9: [R], 10: [R], 11: [R], 12: [R]
     },
     "Rucola": {
-        4: [R], 5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R],
+        4: [R], 5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Tomate": {
-        1: [I], 2: [I], 3: [I], 4: [I], 5: [I],
-        6: [R], 7: [R], 8: [R], 9: [R], 10: [R],
-        11: [I], 12: [I],
+        6: [R], 7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Gurke": {
-        1: [I], 2: [I], 3: [I], 4: [I], 5: [I],
-        6: [R], 7: [R], 8: [R], 9: [R], 10: [R],
-        11: [I], 12: [I],
+        6: [R], 7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Paprika": {
-        1: [I], 2: [I], 3: [I], 4: [I], 5: [I], 6: [I],
-        7: [R], 8: [R], 9: [R], 10: [R],
-        11: [I], 12: [I],
+        7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Zucchini": {
-        1: [I], 2: [I], 3: [I], 4: [I], 5: [I],
-        6: [R], 7: [R], 8: [R], 9: [R], 10: [R],
-        11: [I], 12: [I],
+        6: [R], 7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Aubergine": {
-        1: [I], 2: [I], 3: [I], 4: [I], 5: [I], 6: [I],
-        7: [R], 8: [R], 9: [R], 10: [R],
-        11: [I], 12: [I],
+        7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Brokkoli": {
-        1: [I], 2: [I], 3: [I], 4: [I], 5: [I],
-        6: [R], 7: [R], 8: [R], 9: [R], 10: [R],
-        11: [I], 12: [I],
+        6: [R], 7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Karfiol": {
-        1: [I], 2: [I], 3: [I], 4: [I], 5: [I],
-        6: [R], 7: [R], 8: [R], 9: [R], 10: [R], 11: [R],
-        12: [I],
+        6: [R], 7: [R], 8: [R], 9: [R], 10: [R], 11: [R]
     },
     "Kohlrabi": {
-        5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R],
+        5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Weißkraut": {
         1: [L], 2: [L], 3: [L],
         6: [R], 7: [R], 8: [R], 9: [R, L], 10: [R, L],
-        11: [L], 12: [L],
+        11: [L], 12: [L]
     },
     "Rotkraut": {
         1: [L], 2: [L], 3: [L],
-        9: [R], 10: [R, L], 11: [L], 12: [L],
+        9: [R], 10: [R, L], 11: [L], 12: [L]
     },
     "Wirsing": {
         1: [L], 2: [L], 3: [L],
         6: [R], 7: [R], 8: [R], 9: [R, L], 10: [R, L],
-        11: [L], 12: [L],
+        11: [L], 12: [L]
     },
     "Grünkohl": {
-        11: [R], 12: [R], 1: [R], 2: [R],
+        11: [R], 12: [R], 1: [R], 2: [R]
     },
     "Kohlsprossen": {
-        10: [R], 11: [R], 12: [R], 1: [R], 2: [R], 3: [R],
+        10: [R], 11: [R], 12: [R], 1: [R], 2: [R], 3: [R]
     },
     "Erbse": {
-        6: [R], 7: [R], 8: [R],
+        6: [R], 7: [R], 8: [R]
     },
     "Bohne": {
-        6: [R], 7: [R], 8: [R], 9: [R], 10: [R],
+        6: [R], 7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Spargel": {
-        4: [R], 5: [R], 6: [R],
+        4: [R], 5: [R], 6: [R]
     },
     "Radieschen": {
-        4: [R], 5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R],
+        4: [R], 5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R]
     },
     "Rettich": {
-        5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R], 11: [R],
+        5: [R], 6: [R], 7: [R], 8: [R], 9: [R], 10: [R], 11: [R]
     },
     "Bärlauch": {
-        3: [R], 4: [R], 5: [R],
+        3: [R], 4: [R], 5: [R]
     },
     "Schwarzwurzel": {
         1: [L], 2: [L], 3: [L], 4: [L],
-        10: [R, L], 11: [L], 12: [L],
+        10: [R, L], 11: [L], 12: [L]
     },
     "Topinambur": {
         1: [L], 2: [L], 3: [L], 4: [L],
-        10: [R, L], 11: [L], 12: [L],
+        10: [R, L], 11: [L], 12: [L]
     },
     "Fenchel": {
-        6: [R], 7: [R], 8: [R], 9: [R], 10: [R], 11: [R],
-    },
+        6: [R], 7: [R], 8: [R], 9: [R], 10: [R], 11: [R]
+    }
 }
 # fmt: on
 
@@ -272,7 +244,7 @@ ITEMS: dict[str, dict[int, list[str]]] = {
 def _validate_data() -> list[str]:
     """Sanity check der ITEMS-Struktur. Gibt eine Liste an Fehlermeldungen zurück."""
     errors: list[str] = []
-    valid_types = {R, L, I}
+    valid_types = {R, L}
     for name, months in ITEMS.items():
         if not months:
             errors.append(f"{name}: keine Monate definiert")
@@ -349,7 +321,7 @@ def main():
             new_entries = []
             for month, types in months_data.items():
                 for t in types:
-                    # Postgres-Enum erwartet die value-Strings (regional/storage/import)
+                    # Postgres-Enum erwartet die value-Strings (regional/storage)
                     new_entries.append((month, t))
 
             if args.dry_run:

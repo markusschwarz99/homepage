@@ -22,19 +22,16 @@ const MONTH_SHORT = ['Jän', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', '
 const AVAILABILITY_OPTIONS: Array<{ value: SeasonalAvailability; label: string; color: string; hex: string }> = [
   { value: 'regional', label: 'Saison', color: 'bg-green-600', hex: '#16a34a' },
   { value: 'storage', label: 'Lager', color: 'bg-amber-500', hex: '#f59e0b' },
-  { value: 'import', label: 'Import', color: 'bg-sky-600', hex: '#0284c7' },
 ];
 
 const AVAILABILITY_HEX: Record<SeasonalAvailability, string> = {
   regional: '#16a34a',
   storage: '#f59e0b',
-  import: '#0284c7',
 };
 
 const AVAILABILITY_ORDER: Record<SeasonalAvailability, number> = {
   regional: 0,
   storage: 1,
-  import: 2,
 };
 
 type MonthsState = Record<number, SeasonalAvailability[]>;

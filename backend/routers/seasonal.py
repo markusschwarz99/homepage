@@ -39,7 +39,6 @@ class MonthAvailability(BaseModel):
         order = {
             models.SeasonalAvailability.regional: 0,
             models.SeasonalAvailability.storage: 1,
-            models.SeasonalAvailability.import_: 2,
         }
         return sorted(set(v), key=lambda t: order[t])
 
@@ -139,7 +138,6 @@ def _avail_sort_key(t: models.SeasonalAvailability) -> int:
     order = {
         models.SeasonalAvailability.regional: 0,
         models.SeasonalAvailability.storage: 1,
-        models.SeasonalAvailability.import_: 2,
     }
     return order[t]
 

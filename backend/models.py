@@ -153,7 +153,6 @@ class SeasonalCategory(str, _enum_seasonal.Enum):
 class SeasonalAvailability(str, _enum_seasonal.Enum):
     regional = "regional"
     storage = "storage"
-    import_ = "import"
 
 
 class SeasonalItem(Base):
