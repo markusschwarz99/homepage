@@ -174,3 +174,26 @@ export interface RecipeComment {
   created_at: string;
   updated_at: string;
 }
+
+// ---------- Foto-Tagebuch ----------
+export interface DiaryImage {
+  id: number;
+  url: string;        // relativer Pfad, z.B. "/uploads/diary/<uuid>.webp"
+  thumb_url: string;  // relativer Pfad, z.B. "/uploads/diary/thumbs/<uuid>.webp"
+  caption: string | null;
+  position: number;
+}
+
+export interface DiaryEntry {
+  id: number;
+  entry_date: string;   // ISO date "YYYY-MM-DD"
+  entry_time: string;   // ISO time "HH:MM:SS"
+  description: string | null;
+  images: DiaryImage[];
+}
+
+export interface DiaryEntryInput {
+  entry_date: string;
+  entry_time?: string;
+  description?: string | null;
+}
