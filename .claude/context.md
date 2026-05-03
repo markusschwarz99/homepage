@@ -248,6 +248,18 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   `error TS6133` failen. Beim Hinzufügen von Code: jede deklarierte Funktion
   muss tatsächlich aufgerufen werden, sonst raus damit. Gleiches gilt für
   ungenutzte Imports.
+- **TS-Type-Union schrumpfen ohne alle `Record<…>`-Maps zu fixen**: Wenn ein
+  Union-Type wie `'a' | 'b' | 'c'` auf `'a' | 'b'` reduziert wird, muss
+  jede `Record<UnionType, …>`-Verwendung im ganzen Frontend durchgegangen
+  werden — nicht nur die offensichtlichen Verwendungs-Stellen wie Filter
+  oder Legenden. Sonst wirft `tsc -b --noEmit` ein `error TS2353: Object
+  literal may only specify known properties`. Faustregel nach jeder
+  Union-Schrumpfung: einmal `grep -rn "Record<TYPENAME"` über `frontend/src`
+  und alle Treffer durchgehen. Frontend-TS-Check immer LOKAL vor PR-Push,
+  nicht erst CI machen lassen — entweder über den Test-Stack, oder einmalig
+  in einem `node:22-alpine`-Container mit Source-Mount: `docker run --rm -v
+  "$(pwd)/frontend:/app" -w /app node:22-alpine sh -c "npm ci --silent &&
+  npx tsc -b --noEmit"`.
 - **`docker compose build` IST ein Prod-Deploy.** Der Standard-Compose-Stack
   ist gleichzeitig Prod. Jeder `docker compose build` (auch auf einem
   Feature-Branch!) überschreibt das `:latest`-Image, und das nächste
