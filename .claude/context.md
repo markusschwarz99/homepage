@@ -127,6 +127,12 @@ homepage/
   keinen Volume-Mount). Migrations laufen automatisch beim Container-Start via
   `entrypoint.sh`. Test-DB in `conftest.py` nutzt weiterhin `Base.metadata.create_all`
   für SQLite-In-Memory — unabhängig von Alembic.
+  **Stolperfalle bei `docker cp`**: NIEMALS `docker cp $(ls -t .../versions/ | head -1)`
+  o.ä. nutzen, um die "neueste" Migration zu greifen — `__pycache__/` wird beim
+  Generieren modifiziert und steht dann oben. Stattdessen den vollen Filename aus dem
+  `alembic revision`-Output rauslesen und explizit per Name kopieren:
+  `docker cp homepage-backend-1:/app/alembic/versions/<revid>_<slug>.py
+  ~/homepage/backend/alembic/versions/<revid>_<slug>.py`.
 - **Secrets**: ausschließlich in `.env` (nicht committed). `.env.example` als Template
   pflegen, wenn neue Env-Vars dazukommen
 - **Lizenz**: GPLv3
@@ -153,9 +159,14 @@ auf das System. Daher:
 - **Bei `python3`-File-Patches mit `text.replace()`**: IMMER vorher prüfen ob
   das `old`-Pattern auch wirklich matcht (z.B. via
   `if text.count(old) != 1: raise SystemExit(...)`). `text.replace()` gibt den
-  Original-String zurück wenn nichts matcht — ohne Fehler. Stolperfalle:
+  Original-String zurück wenn nichts matcht — ohne Fehler. Stolperfalle 1:
   unsichtbare Whitespace-Diffs (Leerzeilen, Tabs vs Spaces) lassen den Match
-  still scheitern. Nach jedem Patch zur Verifikation `grep` oder `git diff`
+  still scheitern. Stolperfalle 2: Pattern matcht MEHRFACH (z.B.
+  `name = Column(String(100), nullable=False, unique=True, index=True)` ist
+  generisch genug, dass es bei mehreren Models gleichzeitig matcht). Lösung:
+  Pattern immer mit umliegendem Klassen-/Funktions-Header als Anker bauen,
+  z.B. die Klassendefinition + 1–2 Zeilen drumherum mitnehmen, nicht nur die
+  Ziel-Zeile alleine. Nach jedem Patch zur Verifikation `grep` oder `git diff`
   ausführen, BEVOR committed wird. Vor `git commit` immer `git status` zur
   Kontrolle: wenn die erwartete Datei NICHT als modified auftaucht, ist der
   Patch nicht durchgegangen.
@@ -261,6 +272,16 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   [m.value for m in e]` gesetzt werden. Sonst schreibt SQLAlchemy den
   Member-Namen (`import_`) und Postgres-Enums lehnen ab. Beispiel siehe
   `SeasonalAvailability` in `backend/models.py`.
+- **SQLAlchemy `unique=True` + `index=True` an einer Column erzeugt ZWEI UNIQUE-Objekte**:
+  einen automatischen `<table>_<col>_key` UNIQUE CONSTRAINT (von `unique=True`) UND
+  einen `ix_<table>_<col>` UNIQUE INDEX (von `index=True` zusammen mit `unique=True`).
+  Beides ist redundant. Folge: Alembic-Autogen markiert bei jeder neuen Migration den
+  Constraint als "drop" weil das Model ihn nicht explizit definiert hat (Constraint-Drift).
+  Faustregel: Im Model nur `index=True` + den Index-`unique=True`-Effekt nutzen, NICHT
+  beides. Gut: `name = Column(String(100), nullable=False, index=True)` — der Index
+  ist über `index=True` allein nicht unique, aber wenn Uniqueness gewünscht ist, dann
+  entweder `UniqueConstraint(...)` in `__table_args__` ODER `Index(..., unique=True)`,
+  nicht `unique=True` direkt am Column. Beispiel-Fix siehe Migration `adae80cc7b19`.
 - Bei Schema-Änderungen IMMER vorher prüfen ob die Migration auch auf einer frischen
   DB läuft (E2E-Tests bauen DB von 0 auf). Lokal gegen einen Wegwerf-Postgres testen
   bevor pushen. Eine Migration die auf Prod funktioniert weil bestehende Tabellen da
