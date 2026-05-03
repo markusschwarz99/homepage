@@ -9,14 +9,6 @@ export interface User {
   avatar_url: string;
 }
 
-export interface BlogPost {
-  id: number;
-  title: string;
-  content: string;
-  author_name: string;
-  created_at: string;
-}
-
 export interface ShoppingItem {
   id: number;
   name: string;

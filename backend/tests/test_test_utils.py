@@ -62,31 +62,19 @@ class TestCleanupTags:
         assert db_session.query(models.Tag).count() == 0
 
 
-class TestCleanupBlog:
-    def test_deletes_posts(self, test_router_app, db_session, blog_post):
-        assert db_session.query(models.BlogPost).count() == 1
-
-        response = test_router_app.post("/test/cleanup/blog")
-        assert response.status_code == 200
-        assert response.json()["deleted_posts"] == 1
-        assert db_session.query(models.BlogPost).count() == 0
-
-
 class TestCleanupAll:
-    def test_deletes_all_except_users(self, test_router_app, db_session, test_user, recipe, blog_post, tag_category, tag):
+    def test_deletes_all_except_users(self, test_router_app, db_session, test_user, recipe, tag_category, tag):
         user_count_before = db_session.query(models.User).count()
 
         response = test_router_app.post("/test/cleanup/all")
         assert response.status_code == 200
         data = response.json()
         assert data["deleted_recipes"] >= 1
-        assert data["deleted_posts"] >= 1
         assert data["deleted_categories"] >= 1
         assert data["deleted_tags"] >= 1
 
         assert db_session.query(models.User).count() == user_count_before
         assert db_session.query(models.Recipe).count() == 0
-        assert db_session.query(models.BlogPost).count() == 0
         assert db_session.query(models.TagCategory).count() == 0
         assert db_session.query(models.Tag).count() == 0
 

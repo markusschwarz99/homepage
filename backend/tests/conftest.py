@@ -159,20 +159,6 @@ def household_headers(household_user):
 # ---------- Shared Test-Daten ----------
 
 @pytest.fixture
-def blog_post(db_session, admin_user):
-    """Ein Blog-Post, erstellt vom Admin."""
-    post = models.BlogPost(
-        title="Test Post",
-        content="<p>Hello World</p>",
-        author_id=admin_user.id,
-    )
-    db_session.add(post)
-    db_session.commit()
-    db_session.refresh(post)
-    return post
-
-
-@pytest.fixture
 def tag_category(db_session):
     cat = models.TagCategory(name="Kategorie", position=0)
     db_session.add(cat)
