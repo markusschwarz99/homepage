@@ -47,14 +47,6 @@ def cleanup_tags(db: Session = Depends(get_db)):
     }
 
 
-@router.post("/cleanup/blog")
-def cleanup_blog(db: Session = Depends(get_db)):
-    """Löscht alle Blog-Posts."""
-    deleted = db.query(models.BlogPost).delete()
-    db.commit()
-    return {"deleted_posts": deleted}
-
-
 @router.post("/cleanup/all")
 def cleanup_all(db: Session = Depends(get_db)):
     """
@@ -62,13 +54,11 @@ def cleanup_all(db: Session = Depends(get_db)):
     User bleiben erhalten, weil Seed sie anlegt.
     """
     recipes = db.query(models.Recipe).delete()
-    posts = db.query(models.BlogPost).delete()
     tags = db.query(models.Tag).delete()
     categories = db.query(models.TagCategory).delete()
     db.commit()
     return {
         "deleted_recipes": recipes,
-        "deleted_posts": posts,
         "deleted_categories": categories,
         "deleted_tags": tags,
     }

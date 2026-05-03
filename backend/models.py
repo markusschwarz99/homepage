@@ -30,27 +30,6 @@ class User(Base):
     def is_member(self):
         return self.role in ("member", "household", "admin")
 
-class BlogPost(Base):
-    __tablename__ = "blog_posts"
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False)
-    content = Column(Text, nullable=False)
-    author_id = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-    author = relationship("User")
-    comments = relationship("Comment", back_populates="post", cascade="all, delete")
-
-class Comment(Base):
-    __tablename__ = "comments"
-    id = Column(Integer, primary_key=True, index=True)
-    content = Column(Text, nullable=False)
-    author_id = Column(Integer, ForeignKey("users.id"))
-    post_id = Column(Integer, ForeignKey("blog_posts.id"))
-    created_at = Column(DateTime, default=func.now())
-    author = relationship("User")
-    post = relationship("BlogPost", back_populates="comments")
-
 class ShoppingItem(Base):
     __tablename__ = "shopping_items"
     id = Column(Integer, primary_key=True, index=True)
@@ -256,7 +235,7 @@ class ImpostorCategory(Base):
     __tablename__ = "impostor_categories"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False, unique=True, index=True)
+    name = Column(String(100), nullable=False, index=True)
     is_active = Column(Boolean, default=True, nullable=False)
     sort_order = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

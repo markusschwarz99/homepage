@@ -31,9 +31,6 @@ export function Navbar() {
           <Link to="/impostor" className={linkClass}>Impostor</Link>
           {user && (
             <>
-              {user.is_admin && (
-                <Link to="/blog" className={linkClass}>Blog</Link>
-              )}
               {user.is_member && (
                 <Link to="/rezepte" className={linkClass}>Rezepte</Link>
               )}
@@ -105,9 +102,6 @@ export function Navbar() {
             <Link to="/impostor" className={mobileLinkClass}>Impostor</Link>
             {user ? (
               <>
-                {user.is_admin && (
-                  <Link to="/blog" className={mobileLinkClass}>Blog</Link>
-                )}
                 {user.is_member && (
                   <Link to="/rezepte" className={mobileLinkClass}>Rezepte</Link>
                 )}

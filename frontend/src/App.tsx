@@ -3,9 +3,6 @@ import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Verify } from './pages/Verify';
-import { Blog } from './pages/Blog';
-import { BlogNew } from './pages/BlogNew';
-import { BlogPost } from './pages/BlogPost';
 import { Shopping } from './pages/Shopping';
 import { Recipes } from './pages/Recipes';
 import { RecipeDetail } from './pages/RecipeDetail';
@@ -31,9 +28,6 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify" element={<Verify />} />
-        <Route path="/blog" element={<Blog />} />
-        <Route path="/blog/neu" element={<BlogNew />} />
-        <Route path="/blog/:id" element={<BlogPost />} />
         <Route path="/rezepte" element={<Recipes />} />
         <Route path="/rezepte/neu" element={<RecipeNew />} />
         <Route path="/rezepte/:id" element={<RecipeDetail />} />
