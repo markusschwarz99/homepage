@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date, Time, Text, ForeignKey, Float, UniqueConstraint, CheckConstraint, Index
+from sqlalchemy import Boolean, CheckConstraint, Column, Date, DateTime, Enum, Float, ForeignKey, Index, Integer, JSON, String, Text, Time, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -342,3 +342,53 @@ class PhotoDiaryImage(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     entry = relationship("PhotoDiaryEntry", back_populates="images")
+
+
+# ============================================================
+# Notifications (generisch, erweiterbar für mehrere Typen)
+# ============================================================
+
+import enum as _notif_enum
+
+
+class NotificationType(_notif_enum.Enum):
+    """Notification-Typen. Werte werden als Postgres-Enum gespeichert."""
+    recipe_comment = "recipe_comment"
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    type = Column(
+        Enum(
+            NotificationType,
+            name="notification_type",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+    )
+    # JSON-Payload mit typ-spezifischen Daten:
+    # für recipe_comment: { "recipe_id": int, "recipe_title": str,
+    #                       "comment_id": int, "actor_id": int, "actor_name": str }
+    payload = Column(JSON, nullable=False)
+    read = Column(Boolean, nullable=False, default=False, server_default="false")
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    user = relationship("User")
+
+    __table_args__ = (
+        Index("ix_notifications_user_created", "user_id", "created_at"),
+        Index("ix_notifications_user_read", "user_id", "read"),
+    )
+

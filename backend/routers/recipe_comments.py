@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from database import get_db
 from auth import require_member
+from routers.notifications import create_recipe_comment_notification
 from rate_limit import limiter
 import models
 
@@ -114,6 +115,24 @@ def create_comment(
     db.refresh(comment)
     # User für Serialisierung nachladen
     db.refresh(comment, attribute_names=["user"])
+
+    # Notification für Recipe-Author anlegen (außer er kommentiert selbst)
+    if recipe.author_id and recipe.author_id != current_user.id:
+        try:
+            create_recipe_comment_notification(
+                db,
+                recipient_id=recipe.author_id,
+                actor_id=current_user.id,
+                actor_name=current_user.name,
+                recipe_id=recipe.id,
+                recipe_title=recipe.title,
+                comment_id=comment.id,
+            )
+            db.commit()
+        except Exception:
+            # Notification-Fehler darf den Comment-Create nicht killen
+            db.rollback()
+
     return _serialize_comment(comment)
 
 

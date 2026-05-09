@@ -89,6 +89,7 @@ export interface RecipeSummary {
   updated_at: string;
   cover_image: string | null;
   tags: RecipeTagRef[];
+  comment_count: number;
 }
 
 // Detail-Darstellung
@@ -196,4 +197,31 @@ export interface DiaryEntryInput {
   entry_date: string;
   entry_time?: string;
   description?: string | null;
+}
+
+// ---------- Notifications ----------
+
+export type NotificationType = 'recipe_comment';
+
+export interface RecipeCommentNotificationPayload {
+  recipe_id: number;
+  recipe_title: string;
+  comment_id: number;
+  actor_id: number;
+  actor_name: string;
+}
+
+export interface Notification {
+  id: number;
+  type: NotificationType;
+  payload: RecipeCommentNotificationPayload; // erweitern, sobald weitere Typen dazukommen
+  read: boolean;
+  created_at: string;
+}
+
+export interface NotificationListResponse {
+  items: Notification[];
+  total: number;
+  limit: number;
+  offset: number;
 }
