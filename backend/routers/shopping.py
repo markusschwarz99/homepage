@@ -11,6 +11,7 @@ router = APIRouter(prefix="/shopping", tags=["shopping"])
 class ItemCreate(BaseModel):
     name: str
     quantity: str = "1"
+    description: str | None = None
 
 @router.get("/items")
 def list_items(
@@ -23,6 +24,7 @@ def list_items(
             "id": i.id,
             "name": i.name,
             "quantity": i.quantity,
+            "description": i.description,
             "added_by": i.added_by.name,
             "added_at": i.added_at.isoformat() + "Z"
         }
@@ -35,9 +37,11 @@ def add_item(
     db: Session = Depends(get_db),
     user: models.User = Depends(require_household)
 ):
+    desc = (item.description or "").strip() or None
     new_item = models.ShoppingItem(
         name=item.name.strip(),
         quantity=item.quantity.strip() or "1",
+        description=desc,
         added_by_id=user.id
     )
     db.add(new_item)
@@ -58,6 +62,7 @@ def mark_purchased(
     history = models.PurchaseHistory(
         item_name=item.name,
         quantity=item.quantity,
+        description=item.description,
         purchased=purchased,
         user_id=user.id
     )
@@ -89,11 +94,15 @@ def frequent_items(
             continue
         last = db.query(models.PurchaseHistory).filter(
             models.PurchaseHistory.item_name == r.item_name
-        ).order_by(models.PurchaseHistory.purchased_at.desc()).first()
+        ).order_by(
+            models.PurchaseHistory.purchased_at.desc(),
+            models.PurchaseHistory.id.desc()
+        ).first()
         items.append({
             "name": r.item_name,
             "count": r.count,
-            "last_quantity": last.quantity if last else "1"
+            "last_quantity": last.quantity if last else "1",
+            "last_description": last.description if last else None,
         })
     return items[:8]
 
@@ -112,6 +121,7 @@ def purchase_history(
             "id": h.id,
             "item_name": h.item_name,
             "quantity": h.quantity,
+            "description": h.description,
             "purchased": h.purchased,
             "user_name": db.query(models.User).filter(models.User.id == h.user_id).first().name,
             "purchased_at": h.purchased_at.isoformat() + "Z"

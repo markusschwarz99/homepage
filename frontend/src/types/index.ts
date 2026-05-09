@@ -13,6 +13,7 @@ export interface ShoppingItem {
   id: number;
   name: string;
   quantity: string;
+  description: string | null;
   added_by: string;
   added_at: string;
 }
@@ -21,12 +22,14 @@ export interface FrequentItem {
   name: string;
   count: number;
   last_quantity: string;
+  last_description: string | null;
 }
 
 export interface HistoryItem {
   id: number;
   item_name: string;
   quantity: string;
+  description: string | null;
   purchased: boolean;
   user_name: string;
   purchased_at: string;
