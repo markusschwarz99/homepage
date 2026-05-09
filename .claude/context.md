@@ -170,6 +170,20 @@ auf das System. Daher:
   ausführen, BEVOR committed wird. Vor `git commit` immer `git status` zur
   Kontrolle: wenn die erwartete Datei NICHT als modified auftaucht, ist der
   Patch nicht durchgegangen.
+  **Stolperfalle 3: Quote-Konflikt zwischen Heredoc und Python-Triple-Strings.**
+  Wenn der Replacement-String Double-Quotes enthält (typisch bei TSX/JSX,
+  z.B. `to="/account"`), KEINE Python-Triple-Double-Quotes im
+  `python3 << 'PYEOF'`-Heredoc verwenden — die Mischung aus Heredoc-Lexer
+  und Python-Stringparser führt zu `SyntaxError: unterminated string literal`.
+  Stattdessen: (a) Python-Triple-Single-Quote-Strings (Double-Quotes dürfen
+  problemlos enthalten sein, solange der Text selbst kein dreifaches Single-Quote
+  enthält), (b) String-Konkatenation mit normalen `"..."`-Strings über
+  mehrere Zeilen, oder (c) den Replacement-Text in eine temporäre Datei via
+  `cat > /tmp/x.txt << 'TEXTEOF' ... TEXTEOF` schreiben und im Python-Patch
+  per `Path('/tmp/x.txt').read_text()` einlesen — diese Variante hat keinerlei
+  Quote-Konflikte und funktioniert auch dann noch, wenn der Text selbst
+  `'''` enthält.
+
 - **Plattform-Hinweis**: Mein lokaler Rechner ist **Windows mit PowerShell**, der
   Pi ist **Ubuntu/bash**. Wenn ein Befehl von Windows aus laufen soll (z.B. `scp`,
   `ssh`), gib die PowerShell-Variante; wenn er auf dem Pi läuft, gib bash. Wenn
