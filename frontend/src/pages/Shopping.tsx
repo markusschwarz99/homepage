@@ -30,8 +30,10 @@ export function Shopping() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [newName, setNewName] = useState('');
   const [newQty, setNewQty] = useState('');
-  const [modal, setModal] = useState<{ name: string; defaultQty: string } | null>(null);
+  const [newDesc, setNewDesc] = useState('');
+  const [modal, setModal] = useState<{ name: string; defaultQty: string; defaultDesc: string } | null>(null);
   const [modalQty, setModalQty] = useState('');
+  const [modalDesc, setModalDesc] = useState('');
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
   function toggleDay(key: string) {
@@ -59,10 +61,14 @@ export function Shopping() {
     setHistory(historyData);
   }
 
-  async function addItem(name: string, quantity: string) {
+  async function addItem(name: string, quantity: string, description: string) {
     await api('/shopping/items', {
       method: 'POST',
-      body: JSON.stringify({ name, quantity: quantity || '1' }),
+      body: JSON.stringify({
+        name,
+        quantity: quantity || '1',
+        description: description.trim() || null,
+      }),
     });
     await loadAll();
   }
@@ -74,23 +80,25 @@ export function Shopping() {
     await loadAll();
   }
 
-  function openModal(name: string, defaultQty: string) {
-    setModal({ name, defaultQty });
+  function openModal(name: string, defaultQty: string, defaultDesc: string) {
+    setModal({ name, defaultQty, defaultDesc });
     setModalQty(defaultQty);
+    setModalDesc(defaultDesc);
   }
 
   async function confirmModal() {
     if (!modal) return;
-    await addItem(modal.name, modalQty || '1');
+    await addItem(modal.name, modalQty || '1', modalDesc);
     setModal(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
-    await addItem(newName.trim(), newQty.trim() || '1');
+    await addItem(newName.trim(), newQty.trim() || '1', newDesc);
     setNewName('');
     setNewQty('');
+    setNewDesc('');
   }
 
   function formatRelativeTime(iso: string) {
@@ -165,7 +173,7 @@ export function Shopping() {
       <div className="max-w-3xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
         <h1 className="text-2xl sm:text-3xl font-medium mb-8">Einkaufsliste</h1>
 
-        <form onSubmit={handleSubmit} className="mb-8">
+        <form onSubmit={handleSubmit} className="mb-8 space-y-2">
           <div className="flex gap-2">
             <input
               type="text"
@@ -184,6 +192,13 @@ export function Shopping() {
             />
             <Button type="submit" className="w-12 sm:w-14 text-xl shrink-0">+</Button>
           </div>
+          <input
+            type="text"
+            value={newDesc}
+            onChange={e => setNewDesc(e.target.value)}
+            placeholder="Beschreibung (optional)"
+            className="w-full px-4 py-3 text-sm rounded-lg border border-border bg-bg-primary focus:outline-none focus:border-text-muted"
+          />
         </form>
 
         <section className="mb-12">
@@ -197,8 +212,11 @@ export function Shopping() {
               {items.map(i => (
                 <div key={i.id} className="flex flex-col sm:flex-row sm:items-start sm:justify-between p-4 gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{i.name}</p>
-                    <p className="text-sm text-text-muted">Menge: {i.quantity}</p>
+                    <p className="text-sm">
+                      <span className="text-text-muted">{i.quantity}</span>{' '}
+                      <span className="font-medium">{i.name}</span>
+                      {i.description && <span className="text-text-muted"> — {i.description}</span>}
+                    </p>
                     <p className="text-xs text-text-hint mt-1">von {i.added_by} · {formatRelativeTime(i.added_at)}</p>
                   </div>
                   <div className="flex gap-2 shrink-0">
@@ -218,7 +236,7 @@ export function Shopping() {
           ) : (
             <div className="flex flex-wrap gap-2">
               {frequent.map(i => (
-                <button key={i.name} onClick={() => openModal(i.name, i.last_quantity)} className="flex items-center gap-2 px-4 py-2 text-xs rounded-full border border-border bg-bg-primary hover:bg-accent hover:text-bg-primary hover:border-accent transition-colors">
+                <button key={i.name} onClick={() => openModal(i.name, i.last_quantity, i.last_description || '')} className="flex items-center gap-2 px-4 py-2 text-xs rounded-full border border-border bg-bg-primary hover:bg-accent hover:text-bg-primary hover:border-accent transition-colors">
                   + {i.name}
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-bg-secondary text-text-hint">{i.count}x</span>
                 </button>
@@ -255,7 +273,11 @@ export function Shopping() {
                         {group.items.map(h => (
                           <div key={h.id} className="flex items-center justify-between p-3 pl-10 gap-3">
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm"><span className="font-medium">{h.item_name}</span><span className="text-text-muted"> · Menge: {h.quantity}</span></p>
+                              <p className="text-sm">
+                                <span className="text-text-muted">{h.quantity}</span>{' '}
+                                <span className="font-medium">{h.item_name}</span>
+                                {h.description && <span className="text-text-muted"> — {h.description}</span>}
+                              </p>
                               <p className="text-xs text-text-hint mt-0.5">von {h.user_name} · {formatRelativeTime(h.purchased_at)}</p>
                             </div>
                             <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 whitespace-nowrap">✓ Gekauft</span>
@@ -276,8 +298,24 @@ export function Shopping() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setModal(null)}>
           <div className="bg-bg-primary rounded-xl p-8 max-w-md w-full relative shadow-2xl" onClick={e => e.stopPropagation()}>
             <button onClick={() => setModal(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full hover:bg-bg-secondary flex items-center justify-center text-text-muted hover:text-text-primary text-2xl leading-none">×</button>
-            <h3 className="text-lg font-medium mb-6 pr-8">Menge für "{modal.name}"</h3>
-            <input type="text" value={modalQty} onChange={e => setModalQty(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Enter') confirmModal(); if (e.key === 'Escape') setModal(null); }} className="w-full px-4 py-3 text-sm rounded-lg border border-border bg-bg-primary focus:outline-none focus:border-text-primary mb-4" />
+            <h3 className="text-lg font-medium mb-6 pr-8">"{modal.name}" hinzufügen</h3>
+            <input
+              type="text"
+              value={modalQty}
+              onChange={e => setModalQty(e.target.value)}
+              autoFocus
+              placeholder="Menge"
+              onKeyDown={e => { if (e.key === 'Enter') confirmModal(); if (e.key === 'Escape') setModal(null); }}
+              className="w-full px-4 py-3 text-sm rounded-lg border border-border bg-bg-primary focus:outline-none focus:border-text-primary mb-3"
+            />
+            <input
+              type="text"
+              value={modalDesc}
+              onChange={e => setModalDesc(e.target.value)}
+              placeholder="Beschreibung (optional)"
+              onKeyDown={e => { if (e.key === 'Enter') confirmModal(); if (e.key === 'Escape') setModal(null); }}
+              className="w-full px-4 py-3 text-sm rounded-lg border border-border bg-bg-primary focus:outline-none focus:border-text-primary mb-4"
+            />
             <Button onClick={confirmModal} className="w-full">Hinzufügen</Button>
           </div>
         </div>
