@@ -189,6 +189,19 @@ export function Recipes() {
                   <p className="text-xs text-text-hint">
                     {r.servings} {r.servings_unit} · {r.author_name}
                   </p>
+                  {r.comment_count > 0 && (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-text-hint">
+                      <svg
+                        width="12" height="12" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      <span>{r.comment_count}</span>
+                    </p>
+                  )}
                 </div>
               </Link>
             ))}

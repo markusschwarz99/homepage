@@ -134,7 +134,7 @@ export function RecipeComments({ recipeId, currentUser }: Props) {
       ) : (
         <ul className="space-y-4 mb-8">
           {comments.map(c => (
-            <li key={c.id} className="border border-border rounded p-4">
+            <li id={`comment-${c.id}`} key={c.id} className="border border-border rounded p-4 scroll-mt-24">
               <div className="flex items-baseline justify-between gap-4 mb-2">
                 <div className="text-sm">
                   <span className="font-medium">{c.user_name}</span>

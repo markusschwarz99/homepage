@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { Modal } from '../components/Modal';
 import { RecipeComments } from '../components/RecipeComments';
@@ -12,6 +12,7 @@ import type { Recipe } from '../types';
 export function RecipeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading } = useAuth();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
@@ -33,6 +34,29 @@ export function RecipeDetail() {
       .catch(err => setError(err instanceof Error ? err.message : 'Fehler'))
       .finally(() => setLoadingRecipe(false));
   }, [id, user, loading]);
+
+  // Hash-Scrolling: bei /rezepte/:id#comment-<n> auf den entsprechenden
+  // Kommentar scrollen, sobald das Rezept (und damit die Comments) geladen ist.
+  useEffect(() => {
+    if (loadingRecipe || !recipe) return;
+    if (!location.hash) return;
+    const targetId = location.hash.replace('#', '');
+    // Comments laden asynchron nach Mount der RecipeComments-Komponente,
+    // daher mit kleiner Verzögerung erneut versuchen.
+    const tryScroll = (attempt: number) => {
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-accent', 'ring-offset-2', 'ring-offset-bg-primary', 'rounded-md');
+        window.setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-accent', 'ring-offset-2', 'ring-offset-bg-primary', 'rounded-md');
+        }, 2000);
+      } else if (attempt < 10) {
+        window.setTimeout(() => tryScroll(attempt + 1), 150);
+      }
+    };
+    tryScroll(0);
+  }, [loadingRecipe, recipe, location.hash]);
 
   async function handleDelete() {
     try {
