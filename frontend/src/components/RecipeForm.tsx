@@ -1,4 +1,21 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from './Button';
 import { api, getToken } from '../lib/api';
 import type { Recipe, RecipeInput, TagCategory } from '../types';
@@ -14,18 +31,140 @@ interface Props {
 }
 
 interface IngredientRow {
-  amount: string;   // als String für einfache Eingabe
+  _uid: string;
+  amount: string;
   unit: string;
   name: string;
 }
 
 interface StepRow {
+  _uid: string;
   content: string;
 }
 
 interface ImageRow {
   url: string;
 }
+
+function newUid(): string {
+  return crypto.randomUUID();
+}
+
+const inputClass =
+  'w-full px-3 py-2.5 text-sm rounded-lg border border-border bg-bg-primary focus:outline-none focus:border-text-muted';
+
+// ---------- Sortable-Items ----------
+
+function SortableIngredient(props: {
+  row: IngredientRow;
+  onChange: (field: 'amount' | 'unit' | 'name', value: string) => void;
+  onRemove: () => void;
+}) {
+  const { row, onChange, onRemove } = props;
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: row._uid });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="grid grid-cols-[auto_5rem_6rem_1fr_auto] gap-2 items-start"
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="p-1.5 text-text-muted hover:text-text-primary cursor-grab active:cursor-grabbing touch-none select-none"
+        aria-label="Zutat verschieben"
+      >
+        ⋮⋮
+      </button>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={row.amount}
+        onChange={e => onChange('amount', e.target.value)}
+        placeholder="Menge"
+        className={`${inputClass} min-w-0`}
+      />
+      <input
+        list="recipe-units"
+        value={row.unit}
+        onChange={e => onChange('unit', e.target.value)}
+        placeholder="Einheit"
+        className={`${inputClass} min-w-0`}
+      />
+      <input
+        type="text"
+        value={row.name}
+        onChange={e => onChange('name', e.target.value)}
+        placeholder="Zutat"
+        className={`${inputClass} min-w-0`}
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="p-1.5 text-red-500 hover:text-red-700 shrink-0"
+        aria-label="entfernen"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+function SortableStep(props: {
+  row: StepRow;
+  index: number;
+  onChange: (value: string) => void;
+  onRemove: () => void;
+}) {
+  const { row, index, onChange, onRemove } = props;
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: row._uid });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="flex gap-2 items-start">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="p-1.5 text-text-muted hover:text-text-primary cursor-grab active:cursor-grabbing touch-none select-none mt-1"
+        aria-label="Schritt verschieben"
+      >
+        ⋮⋮
+      </button>
+      <span className="shrink-0 w-8 h-8 rounded-full bg-bg-secondary text-sm font-medium flex items-center justify-center mt-1">
+        {index + 1}
+      </span>
+      <textarea
+        value={row.content}
+        onChange={e => onChange(e.target.value)}
+        rows={3}
+        placeholder="Schritt beschreiben..."
+        className={`${inputClass} flex-1 resize-y`}
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="p-1.5 text-red-500 hover:text-red-700 shrink-0"
+        aria-label="entfernen"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+// ---------- Hauptkomponente ----------
 
 export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   const [title, setTitle] = useState(initial?.title ?? '');
@@ -34,14 +173,16 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
 
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     initial?.ingredients.map(i => ({
+      _uid: newUid(),
       amount: i.amount != null ? String(i.amount).replace('.', ',') : '',
       unit: i.unit,
       name: i.name,
-    })) ?? [{ amount: '', unit: '', name: '' }]
+    })) ?? [{ _uid: newUid(), amount: '', unit: '', name: '' }]
   );
 
   const [steps, setSteps] = useState<StepRow[]>(
-    initial?.steps.map(s => ({ content: s.content })) ?? [{ content: '' }]
+    initial?.steps.map(s => ({ _uid: newUid(), content: s.content })) ??
+      [{ _uid: newUid(), content: '' }]
   );
 
   const [images, setImages] = useState<ImageRow[]>(
@@ -57,47 +198,60 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   useEffect(() => {
     api<TagCategory[]>('/tags').then(setCategories).catch(() => setCategories([]));
   }, []);
 
   // --- Zutaten ---
-  function updateIngredient(idx: number, field: keyof IngredientRow, value: string) {
-    setIngredients(prev => prev.map((i, k) => k === idx ? { ...i, [field]: value } : i));
+  function updateIngredient(uid: string, field: 'amount' | 'unit' | 'name', value: string) {
+    setIngredients(prev =>
+      prev.map(i => (i._uid === uid ? { ...i, [field]: value } : i))
+    );
   }
   function addIngredient() {
-    setIngredients(prev => [...prev, { amount: '', unit: '', name: '' }]);
+    setIngredients(prev => [...prev, { _uid: newUid(), amount: '', unit: '', name: '' }]);
   }
-  function removeIngredient(idx: number) {
-    setIngredients(prev => prev.filter((_, k) => k !== idx));
+  function removeIngredient(uid: string) {
+    setIngredients(prev => prev.filter(i => i._uid !== uid));
   }
-  function moveIngredient(idx: number, dir: -1 | 1) {
+  function handleIngredientDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
     setIngredients(prev => {
-      const next = [...prev];
-      const target = idx + dir;
-      if (target < 0 || target >= next.length) return prev;
-      [next[idx], next[target]] = [next[target], next[idx]];
-      return next;
+      const oldIndex = prev.findIndex(i => i._uid === active.id);
+      const newIndex = prev.findIndex(i => i._uid === over.id);
+      if (oldIndex < 0 || newIndex < 0) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
     });
   }
 
   // --- Schritte ---
-  function updateStep(idx: number, value: string) {
-    setSteps(prev => prev.map((s, k) => k === idx ? { content: value } : s));
+  function updateStep(uid: string, value: string) {
+    setSteps(prev => prev.map(s => (s._uid === uid ? { ...s, content: value } : s)));
   }
-  function addStep() { setSteps(prev => [...prev, { content: '' }]); }
-  function removeStep(idx: number) { setSteps(prev => prev.filter((_, k) => k !== idx)); }
-  function moveStep(idx: number, dir: -1 | 1) {
+  function addStep() {
+    setSteps(prev => [...prev, { _uid: newUid(), content: '' }]);
+  }
+  function removeStep(uid: string) {
+    setSteps(prev => prev.filter(s => s._uid !== uid));
+  }
+  function handleStepDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
     setSteps(prev => {
-      const next = [...prev];
-      const target = idx + dir;
-      if (target < 0 || target >= next.length) return prev;
-      [next[idx], next[target]] = [next[target], next[idx]];
-      return next;
+      const oldIndex = prev.findIndex(s => s._uid === active.id);
+      const newIndex = prev.findIndex(s => s._uid === over.id);
+      if (oldIndex < 0 || newIndex < 0) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
     });
   }
 
-  // --- Bilder ---
+  // --- Bilder (unverändert, Index-basiert) ---
   async function handleImageUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
     setUploading(true);
@@ -143,7 +297,8 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   function toggleTag(id: number) {
     setSelectedTags(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -153,9 +308,11 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
     e.preventDefault();
     setError('');
 
-    if (!title.trim()) { setError('Bitte gib einen Titel ein.'); return; }
+    if (!title.trim()) {
+      setError('Bitte gib einen Titel ein.');
+      return;
+    }
 
-    // Zutaten validieren und konvertieren
     const cleanIngredients = ingredients
       .filter(i => i.name.trim())
       .map(i => {
@@ -190,13 +347,13 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
     }
   }
 
-  const inputClass = "w-full px-3 py-2.5 text-sm rounded-lg border border-border bg-bg-primary focus:outline-none focus:border-text-muted";
-
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Titel */}
       <div>
-        <label htmlFor="recipe-title" className="block text-xs text-text-muted mb-2">Titel</label>
+        <label htmlFor="recipe-title" className="block text-xs text-text-muted mb-2">
+          Titel
+        </label>
         <input
           id="recipe-title"
           type="text"
@@ -211,7 +368,9 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
       {/* Portionen */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="recipe-servings" className="block text-xs text-text-muted mb-2">Anzahl</label>
+          <label htmlFor="recipe-servings" className="block text-xs text-text-muted mb-2">
+            Anzahl
+          </label>
           <input
             id="recipe-servings"
             type="number"
@@ -222,7 +381,9 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
           />
         </div>
         <div>
-          <label htmlFor="recipe-servings-unit" className="block text-xs text-text-muted mb-2">Einheit</label>
+          <label htmlFor="recipe-servings-unit" className="block text-xs text-text-muted mb-2">
+            Einheit
+          </label>
           <input
             id="recipe-servings-unit"
             type="text"
@@ -237,12 +398,18 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
       {/* Bilder */}
       <div>
         <label className="block text-xs text-text-muted mb-2">
-          Bilder {images.length > 0 && <span className="text-text-hint">(erstes = Titelbild)</span>}
+          Bilder{' '}
+          {images.length > 0 && (
+            <span className="text-text-hint">(erstes = Titelbild)</span>
+          )}
         </label>
         {images.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
             {images.map((img, idx) => (
-              <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-border">
+              <div
+                key={idx}
+                className="relative group aspect-square rounded-lg overflow-hidden border border-border"
+              >
                 <img src={img.url} alt="" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                   <button
@@ -299,58 +466,31 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
       {/* Zutaten */}
       <div>
         <label className="block text-xs text-text-muted mb-2">Zutaten</label>
-        <div className="space-y-3">
-          {ingredients.map((ing, idx) => (
-            <div key={idx} className="grid grid-cols-[5rem_6rem_1fr_auto] gap-2 items-start">
-              <input
-                type="text"
-                inputMode="decimal"
-                value={ing.amount}
-                onChange={e => updateIngredient(idx, 'amount', e.target.value)}
-                placeholder="Menge"
-                className={`${inputClass} min-w-0`}
-              />
-              <input
-                list="recipe-units"
-                value={ing.unit}
-                onChange={e => updateIngredient(idx, 'unit', e.target.value)}
-                placeholder="Einheit"
-                className={`${inputClass} min-w-0`}
-              />
-              <input
-                type="text"
-                value={ing.name}
-                onChange={e => updateIngredient(idx, 'name', e.target.value)}
-                placeholder="Zutat"
-                className={`${inputClass} min-w-0`}
-              />
-              <div className="flex gap-0.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => moveIngredient(idx, -1)}
-                  disabled={idx === 0}
-                  className="p-1.5 text-text-muted hover:text-text-primary disabled:opacity-30"
-                  aria-label="nach oben"
-                >↑</button>
-                <button
-                  type="button"
-                  onClick={() => moveIngredient(idx, 1)}
-                  disabled={idx === ingredients.length - 1}
-                  className="p-1.5 text-text-muted hover:text-text-primary disabled:opacity-30"
-                  aria-label="nach unten"
-                >↓</button>
-                <button
-                  type="button"
-                  onClick={() => removeIngredient(idx)}
-                  className="p-1.5 text-red-500 hover:text-red-700"
-                  aria-label="entfernen"
-                >×</button>
-              </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleIngredientDragEnd}
+        >
+          <SortableContext
+            items={ingredients.map(i => i._uid)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {ingredients.map(ing => (
+                <SortableIngredient
+                  key={ing._uid}
+                  row={ing}
+                  onChange={(field, value) => updateIngredient(ing._uid, field, value)}
+                  onRemove={() => removeIngredient(ing._uid)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
         <datalist id="recipe-units">
-          {COMMON_UNITS.filter(u => u).map(u => <option key={u} value={u} />)}
+          {COMMON_UNITS.filter(u => u).map(u => (
+            <option key={u} value={u} />
+          ))}
         </datalist>
         <button
           type="button"
@@ -364,44 +504,28 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
       {/* Schritte */}
       <div>
         <label className="block text-xs text-text-muted mb-2">Zubereitung</label>
-        <div className="space-y-3">
-          {steps.map((step, idx) => (
-            <div key={idx} className="flex gap-2 items-start">
-              <span className="shrink-0 w-8 h-8 rounded-full bg-bg-secondary text-sm font-medium flex items-center justify-center mt-1">
-                {idx + 1}
-              </span>
-              <textarea
-                value={step.content}
-                onChange={e => updateStep(idx, e.target.value)}
-                rows={3}
-                placeholder="Schritt beschreiben..."
-                className={`${inputClass} flex-1 resize-y`}
-              />
-              <div className="flex flex-col gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => moveStep(idx, -1)}
-                  disabled={idx === 0}
-                  className="p-1.5 text-text-muted hover:text-text-primary disabled:opacity-30"
-                  aria-label="nach oben"
-                >↑</button>
-                <button
-                  type="button"
-                  onClick={() => moveStep(idx, 1)}
-                  disabled={idx === steps.length - 1}
-                  className="p-1.5 text-text-muted hover:text-text-primary disabled:opacity-30"
-                  aria-label="nach unten"
-                >↓</button>
-                <button
-                  type="button"
-                  onClick={() => removeStep(idx)}
-                  className="p-1.5 text-red-500 hover:text-red-700"
-                  aria-label="entfernen"
-                >×</button>
-              </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleStepDragEnd}
+        >
+          <SortableContext
+            items={steps.map(s => s._uid)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {steps.map((step, idx) => (
+                <SortableStep
+                  key={step._uid}
+                  row={step}
+                  index={idx}
+                  onChange={value => updateStep(step._uid, value)}
+                  onRemove={() => removeStep(step._uid)}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
         <button
           type="button"
           onClick={addStep}
@@ -416,41 +540,46 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
         <label className="block text-xs text-text-muted mb-2">Tags</label>
         {categories.length === 0 ? (
           <p className="text-xs text-text-hint p-4 bg-bg-secondary rounded-lg">
-            Noch keine Tag-Kategorien vorhanden. Ein Admin muss zuerst im Admin-Bereich Kategorien und Tags anlegen.
+            Noch keine Tag-Kategorien vorhanden. Ein Admin muss zuerst im Admin-Bereich
+            Kategorien und Tags anlegen.
           </p>
         ) : categories.every(c => c.tags.length === 0) ? (
           <p className="text-xs text-text-hint p-4 bg-bg-secondary rounded-lg">
-            Es gibt bereits Kategorien ({categories.map(c => c.name).join(', ')}), aber noch keine Tags darin.
-            Ein Admin muss im Admin-Bereich in diese Kategorien Tags hinzufügen.
+            Es gibt bereits Kategorien ({categories.map(c => c.name).join(', ')}), aber
+            noch keine Tags darin. Ein Admin muss im Admin-Bereich in diese Kategorien
+            Tags hinzufügen.
           </p>
         ) : (
           <div className="space-y-3 p-4 bg-bg-secondary rounded-lg">
-            {categories.map(cat => cat.tags.length > 0 && (
-              <div key={cat.id}>
-                <p className="text-xs font-medium uppercase tracking-wider text-text-muted mb-2">
-                  {cat.name}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {cat.tags.map(tag => {
-                    const active = selectedTags.has(tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleTag(tag.id)}
-                        className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
-                          active
-                            ? 'bg-accent text-bg-primary'
-                            : 'bg-bg-primary border border-border text-text-muted hover:text-text-primary'
-                        }`}
-                      >
-                        {tag.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+            {categories.map(
+              cat =>
+                cat.tags.length > 0 && (
+                  <div key={cat.id}>
+                    <p className="text-xs font-medium uppercase tracking-wider text-text-muted mb-2">
+                      {cat.name}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {cat.tags.map(tag => {
+                        const active = selectedTags.has(tag.id);
+                        return (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => toggleTag(tag.id)}
+                            className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
+                              active
+                                ? 'bg-accent text-bg-primary'
+                                : 'bg-bg-primary border border-border text-text-muted hover:text-text-primary'
+                            }`}
+                          >
+                            {tag.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )
+            )}
           </div>
         )}
       </div>
