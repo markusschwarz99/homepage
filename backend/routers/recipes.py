@@ -43,7 +43,7 @@ class RecipeUpdate(RecipeCreate):
 
 # ---------- Helpers ----------
 
-def _serialize_recipe(r: models.Recipe, detail: bool = False) -> dict:
+def _serialize_recipe(r: models.Recipe, detail: bool = False, comment_count: int = 0) -> dict:
     base = {
         "id": r.id,
         "title": r.title,
@@ -58,6 +58,7 @@ def _serialize_recipe(r: models.Recipe, detail: bool = False) -> dict:
             {"id": t.id, "name": t.name, "category_id": t.category_id}
             for t in r.tags
         ],
+        "comment_count": comment_count,
     }
     if detail:
         base["images"] = [
@@ -161,7 +162,23 @@ def list_recipes(
                 query = query.filter(models.Recipe.id.in_(subq))
 
     recipes = query.order_by(models.Recipe.created_at.desc()).all()
-    return [_serialize_recipe(r) for r in recipes]
+
+    # Comment-Counts in einer einzigen Query holen, dann mappen
+    counts: dict[int, int] = {}
+    if recipes:
+        recipe_ids = [r.id for r in recipes]
+        rows = (
+            db.query(
+                models.RecipeComment.recipe_id,
+                func.count(models.RecipeComment.id),
+            )
+            .filter(models.RecipeComment.recipe_id.in_(recipe_ids))
+            .group_by(models.RecipeComment.recipe_id)
+            .all()
+        )
+        counts = {rid: cnt for rid, cnt in rows}
+
+    return [_serialize_recipe(r, comment_count=counts.get(r.id, 0)) for r in recipes]
 
 
 @router.get("/{recipe_id}")
@@ -184,7 +201,14 @@ def get_recipe(
     )
     if not recipe:
         raise HTTPException(status_code=404, detail="Rezept nicht gefunden")
-    return _serialize_recipe(recipe, detail=True)
+
+    comment_count = (
+        db.query(func.count(models.RecipeComment.id))
+        .filter(models.RecipeComment.recipe_id == recipe.id)
+        .scalar()
+        or 0
+    )
+    return _serialize_recipe(recipe, detail=True, comment_count=comment_count)
 
 
 @router.post("")
