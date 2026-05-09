@@ -202,6 +202,63 @@ auf das System. Daher:
   Replaces, `cat > ... << 'EOF'` für komplette Abschnitte, `sed -i` für
   einfache Substitutionen. Ich committe selbst.
 
+## Arbeitsweise vor dem Code
+
+Diese Regeln sollen typische LLM-Coding-Fehler reduzieren (unnötige
+Refactorings, halluzinierte Annahmen, Over-Engineering). Faustregel: bei
+trivialen Aufgaben nach Augenmaß, bei nicht-trivialen strikt halten.
+
+**Erst denken, dann coden.** Vor dem Schreiben von Code:
+
+- Annahmen explizit machen. Wenn unklar, fragen — nicht raten.
+- Wenn mehrere Interpretationen plausibel sind, alle nennen statt still
+  eine zu wählen.
+- Wenn eine simplere Lösung existiert, sie ansprechen — auch wenn ich
+  nach der komplexeren gefragt habe. Pushback ist erwünscht.
+- Wenn etwas verwirrt: stoppen, benennen, fragen. Verwirrung nicht
+  überspielen.
+
+**Simplicity first.** Minimum-Code der das Problem löst, nichts auf Vorrat:
+
+- Keine Features über das hinaus, was gefragt war.
+- Keine Abstraktionen für Single-Use-Code.
+- Keine "Flexibilität"/"Konfigurierbarkeit", die nicht angefragt wurde.
+- Kein Error-Handling für unmögliche Szenarien.
+- Wenn 200 Zeilen geschrieben sind und 50 reichen würden: neu schreiben.
+
+**Chirurgische Changes.** Nur anfassen was nötig ist:
+
+- Keine "Verbesserungen" an angrenzendem Code, Kommentaren, Formatierung
+  während der Aufgabe. Auch wenn der Stil stört: matchen, nicht ändern.
+- Nicht refactoren, was nicht kaputt ist.
+- Wenn unrelated Dead Code auffällt: erwähnen, nicht löschen.
+- Beim Aufräumen von Imports/Variablen nur das entfernen, was DURCH die
+  aktuelle Änderung verwaist ist — nicht was schon vorher tot war.
+- Im Diff-Test: jede geänderte Zeile muss direkt zur Aufgabe rückverfolgbar
+  sein.
+
+Diese Regel ist im Repo besonders wichtig wegen der Drift-Stolperfallen
+(siehe Abschnitte zu Alembic-Autogenerate und SQLAlchemy `unique=True` +
+`index=True`): "Bonus-Statements" in Migrations sind ein direktes Symptom
+für nicht-chirurgische Changes.
+
+**Goal-driven, mit Verify-Schritten.** Aufgaben in überprüfbare Ziele übersetzen:
+
+- "Validierung hinzufügen" → "Tests für invalid input schreiben, dann
+  grün machen"
+- "Bug fixen" → "Test schreiben, der den Bug reproduziert, dann grün machen"
+- "X refactoren" → "Sicherstellen dass Tests vor und nach grün sind"
+
+Bei mehrstufigen Aufgaben kurzen Plan vorab nennen, mit explizitem
+Verify-Step pro Schritt — Format `1. <Schritt> → verify: <Check>`, eine
+Zeile pro Schritt.
+
+Klare Success-Criteria erlauben es mir (Markus), Schritt für Schritt zu
+prüfen ohne dauernd nachzufragen. Schwammige Kriterien ("damit es geht")
+führen zu Hin-und-Her.
+
+---
+
 ## Typische Aufgaben & wie ich Hilfe brauche
 
 **Bugs / Debugging** — Wenn Logs hilfreich wären, frag nach:
