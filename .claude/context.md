@@ -133,6 +133,17 @@ homepage/
   `alembic revision`-Output rauslesen und explizit per Name kopieren:
   `docker cp homepage-backend-1:/app/alembic/versions/<revid>_<slug>.py
   ~/homepage/backend/alembic/versions/<revid>_<slug>.py`.
+  **Stolperfalle bei `--autogenerate`**: Der Backend-Container hat keinen
+  Volume-Mount aufs Repo, sieht also Code-Änderungen in `models.py` erst nach
+  einem `docker compose build`. Wer `alembic revision --autogenerate` gegen den
+  laufenden Prod-Container ausführt OHNE vorher rebuildet zu haben, vergleicht
+  alt-vs-alt und bekommt eine leere Migration mit `pass`-Body zurück. Optionen:
+  (a) Models-Patch per `docker cp` in den Container vorschieben — riskant, weil
+  SQLAlchemy ab dem Moment die neue Spalte in jedes SELECT rendert; (b) im
+  Test-Stack (`homepage-backend-test`-Image) bauen und dort autogenerieren;
+  (c) bei trivialen Änderungen (1–2 `add_column`s) Migration manuell schreiben
+  und Revision-ID + `down_revision` aus einer leer generierten Migration
+  übernehmen.
 - **Secrets**: ausschließlich in `.env` (nicht committed). `.env.example` als Template
   pflegen, wenn neue Env-Vars dazukommen
 - **Lizenz**: GPLv3
@@ -272,6 +283,18 @@ führen zu Hin-und-Her.
 nicht `pytest` direkt, da installiert in `/home/app/.local/bin`
 (nicht im PATH).
 
+**Aber**: Sobald die Test-Änderung neue Felder/Tabellen voraussetzt, die in
+`models.py` schon definiert sind aber in der Prod-DB noch nicht existieren
+(z.B. nach lokalem Migrations-Patch, vor Pi-Deploy), DARF pytest nicht im
+Prod-Backend laufen — SQLAlchemy würde die neue Spalte sofort in jedes SELECT
+rendern und alle laufenden Endpoints mit 500ern killen. Stattdessen Test-Stack
+verwenden: `docker compose -f docker-compose.test.yml up -d --build backend-test`,
+dann `docker compose -f docker-compose.test.yml exec -T backend-test pip install
+-r requirements-dev.txt && python -m pytest ... --no-cov`. Cleanup mit
+`docker compose -f docker-compose.test.yml down -v`. pytest selbst braucht die
+DB nicht (In-Memory-SQLite via `conftest.py`), aber das `homepage-backend-test`-
+Image ist ein separates Tag und kollidiert nicht mit Prod.
+
 **Standalone-Maintenance-Skripte** liegen unter `backend/scripts/`,
 werden mit `docker compose exec -T backend python scripts/<name>.py`
 ausgeführt. Beispiel: `scripts/refine_seasonal_data.py`. Skripte
@@ -387,6 +410,13 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   - **Schema-Migrations** sind besonders heikel: ein Build auf dem
     Feature-Branch lässt `entrypoint.sh` die neue Migration auch auf der
     Prod-DB durchlaufen. Das ist nicht trivial rückgängig zu machen.
+- **"Neuester Eintrag"-Queries brauchen ID-Tiebreaker**: `order_by(<timestamp>.desc()).first()`
+  ist non-deterministisch, sobald zwei Rows denselben Timestamp haben. Tritt in
+  Tests reproduzierbar auf (zwei `client.post` direkt hintereinander → identischer
+  `func.now()`-Wert), in Prod selten aber möglich. Konvention: bei "neuester"-
+  Lookups immer `(<timestamp>.desc(), <table>.id.desc())` als Sort-Tuple, weil
+  die Auto-Increment-ID monoton steigt und der Tiebreaker damit korrekt ist.
+  Beispiel: `frequent_items.last`-Query in `routers/shopping.py`.
 - **CORS allow_methods**: Backend erlaubt nur `GET, POST, PATCH, DELETE, OPTIONS`
   (siehe `backend/main.py`). Niemals `PUT` für neue Endpoints — Update-Konvention im
   Repo ist **PATCH** (siehe `routers/tags.py`, `routers/settings.py`). Wenn `PUT`
