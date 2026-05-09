@@ -219,11 +219,39 @@ Cloudflare-Tunnel, Backup-Strategie, Logs/Monitoring. Berücksichtige ARM64.
 **DB-Queries / Schema** — Postgres 16, SQLAlchemy ORM. Bei `ALTER TABLE` o.ä. → immer
 über Alembic-Migration. Vor Migrations Backup-Erinnerung.
 
+**UI-Feedback (Toasts)** — Für nutzer-sichtbares Feedback (Erfolg/Fehler bei
+Aktionen) gibt es einen leichten in-house Toast-Provider unter
+`frontend/src/components/Toast.tsx`. Verwendung: `const { show } = useToast();`
+plus `show('Nachricht', 'success' | 'error' | 'info')`. Der `ToastProvider` wird
+in `Layout.tsx` gemountet — neue Pages, die `Layout` verwenden, haben
+automatisch Zugriff. Bewusste Entscheidung gegen externe Libraries
+(react-hot-toast, sonner, react-toastify), um Bundle-Size niedrig zu halten.
+Wenn das Feature später wächst (Stacking-Verhalten, Persistenz, Icons), kann
+auf eine Library migriert werden — die `useToast()`-API ist API-kompatibel
+genug.
+
 **Konfigurierbare Texte / Site-Settings** — Editierbare Texte (z.B. Homepage-Intro)
 liegen in der Tabelle `site_settings` (Key/Value, Plain-Text). Für neue editierbare
 Felder: Key zur `ALLOWED_KEYS`-Whitelist in `backend/routers/settings.py` ergänzen,
 im Frontend `getSetting('<key>')` aus `api/settings.ts` mit Fallback verwenden,
 Admin-UI in `pages/AdminSettings.tsx` erweitern.
+
+**Notifications** — Generische Tabelle `notifications` (siehe
+`backend/models.py`: `Notification` + `NotificationType`-Enum,
+JSON-Payload-Spalte). Jeder Typ hat ein eigenes Payload-Schema und einen
+Frontend-Branch in `notificationText()`/`notificationLink()` in
+`components/NotificationBell.tsx`. Ein neuer Notification-Typ erfordert:
+(a) Enum-Wert in `NotificationType` + Migration für den Postgres-Enum-Wert,
+(b) Trigger-Helper im jeweiligen Router (Vorbild:
+`create_recipe_comment_notification` in `routers/notifications.py`),
+(c) Hook im auslösenden Endpoint (Notification-Anlage IMMER in `try/except`
+und mit `db.rollback()` im Fehlerfall, damit der Hauptfluss nicht blockiert),
+(d) Frontend-TypeScript-Type für den neuen Payload, (e) Branches in
+`notificationText()`/`notificationLink()`. Owner-Selbst-Aktionen lösen keine
+Notification aus (Konvention: `recipient_id == actor_id` → return None).
+Aktuelle Polling-Strategie: kein Polling — Unread-Count on-mount + nach
+User-Interaktion (Glocke öffnen, Mark-Action). Bei zukünftigen Typen kann
+das überdacht werden.
 
 **Security-Hardening** — Rate Limiting, JWT-Lifetime, Bcrypt-Rounds, Upload-Validation,
 CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
