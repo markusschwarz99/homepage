@@ -260,6 +260,20 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   in einem `node:22-alpine`-Container mit Source-Mount: `docker run --rm -v
   "$(pwd)/frontend:/app" -w /app node:22-alpine sh -c "npm ci --silent &&
   npx tsc -b --noEmit"`.
+- **Sortierbare Listen im Frontend (Drag-and-Drop-Konvention)**: Für sortierbare
+  Child-Listen (z.B. Zutaten/Schritte im `RecipeForm`) wird `@dnd-kit/sortable`
+  verwendet — nicht selbstgebaute Up/Down-Pfeil-Buttons. Setup: `PointerSensor`
+  mit `activationConstraint: { distance: 5 }` (sonst feuert jeder Klick einen
+  Drag) plus `KeyboardSensor` mit `sortableKeyboardCoordinates` (a11y). Pro
+  sortierbarem Item ein Drag-Handle (`⋮⋮`) mit Klassen `cursor-grab
+  active:cursor-grabbing touch-none select-none` — `touch-none` ist Pflicht,
+  sonst scrollt iOS statt zu draggen. Items brauchen stabile IDs für
+  `useSortable({ id })`: wenn die Daten clientseitig keine eigene ID haben
+  (neu hinzugefügte Form-Rows), per `crypto.randomUUID()` ein `_uid`-Feld
+  setzen — und dieses `_uid` **nicht** in den API-Payload aufnehmen. Die
+  Reihenfolge im Backend kommt weiterhin aus dem Array-Index der gesendeten
+  Liste (siehe `_replace_children` in `routers/recipes.py`), nicht aus einem
+  expliziten `position`-Feld im Request.
 - **`docker compose build` IST ein Prod-Deploy.** Der Standard-Compose-Stack
   ist gleichzeitig Prod. Jeder `docker compose build` (auch auf einem
   Feature-Branch!) überschreibt das `:latest`-Image, und das nächste
