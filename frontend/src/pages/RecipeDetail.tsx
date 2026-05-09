@@ -245,11 +245,11 @@ export function RecipeDetail() {
             )}
           </div>
         </div>
-      </div>
 
-      {user && (
-        <RecipeComments recipeId={recipe.id} currentUser={user} />
-      )}
+        {user && (
+          <RecipeComments recipeId={recipe.id} currentUser={user} />
+        )}
+      </div>
 
       {deleteModal && (
         <Modal
