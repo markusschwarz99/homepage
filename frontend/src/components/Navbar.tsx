@@ -42,6 +42,9 @@ export function Navbar() {
               {user.is_admin && (
                 <Link to="/diary" className={linkClass}>Tagebuch</Link>
               )}
+              {user.is_admin && (
+                <Link to="/cv" className={linkClass}>CV</Link>
+              )}
               {user.is_household && (
                 <Link to="/einkaufsliste" className={linkClass}>Einkaufsliste</Link>
               )}
@@ -117,6 +120,9 @@ export function Navbar() {
                 )}
                 {user.is_admin && (
                   <Link to="/diary" className={mobileLinkClass}>Tagebuch</Link>
+                )}
+                {user.is_admin && (
+                  <Link to="/cv" className={mobileLinkClass}>CV</Link>
                 )}
                 {user.is_household && (
                   <Link to="/einkaufsliste" className={mobileLinkClass}>Einkaufsliste</Link>

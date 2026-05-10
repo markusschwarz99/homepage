@@ -6,7 +6,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from database import Base, engine
 import models
-from routers import auth, shopping, admin, recipes, recipe_comments, tags, seasonal, settings, impostor, diary, notifications, projektreferenzen
+from routers import auth, shopping, admin, recipes, recipe_comments, tags, seasonal, settings, impostor, diary, notifications, projektreferenzen, cv
 from rate_limit import limiter
 import os
 import logging
@@ -41,6 +41,7 @@ app.include_router(impostor.router)
 app.include_router(diary.router)
 app.include_router(notifications.router)
 app.include_router(projektreferenzen.router)
+app.include_router(cv.router)
 
 # Test-Only-Endpoints: NUR registrieren wenn ENVIRONMENT=test
 if os.getenv("ENVIRONMENT") == "test":
