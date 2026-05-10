@@ -148,6 +148,16 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
   (c) bei trivialen Änderungen (1–2 `add_column`s) Migration manuell schreiben
   und Revision-ID + `down_revision` aus einer leer generierten Migration
   übernehmen.
+  **Stolperfalle bei `down_revision`**: Den Head der Alembic-Kette NIE aus dem
+  Dateinamen oder `ls`-Ergebnis ableiten — die Kette kann verzweigt sein
+  (mehrere Files mit unterschiedlichen `down_revision`-Werten). Sicherer Check:
+  ```bash
+  grep -r "^revision" backend/alembic/versions/*.py | grep -v __pycache__
+  grep -r "^down_revision" backend/alembic/versions/*.py | grep -v __pycache__
+  ```
+  Das File, dessen `revision`-Wert in keinem `down_revision` auftaucht, ist der
+  echte Head. Falsche `down_revision` erzeugt "Multiple head revisions" beim
+  `alembic upgrade head`.
 - **Secrets**: ausschließlich in `.env` (nicht committed). `.env.example` als Template
   pflegen, wenn neue Env-Vars dazukommen
 - **Lizenz**: GPLv3
