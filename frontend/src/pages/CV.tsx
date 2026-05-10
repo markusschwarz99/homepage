@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import { usePDF } from '@react-pdf/renderer';
 import { Layout } from '../components/Layout';
 import { Button } from '../components/Button';
 import { CVDocument } from '../components/CVDocument';
@@ -878,6 +878,31 @@ function ProjectsTab() {
 
 // ────────────────────── Übersicht & Export ──────────────────────
 
+const linkClass = 'px-4 py-2.5 text-sm font-medium rounded-lg transition-colors font-sans bg-accent text-bg-primary border border-accent hover:bg-accent-hover';
+
+function PDFExportButton(props: { profile: CVProfile | null; experiences: CVExperience[]; languages: CVLanguage[]; certs: CVCertificate[]; educations: CVEducation[]; projects: ProjectReference[] }) {
+  const [instance] = usePDF({
+    document: (
+      <CVDocument
+        profile={props.profile}
+        experiences={props.experiences}
+        languages={props.languages}
+        certs={props.certs}
+        educations={props.educations}
+        projects={props.projects}
+      />
+    ),
+  });
+
+  if (instance.error) return <span className="text-red-600 text-sm">PDF-Fehler: {String(instance.error)}</span>;
+
+  return (
+    <a href={instance.url ?? '#'} download="lebenslauf.pdf" className={linkClass}>
+      {instance.loading ? 'Generiere PDF…' : 'Als PDF herunterladen'}
+    </a>
+  );
+}
+
 function formatBirthdate(iso: string): string {
   const [y, m, d] = iso.split('-');
   return `${d}.${m}.${y}`;
@@ -923,22 +948,14 @@ function OverviewTab() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-sm font-medium uppercase tracking-wider text-text-muted">Übersicht</h2>
-        <PDFDownloadLink
-          document={
-            <CVDocument
-              profile={profile}
-              experiences={experiences}
-              languages={languages}
-              certs={certs}
-              educations={educations}
-              projects={projects}
-            />
-          }
-          fileName="lebenslauf.pdf"
-          className="px-4 py-2.5 text-sm font-medium rounded-lg transition-colors font-sans bg-accent text-bg-primary border border-accent hover:bg-accent-hover"
-        >
-          {({ loading }) => loading ? 'Generiere PDF…' : 'Als PDF herunterladen'}
-        </PDFDownloadLink>
+        <PDFExportButton
+          profile={profile}
+          experiences={experiences}
+          languages={languages}
+          certs={certs}
+          educations={educations}
+          projects={projects}
+        />
       </div>
 
       <div>
