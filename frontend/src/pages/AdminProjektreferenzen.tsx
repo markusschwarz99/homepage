@@ -100,46 +100,40 @@ export function AdminProjektreferenzen() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function buildPayload() {
+  function buildPayload(): ProjectReferenceInput | null {
     const fte = parseFloat(form.fte);
-    if (!form.title.trim()) return { error: 'Titel ist erforderlich' };
-    if (!form.date_from) return { error: 'Von-Datum ist erforderlich' };
-    if (!form.industry.trim()) return { error: 'Branche ist erforderlich' };
-    if (!form.contact.trim()) return { error: 'Ansprechpartner ist erforderlich' };
-    if (!form.fte || isNaN(fte) || fte <= 0) return { error: 'Umfang (FTE) muss > 0 sein' };
-    if (!form.topic.trim()) return { error: 'Thema ist erforderlich' };
-    if (!form.roles.trim()) return { error: 'Rolle(n) ist erforderlich' };
-    if (!form.responsibilities.trim()) return { error: 'Verantwortlichkeiten sind erforderlich' };
-
+    if (!form.title.trim()) { setFormError('Titel ist erforderlich'); return null; }
+    if (!form.date_from) { setFormError('Von-Datum ist erforderlich'); return null; }
+    if (!form.industry.trim()) { setFormError('Branche ist erforderlich'); return null; }
+    if (!form.contact.trim()) { setFormError('Ansprechpartner ist erforderlich'); return null; }
+    if (!form.fte || isNaN(fte) || fte <= 0) { setFormError('Umfang (FTE) muss > 0 sein'); return null; }
+    if (!form.topic.trim()) { setFormError('Thema ist erforderlich'); return null; }
+    if (!form.roles.trim()) { setFormError('Rolle(n) ist erforderlich'); return null; }
+    if (!form.responsibilities.trim()) { setFormError('Verantwortlichkeiten sind erforderlich'); return null; }
     return {
-      payload: {
-        title: form.title.trim(),
-        date_from: form.date_from,
-        date_to: form.date_to || null,
-        industry: form.industry.trim(),
-        contact: form.contact.trim(),
-        fte,
-        topic: form.topic.trim(),
-        roles: form.roles.trim(),
-        responsibilities: form.responsibilities.trim(),
-      },
+      title: form.title.trim(),
+      date_from: form.date_from,
+      date_to: form.date_to || null,
+      industry: form.industry.trim(),
+      contact: form.contact.trim(),
+      fte,
+      topic: form.topic.trim(),
+      roles: form.roles.trim(),
+      responsibilities: form.responsibilities.trim(),
     };
   }
 
   async function submit() {
-    const result = buildPayload();
-    if ('error' in result) {
-      setFormError(result.error);
-      return;
-    }
-    setSubmitting(true);
     setFormError('');
+    const payload = buildPayload();
+    if (!payload) return;
+    setSubmitting(true);
     try {
       if (mode === 'create') {
-        const created = await adminCreateProjektreferenz(result.payload);
+        const created = await adminCreateProjektreferenz(payload);
         setRefs((prev) => [created, ...prev]);
       } else if (mode === 'edit' && editingId !== null) {
-        const updated = await adminUpdateProjektreferenz(editingId, result.payload);
+        const updated = await adminUpdateProjektreferenz(editingId, payload);
         setRefs((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       }
       closeForm();
