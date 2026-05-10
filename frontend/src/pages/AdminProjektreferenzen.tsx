@@ -7,7 +7,7 @@ import {
   adminUpdateProjektreferenz,
   adminDeleteProjektreferenz,
 } from '../api/projektreferenzen';
-import type { ProjectReference } from '../types';
+import type { ProjectReference, ProjectReferenceInput } from '../types';
 
 const EMPTY_FORM = {
   title: '',
