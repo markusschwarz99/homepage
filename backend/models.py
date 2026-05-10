@@ -409,3 +409,22 @@ class Notification(Base):
         Index("ix_notifications_user_read", "user_id", "read"),
     )
 
+
+# ============================================================
+
+class ProjectReference(Base):
+    __tablename__ = "project_references"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
+    date_from = Column(Date, nullable=False)
+    date_to = Column(Date, nullable=True)
+    industry = Column(String(200), nullable=False)
+    contact = Column(String(200), nullable=False)
+    fte = Column(Float, nullable=False)
+    topic = Column(Text, nullable=False)
+    roles = Column(Text, nullable=False)
+    responsibilities = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
