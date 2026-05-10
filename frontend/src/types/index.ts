@@ -245,3 +245,32 @@ export interface NotificationListResponse {
   limit: number;
   offset: number;
 }
+
+// ---------- Projektreferenzen ----------
+
+export interface ProjectReference {
+  id: number;
+  title: string;
+  date_from: string;
+  date_to: string | null;
+  industry: string;
+  contact: string;
+  fte: number;
+  topic: string;
+  roles: string;
+  responsibilities: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectReferenceInput {
+  title: string;
+  date_from: string;
+  date_to: string | null;
+  industry: string;
+  contact: string;
+  fte: number;
+  topic: string;
+  roles: string;
+  responsibilities: string;
+}

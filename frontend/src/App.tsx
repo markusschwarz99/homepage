@@ -23,6 +23,7 @@ import { SeasonalCalendar } from './pages/SeasonalCalendar';
 import { SeasonalCalendarAdmin } from './pages/SeasonalCalendarAdmin';
 import { Impostor } from './pages/Impostor';
 import { AdminImpostor } from './pages/AdminImpostor';
+import { AdminProjektreferenzen } from './pages/AdminProjektreferenzen';
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
         <Route path="/admin/tags" element={<AdminTags />} />
         <Route path="/admin/saisonkalender" element={<SeasonalCalendarAdmin />} />
         <Route path="/admin/impostor" element={<AdminImpostor />} />
+        <Route path="/admin/projektreferenzen" element={<AdminProjektreferenzen />} />
         <Route path="/admin/einstellungen" element={<AdminSettings />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
