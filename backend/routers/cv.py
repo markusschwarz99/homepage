@@ -314,7 +314,7 @@ def list_certificates(
 ):
     return (
         db.query(models.CVCertificate)
-        .order_by(models.CVCertificate.sort_order, models.CVCertificate.id)
+        .order_by(models.CVCertificate.jahr.desc(), models.CVCertificate.id.desc())
         .all()
     )
 
