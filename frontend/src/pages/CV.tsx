@@ -202,13 +202,12 @@ function ExperienceTab() {
         sort_order: 0,
       };
       if (mode === 'create') {
-        const created = await createCVExperience(payload);
-        setItems((prev) => [created, ...prev]);
+        await createCVExperience(payload);
       } else if (mode === 'edit' && editingId !== null) {
-        const updated = await updateCVExperience(editingId, payload);
-        setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+        await updateCVExperience(editingId, payload);
       }
       closeForm();
+      load();
     } catch (e) {
       setFormError(e instanceof Error ? e.message : 'Fehler beim Speichern');
     } finally {
@@ -395,15 +394,14 @@ function SkillsTab() {
     try {
       const payload = { name: certForm.name.trim(), jahr, sort_order: 0 };
       if (certMode === 'create') {
-        const created = await createCVCertificate(payload);
-        setCerts((prev) => [...prev, created]);
+        await createCVCertificate(payload);
       } else if (certMode === 'edit' && certEditId !== null) {
-        const updated = await updateCVCertificate(certEditId, payload);
-        setCerts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        await updateCVCertificate(certEditId, payload);
       }
       setCertMode('none');
       setCertEditId(null);
       setCertForm({ name: '', jahr: String(new Date().getFullYear()) });
+      load();
     } catch (e) {
       setCertError(e instanceof Error ? e.message : 'Fehler');
     } finally {
@@ -593,13 +591,12 @@ function EducationTab() {
     try {
       const payload = { date_from: form.date_from, date_to: form.date_to || null, beschreibung: form.beschreibung.trim(), sort_order: 0 };
       if (mode === 'create') {
-        const created = await createCVEducation(payload);
-        setItems((prev) => [created, ...prev]);
+        await createCVEducation(payload);
       } else if (mode === 'edit' && editingId !== null) {
-        const updated = await updateCVEducation(editingId, payload);
-        setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+        await updateCVEducation(editingId, payload);
       }
       closeForm();
+      load();
     } catch (e) {
       setFormError(e instanceof Error ? e.message : 'Fehler beim Speichern');
     } finally {
@@ -742,13 +739,12 @@ function ProjectsTab() {
     setSubmitting(true);
     try {
       if (mode === 'create') {
-        const created = await adminCreateProjektreferenz(payload);
-        setRefs((prev) => [created, ...prev]);
+        await adminCreateProjektreferenz(payload);
       } else if (mode === 'edit' && editingId !== null) {
-        const updated = await adminUpdateProjektreferenz(editingId, payload);
-        setRefs((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+        await adminUpdateProjektreferenz(editingId, payload);
       }
       closeForm();
+      load();
     } catch (e) {
       setFormError(e instanceof Error ? e.message : 'Fehler beim Speichern');
     } finally {
