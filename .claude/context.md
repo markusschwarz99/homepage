@@ -47,6 +47,7 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
   raus — v4 macht das intern.
 - TipTap 3 (Rich-Editor: Image, Link, Placeholder, TextAlign, Underline, StarterKit)
 - DOMPurify für HTML-Sanitization
+- @react-pdf/renderer 4.x (PDF-Export, aktuell nur im CV-Bereich)
 - ESLint 10 + typescript-eslint
 
 **E2E** — Playwright 1.59 (TypeScript), separates Projekt unter `e2e/`
@@ -511,6 +512,18 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   live, bis der Container neu gebaut wird. Nur für additive/risikofreie
   Änderungen geeignet (neue Endpoints, Tests). Bei Änderungen an bestehenden
   Endpoints lieber den Test-Stack nutzen.
+- **WASM-Bibliotheken brauchen CSP-Anpassung**: Libs die intern WebAssembly
+  nutzen (z.B. `@react-pdf/renderer`) scheitern mit
+  `CompileError: WebAssembly.instantiate() violates CSP`, wenn `'wasm-unsafe-eval'`
+  in `script-src` fehlt. Fix: in `frontend/nginx.conf.template` den `script-src`-Header
+  um `'wasm-unsafe-eval'` erweitern — gezielter als `'unsafe-eval'` (erlaubt nur
+  WASM, kein arbiträres JS-eval). Danach Frontend rebuild + restart nötig.
+- **`@react-pdf/renderer`: `usePDF`-Hook statt `PDFDownloadLink`**: `PDFDownloadLink`
+  rendert ein `<a>`-Tag — niemals `<Button>` (= `<button>`) darin verschachteln,
+  das ist invalid HTML und der Browser bricht das Nesting auf (Klick geht verloren).
+  Stattdessen `usePDF`-Hook nutzen: gibt `{ url, loading, error }` zurück, `url`
+  direkt auf einem `<a href={url} download="...">` setzen. Fehler werden so auch
+  sichtbar statt still ignoriert.
 - **Frontend-API-Wrapper für Multipart-Uploads**: Der zentrale `api()`-Helper
   in `frontend/src/lib/api.ts` setzt `Content-Type: application/json`
   hardcoded. Für Multipart/Form-Data-Uploads muss der Browser die Boundary
