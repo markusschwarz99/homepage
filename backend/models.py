@@ -284,6 +284,12 @@ class RecipeComment(Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
+    parent_id = Column(
+        Integer,
+        ForeignKey("recipe_comments.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     content = Column(String(2000), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(
@@ -296,6 +302,11 @@ class RecipeComment(Base):
 
     recipe = relationship("Recipe", backref="comments")
     user = relationship("User")
+    parent = relationship(
+        "RecipeComment",
+        remote_side="RecipeComment.id",
+        backref="replies",
+    )
 
     __table_args__ = (
         Index("ix_recipe_comments_recipe_created", "recipe_id", "created_at"),
@@ -356,6 +367,7 @@ import enum as _notif_enum
 class NotificationType(_notif_enum.Enum):
     """Notification-Typen. Werte werden als Postgres-Enum gespeichert."""
     recipe_comment = "recipe_comment"
+    recipe_comment_reply = "recipe_comment_reply"
 
 
 class Notification(Base):
@@ -379,6 +391,9 @@ class Notification(Base):
     # JSON-Payload mit typ-spezifischen Daten:
     # für recipe_comment: { "recipe_id": int, "recipe_title": str,
     #                       "comment_id": int, "actor_id": int, "actor_name": str }
+    # für recipe_comment_reply: { "recipe_id": int, "recipe_title": str,
+    #                             "comment_id": int, "parent_comment_id": int,
+    #                             "actor_id": int, "actor_name": str }
     payload = Column(JSON, nullable=False)
     read = Column(Boolean, nullable=False, default=False, server_default="false")
     created_at = Column(
