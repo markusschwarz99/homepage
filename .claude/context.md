@@ -542,11 +542,17 @@ Daraus folgt:
   5. **Erst nach grüner CI mergen**, niemals "rot mergen und später fixen".
      Damit ist `main` immer deploy-bereit.
   6. Nach Merge: `git checkout main && git pull && git branch -d feature/<name>`
+     Der Remote-Branch wird durch `--delete-branch` im `gh pr merge`-Befehl
+     automatisch gelöscht. **Pflicht**: Nach jedem Merge sicherstellen, dass
+     der Branch auf GitHub wirklich weg ist — `git fetch --prune && git branch -r`
+     darf den Branch nicht mehr zeigen. Übrig gebliebene Remote-Branches mit
+     `git push origin --delete <branch>` nachlöschen.
 - **PR-Erstellung & Merge laufen über `gh` CLI**, nicht über den Browser. Beim
   Aufgeben von "PR öffnen" o.ä. liefere ich (Claude) immer den vollen
   `gh pr create ...` Befehl mit Title + Body als Heredoc, plus die Merge-
   Befehle (`gh pr merge --squash --delete-branch`). Squash-Merge ist Default,
-  damit `main` eine flache Commit-History behält.
+  damit `main` eine flache Commit-History behält. `--delete-branch` löscht
+  den Remote-Branch automatisch nach dem Merge — IMMER diesen Flag mitgeben.
 - **Pi-Deploy ist ein bewusster, separater Schritt** — kommt nach dem Merge,
   nicht automatisch. Reihenfolge auf dem Pi:
   `git pull && docker compose build <service> && docker compose up -d <service>`.
