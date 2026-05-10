@@ -30,3 +30,16 @@
     @apply bg-bg-primary text-text-primary;
   }
 }
+
+[data-theme="dark"] {
+  --color-bg-primary: #141414;
+  --color-bg-secondary: #1E1E1E;
+  --color-bg-tertiary: #2A2A2A;
+  --color-text-primary: #EFEFEF;
+  --color-text-muted: #9B9794;
+  --color-text-hint: #5A5A5A;
+  --color-accent: #EFEFEF;
+  --color-accent-hover: #9B9794;
+  --color-border: #2E2E2E;
+  --color-border-light: #252525;
+}
