@@ -427,6 +427,16 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   [m.value for m in e]` gesetzt werden. Sonst schreibt SQLAlchemy den
   Member-Namen (`import_`) und Postgres-Enums lehnen ab. Beispiel siehe
   `SeasonalAvailability` in `backend/models.py`.
+- **Postgres-Enum-Werte (`ADD VALUE`) werden von Alembic-autogen NICHT erkannt**:
+  Wenn ein neuer Wert zu einem bestehenden Postgres-Enum hinzugefügt wird (z.B.
+  ein neuer `NotificationType`-Member im Python-Enum), sieht `alembic revision
+  --autogenerate` den Diff einfach nicht — die generierte Migration enthält
+  keine Enum-Änderung und schweigt darüber. Lösung: nach dem autogen den Schritt
+  manuell ergänzen, idempotent für Re-Runs:
+  `op.execute("ALTER TYPE <enum_name> ADD VALUE IF NOT EXISTS '<wert>'")`.
+  In `downgrade()` lässt sich der Wert nicht sauber entfernen (Postgres
+  unterstützt `DROP VALUE` nicht ohne Type-Recreate) — das ist OK, kommentieren
+  und drinlassen. Beispiel siehe Migration `3dbd4892a161`.
 - **SQLAlchemy `unique=True` + `index=True` an einer Column erzeugt ZWEI UNIQUE-Objekte**:
   einen automatischen `<table>_<col>_key` UNIQUE CONSTRAINT (von `unique=True`) UND
   einen `ix_<table>_<col>` UNIQUE INDEX (von `index=True` zusammen mit `unique=True`).
