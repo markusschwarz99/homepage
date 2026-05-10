@@ -935,12 +935,9 @@ function OverviewTab() {
             />
           }
           fileName="lebenslauf.pdf"
+          className="px-4 py-2.5 text-sm font-medium rounded-lg transition-colors font-sans bg-accent text-bg-primary border border-accent hover:bg-accent-hover"
         >
-          {({ loading }) => (
-            <Button variant="primary" disabled={loading}>
-              {loading ? 'Generiere PDF…' : 'Als PDF herunterladen'}
-            </Button>
-          )}
+          {({ loading }) => loading ? 'Generiere PDF…' : 'Als PDF herunterladen'}
         </PDFDownloadLink>
       </div>
 
