@@ -428,3 +428,53 @@ class ProjectReference(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
+
+# ============================================================
+
+class CVProfile(Base):
+    __tablename__ = "cv_profile"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vorname = Column(String(100), nullable=True)
+    nachname = Column(String(100), nullable=True)
+    geburtsdatum = Column(Date, nullable=True)
+
+
+class CVExperience(Base):
+    __tablename__ = "cv_experiences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date_from = Column(Date, nullable=False)
+    date_to = Column(Date, nullable=True)
+    rolle = Column(String(200), nullable=False)
+    beschreibung = Column(Text, nullable=False)
+    sort_order = Column(Integer, nullable=False, default=0)
+
+
+class CVLanguage(Base):
+    __tablename__ = "cv_languages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sprache = Column(String(100), nullable=False)
+    niveau = Column(String(100), nullable=False)
+    sort_order = Column(Integer, nullable=False, default=0)
+
+
+class CVCertificate(Base):
+    __tablename__ = "cv_certificates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    jahr = Column(Integer, nullable=False)
+    sort_order = Column(Integer, nullable=False, default=0)
+
+
+class CVEducation(Base):
+    __tablename__ = "cv_educations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date_from = Column(Date, nullable=False)
+    date_to = Column(Date, nullable=True)
+    beschreibung = Column(Text, nullable=False)
+    sort_order = Column(Integer, nullable=False, default=0)
+

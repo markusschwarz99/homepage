@@ -274,3 +274,76 @@ export interface ProjectReferenceInput {
   roles: string;
   responsibilities: string;
 }
+
+// ---------- CV ----------
+
+export interface CVProfile {
+  id: number;
+  vorname: string | null;
+  nachname: string | null;
+  geburtsdatum: string | null;
+}
+
+export interface CVProfileInput {
+  vorname?: string | null;
+  nachname?: string | null;
+  geburtsdatum?: string | null;
+}
+
+export interface CVExperience {
+  id: number;
+  date_from: string;
+  date_to: string | null;
+  rolle: string;
+  beschreibung: string;
+  sort_order: number;
+}
+
+export interface CVExperienceInput {
+  date_from: string;
+  date_to: string | null;
+  rolle: string;
+  beschreibung: string;
+  sort_order: number;
+}
+
+export interface CVLanguage {
+  id: number;
+  sprache: string;
+  niveau: string;
+  sort_order: number;
+}
+
+export interface CVLanguageInput {
+  sprache: string;
+  niveau: string;
+  sort_order: number;
+}
+
+export interface CVCertificate {
+  id: number;
+  name: string;
+  jahr: number;
+  sort_order: number;
+}
+
+export interface CVCertificateInput {
+  name: string;
+  jahr: number;
+  sort_order: number;
+}
+
+export interface CVEducation {
+  id: number;
+  date_from: string;
+  date_to: string | null;
+  beschreibung: string;
+  sort_order: number;
+}
+
+export interface CVEducationInput {
+  date_from: string;
+  date_to: string | null;
+  beschreibung: string;
+  sort_order: number;
+}
