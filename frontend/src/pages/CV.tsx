@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 import { Layout } from '../components/Layout';
 import { Button } from '../components/Button';
+import { CVDocument } from '../components/CVDocument';
 import { useAuth } from '../hooks/useAuth';
 import {
   getCVProfile,
@@ -919,12 +921,30 @@ function OverviewTab() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6 print:hidden">
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-sm font-medium uppercase tracking-wider text-text-muted">Übersicht</h2>
-        <Button variant="primary" onClick={() => window.print()}>Als PDF exportieren</Button>
+        <PDFDownloadLink
+          document={
+            <CVDocument
+              profile={profile}
+              experiences={experiences}
+              languages={languages}
+              certs={certs}
+              educations={educations}
+              projects={projects}
+            />
+          }
+          fileName="lebenslauf.pdf"
+        >
+          {({ loading }) => (
+            <Button variant="primary" disabled={loading}>
+              {loading ? 'Generiere PDF…' : 'Als PDF herunterladen'}
+            </Button>
+          )}
+        </PDFDownloadLink>
       </div>
 
-      <div id="cv-overview-print">
+      <div>
         {hasPersonal && (
           <div className="mb-8">
             {(profile.vorname || profile.nachname) && (
@@ -1019,7 +1039,7 @@ function OverviewTab() {
         )}
 
         {projects.length > 0 && (
-          <section id="cv-projects-break">
+          <section>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border pb-1 mb-4">
               Projektreferenzen
             </h2>
