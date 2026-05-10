@@ -103,6 +103,10 @@ homepage/
 └── .env.example
 ```
 
+`CLAUDE.md` im Repo-Root ist ein Symlink auf `.claude/context.md` — Claude Code
+liest CLAUDE.md automatisch beim Session-Start. Primer bleibt unter dem alten
+Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
+
 ## Externer Zugriff
 
 - Frontend: `https://markus-schwarz.cc` → Cloudflare Tunnel → Frontend-Container :80
@@ -150,8 +154,9 @@ homepage/
 
 ## Wie du mit mir arbeitest
 
-Ich führe Bash-Befehle selbst auf dem Pi aus — du hast keinen direkten Zugriff
-auf das System. Daher:
+Ich nutze Claude Code via Desktop-App im SSH-Modus auf den Pi — du arbeitest
+direkt im Pi-Filesystem unter /home/markus/homepage und kannst Bash-Befehle
+selbst ausführen. Trotzdem gilt:
 
 - **Liefere mir alle Befehle, die ich ausführen muss, um eine Aufgabe zu erledigen.**
   Auch wenn der Befehl trivial wirkt — schreib ihn explizit hin, damit ich nichts
@@ -206,6 +211,11 @@ auf das System. Daher:
   Files die im Container generiert werden (z.B. neue Alembic-Migrations) müssen mit
   `docker cp homepage-backend-1:/app/<pfad> ~/homepage/backend/<pfad>` ins Repo geholt
   werden.
+
+- **Permission-Modus**: Bei Backend-, DB- oder Compose-Änderungen Plan mode
+  oder Ask permissions, niemals Auto-Accept. `docker compose build` ist
+  Prod-Deploy (siehe entsprechenden Abschnitt) — jede Build-Aktion braucht
+  meine explizite Bestätigung.
 
 - **Primer-Updates** liefere immer als Bash-Befehl (nicht als "ergänze
   Zeile X in Datei Y"). Die Datei liegt unter `~/homepage/.claude/context.md`.
