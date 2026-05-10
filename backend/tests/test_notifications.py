@@ -407,3 +407,204 @@ class TestRecipeCommentCount:
         by_id = {r["id"]: r for r in items}
         assert by_id[r_a.id]["comment_count"] == 3
         assert by_id[r_b.id]["comment_count"] == 1
+
+
+# ---------- Reply-Notifications ----------
+
+class TestReplyCreatesNotification:
+    def test_reply_notifies_parent_author(self, client, db_session, test_user):
+        """Reply auf einen fremden Kommentar erzeugt eine recipe_comment_reply-Notif
+        für den Parent-Comment-Autor."""
+        owner = _make_user(db_session, "owner@example.com", "Owner")
+        recipe = _make_recipe(db_session, author=owner)
+
+        # test_user legt Top-Level an (löst recipe_comment für owner aus)
+        parent_resp = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=_headers_for(test_user),
+            json={"content": "Top-Level"},
+        )
+        assert parent_resp.status_code == 201
+        parent_id = parent_resp.json()["id"]
+
+        # Dritter User antwortet
+        replier = _make_user(db_session, "replier@example.com", "Replier")
+        reply_resp = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=_headers_for(replier),
+            json={"content": "Antwort", "parent_id": parent_id},
+        )
+        assert reply_resp.status_code == 201
+        reply_id = reply_resp.json()["id"]
+
+        # test_user (Parent-Autor) hat genau eine Reply-Notif
+        reply_notifs = (
+            db_session.query(models.Notification)
+            .filter(
+                models.Notification.user_id == test_user.id,
+                models.Notification.type
+                == models.NotificationType.recipe_comment_reply,
+            )
+            .all()
+        )
+        assert len(reply_notifs) == 1
+        n = reply_notifs[0]
+        assert n.read is False
+        assert n.payload["recipe_id"] == recipe.id
+        assert n.payload["recipe_title"] == recipe.title
+        assert n.payload["comment_id"] == reply_id
+        assert n.payload["parent_comment_id"] == parent_id
+        assert n.payload["actor_id"] == replier.id
+        assert n.payload["actor_name"] == "Replier"
+
+    def test_self_reply_does_not_notify(self, client, db_session, test_user):
+        """Reply auf eigenen Kommentar erzeugt KEINE Reply-Notif."""
+        owner = _make_user(db_session, "owner@example.com", "Owner")
+        recipe = _make_recipe(db_session, author=owner)
+
+        parent_resp = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=_headers_for(test_user),
+            json={"content": "Top"},
+        )
+        parent_id = parent_resp.json()["id"]
+
+        client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=_headers_for(test_user),
+            json={"content": "Selbst-Antwort", "parent_id": parent_id},
+        )
+
+        reply_notifs = (
+            db_session.query(models.Notification)
+            .filter(
+                models.Notification.user_id == test_user.id,
+                models.Notification.type
+                == models.NotificationType.recipe_comment_reply,
+            )
+            .all()
+        )
+        assert reply_notifs == []
+
+    def test_reply_in_third_party_recipe_notifies_owner_and_parent_author(
+        self, client, db_session, test_user
+    ):
+        """Reply in fremdem Rezept: Parent-Autor und Recipe-Owner sind verschieden
+        → beide bekommen eine Notif (Reply-Typ bzw. Comment-Typ)."""
+        owner = _make_user(db_session, "owner@example.com", "Owner")
+        recipe = _make_recipe(db_session, author=owner)
+
+        # test_user legt Top-Level an
+        parent_resp = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=_headers_for(test_user),
+            json={"content": "Top"},
+        )
+        parent_id = parent_resp.json()["id"]
+        # Owner sollte exakt 1 recipe_comment-Notif haben
+        assert (
+            db_session.query(models.Notification).filter_by(user_id=owner.id).count()
+            == 1
+        )
+
+        # Dritter antwortet
+        replier = _make_user(db_session, "replier@example.com", "Replier")
+        client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=_headers_for(replier),
+            json={"content": "Antwort", "parent_id": parent_id},
+        )
+
+        # test_user (Parent-Autor): 1 Reply-Notif
+        test_user_notifs = (
+            db_session.query(models.Notification)
+            .filter_by(user_id=test_user.id)
+            .all()
+        )
+        assert len(test_user_notifs) == 1
+        assert test_user_notifs[0].type == models.NotificationType.recipe_comment_reply
+
+        # Owner: 2 Comment-Notifs (Top-Level + Reply, beide Typ recipe_comment)
+        owner_notifs = (
+            db_session.query(models.Notification).filter_by(user_id=owner.id).all()
+        )
+        assert len(owner_notifs) == 2
+        assert all(
+            n.type == models.NotificationType.recipe_comment for n in owner_notifs
+        )
+
+    def test_dedupe_when_owner_is_parent_author(self, client, db_session, test_user):
+        """Wenn Recipe-Owner == Parent-Comment-Autor: nur Reply-Notif, keine
+        zusätzliche Comment-Notif (vermeidet Doppel-Benachrichtigung)."""
+        recipe = _make_recipe(db_session, author=test_user)
+
+        # test_user legt eigenen Top-Level an (kein Notif für sich)
+        parent_resp = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=_headers_for(test_user),
+            json={"content": "Top"},
+        )
+        parent_id = parent_resp.json()["id"]
+        assert (
+            db_session.query(models.Notification)
+            .filter_by(user_id=test_user.id)
+            .count()
+            == 0
+        )
+
+        replier = _make_user(db_session, "replier@example.com", "Replier")
+        client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=_headers_for(replier),
+            json={"content": "Antwort", "parent_id": parent_id},
+        )
+
+        # GENAU eine Notif: Reply, nicht Reply + Comment
+        notifs = (
+            db_session.query(models.Notification)
+            .filter_by(user_id=test_user.id)
+            .all()
+        )
+        assert len(notifs) == 1
+        assert notifs[0].type == models.NotificationType.recipe_comment_reply
+
+    def test_owner_self_reply_in_own_recipe_no_self_notif(
+        self, client, db_session, test_user
+    ):
+        """Owner antwortet auf fremden Kommentar in eigenem Rezept → keine Self-Notif."""
+        recipe = _make_recipe(db_session, author=test_user)
+
+        commenter = _make_user(db_session, "commenter@example.com", "Commenter")
+        parent_resp = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=_headers_for(commenter),
+            json={"content": "Top"},
+        )
+        parent_id = parent_resp.json()["id"]
+
+        # Owner (test_user) antwortet
+        client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=_headers_for(test_user),
+            json={"content": "Antwort", "parent_id": parent_id},
+        )
+
+        # commenter bekommt Reply-Notif
+        commenter_notifs = (
+            db_session.query(models.Notification)
+            .filter_by(user_id=commenter.id)
+            .all()
+        )
+        assert len(commenter_notifs) == 1
+        assert (
+            commenter_notifs[0].type == models.NotificationType.recipe_comment_reply
+        )
+
+        # test_user hat NUR die Original-Comment-Notif, keine Self-Reply-Notif
+        test_user_notifs = (
+            db_session.query(models.Notification)
+            .filter_by(user_id=test_user.id)
+            .all()
+        )
+        assert len(test_user_notifs) == 1
+        assert test_user_notifs[0].type == models.NotificationType.recipe_comment

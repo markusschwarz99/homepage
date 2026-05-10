@@ -316,3 +316,203 @@ class TestCascadeBehavior:
         assert len(data) == 1
         assert data[0]["user_name"] == "Gelöschter Nutzer"
         assert data[0]["user_id"] is None
+
+
+# ---------- Replies (parent_id) ----------
+
+class TestCreateReply:
+    def test_member_creates_reply(
+        self, client, auth_headers, recipe, test_user, db_session
+    ):
+        parent = _make_comment(db_session, recipe.id, test_user.id, "Top-Level")
+        response = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "Antwort", "parent_id": parent.id},
+        )
+        assert response.status_code == 201
+        body = response.json()
+        assert body["content"] == "Antwort"
+        assert body["parent_id"] == parent.id
+
+    def test_explicit_null_parent_creates_top_level(self, client, auth_headers, recipe):
+        response = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "Top", "parent_id": None},
+        )
+        assert response.status_code == 201
+        assert response.json()["parent_id"] is None
+
+    def test_nonexistent_parent_returns_404(self, client, auth_headers, recipe):
+        response = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "x", "parent_id": 99999},
+        )
+        assert response.status_code == 404
+
+    def test_parent_in_other_recipe_returns_404(
+        self, client, auth_headers, recipe, test_user, db_session
+    ):
+        # Anderes Rezept mit Comment darin
+        other_recipe = models.Recipe(
+            title="Other",
+            servings=1,
+            servings_unit="x",
+            author_id=test_user.id,
+        )
+        db_session.add(other_recipe)
+        db_session.commit()
+        db_session.refresh(other_recipe)
+        other_parent = _make_comment(
+            db_session, other_recipe.id, test_user.id, "Foreign"
+        )
+
+        response = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "x", "parent_id": other_parent.id},
+        )
+        assert response.status_code == 404
+
+    def test_reply_to_reply_rejected(
+        self, client, auth_headers, recipe, test_user, db_session
+    ):
+        parent = _make_comment(db_session, recipe.id, test_user.id, "L0")
+        first_reply_resp = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "L1", "parent_id": parent.id},
+        )
+        assert first_reply_resp.status_code == 201
+        first_reply_id = first_reply_resp.json()["id"]
+
+        # Reply zu Reply (ungültig — flach: 1 Level)
+        response = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "L2", "parent_id": first_reply_id},
+        )
+        assert response.status_code == 400
+
+    def test_guest_cannot_reply(
+        self, client, guest_headers, recipe, test_user, db_session
+    ):
+        parent = _make_comment(db_session, recipe.id, test_user.id, "Top")
+        response = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=guest_headers,
+            json={"content": "Antwort", "parent_id": parent.id},
+        )
+        assert response.status_code == 403
+
+
+# ---------- GET mit Reply-Tree ----------
+
+class TestListWithReplies:
+    def test_top_level_has_empty_replies_array(
+        self, client, auth_headers, recipe, test_user, db_session
+    ):
+        _make_comment(db_session, recipe.id, test_user.id, "Solo")
+        response = client.get(f"/recipes/{recipe.id}/comments", headers=auth_headers)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["replies"] == []
+
+    def test_replies_grouped_under_parent(
+        self, client, auth_headers, recipe, test_user, db_session
+    ):
+        parent = _make_comment(db_session, recipe.id, test_user.id, "Top-Level")
+        client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "Reply 1", "parent_id": parent.id},
+        )
+        client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "Reply 2", "parent_id": parent.id},
+        )
+
+        response = client.get(f"/recipes/{recipe.id}/comments", headers=auth_headers)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["content"] == "Top-Level"
+        assert len(data[0]["replies"]) == 2
+
+    def test_replies_sorted_newest_first(
+        self, client, auth_headers, recipe, test_user, db_session
+    ):
+        parent = _make_comment(db_session, recipe.id, test_user.id, "Top")
+        # Auto-Increment-ID ist Tiebreaker bei identischem created_at
+        client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "Aelter", "parent_id": parent.id},
+        )
+        client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "Neuer", "parent_id": parent.id},
+        )
+
+        response = client.get(f"/recipes/{recipe.id}/comments", headers=auth_headers)
+        replies = response.json()[0]["replies"]
+        assert replies[0]["content"] == "Neuer"
+        assert replies[1]["content"] == "Aelter"
+
+    def test_top_level_chronological(
+        self, client, auth_headers, recipe, test_user, db_session
+    ):
+        _make_comment(db_session, recipe.id, test_user.id, "Erster")
+        _make_comment(db_session, recipe.id, test_user.id, "Zweiter")
+        response = client.get(f"/recipes/{recipe.id}/comments", headers=auth_headers)
+        data = response.json()
+        assert data[0]["content"] == "Erster"
+        assert data[1]["content"] == "Zweiter"
+
+    def test_replies_not_at_top_level(
+        self, client, auth_headers, recipe, test_user, db_session
+    ):
+        """Replies dürfen NICHT als eigenständiger Top-Level-Eintrag erscheinen."""
+        parent = _make_comment(db_session, recipe.id, test_user.id, "Top")
+        client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "R1", "parent_id": parent.id},
+        )
+        response = client.get(f"/recipes/{recipe.id}/comments", headers=auth_headers)
+        data = response.json()
+        # Genau ein Top-Level — Reply ist im replies-Array, nicht oben
+        assert len(data) == 1
+        assert {item["content"] for item in data} == {"Top"}
+
+
+# ---------- DELETE mit Reply ----------
+
+class TestDeleteReply:
+    def test_owner_deletes_own_reply_parent_remains(
+        self, client, auth_headers, recipe, test_user, db_session
+    ):
+        parent = _make_comment(db_session, recipe.id, test_user.id, "Top")
+        reply_resp = client.post(
+            f"/recipes/{recipe.id}/comments",
+            headers=auth_headers,
+            json={"content": "Reply", "parent_id": parent.id},
+        )
+        reply_id = reply_resp.json()["id"]
+
+        del_resp = client.delete(
+            f"/recipes/{recipe.id}/comments/{reply_id}",
+            headers=auth_headers,
+        )
+        assert del_resp.status_code == 204
+        assert (
+            db_session.query(models.RecipeComment).filter_by(id=reply_id).first()
+            is None
+        )
+        assert (
+            db_session.query(models.RecipeComment).filter_by(id=parent.id).first()
+            is not None
+        )

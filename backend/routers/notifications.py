@@ -8,6 +8,8 @@ sodass künftige Notification-Typen ohne Schema-Änderung dazukommen können.
 Aktuell unterstützte Typen:
 - recipe_comment: jemand hat einen Kommentar zu einem Rezept verfasst,
   dessen Autor der Empfänger ist.
+- recipe_comment_reply: jemand hat auf einen Kommentar des Empfängers
+  geantwortet.
 """
 from typing import Optional
 
@@ -62,6 +64,45 @@ def create_recipe_comment_notification(
             "recipe_id": recipe_id,
             "recipe_title": recipe_title,
             "comment_id": comment_id,
+            "actor_id": actor_id,
+            "actor_name": actor_name,
+        },
+    )
+    db.add(notif)
+    db.flush()
+    return notif
+
+
+def create_recipe_comment_reply_notification(
+    db: Session,
+    *,
+    recipient_id: int,
+    actor_id: int,
+    actor_name: str,
+    recipe_id: int,
+    recipe_title: str,
+    comment_id: int,
+    parent_comment_id: int,
+) -> Optional[models.Notification]:
+    """
+    Reply-Notification für den Autor eines Kommentars, auf den geantwortet wurde.
+
+    Erzeugt KEINE Notification, wenn Empfänger == Akteur (User antwortet auf
+    eigenen Kommentar).
+
+    Wirft NICHT — Caller (try/except) ist für rollback im Fehlerfall verantwortlich.
+    """
+    if recipient_id == actor_id:
+        return None
+
+    notif = models.Notification(
+        user_id=recipient_id,
+        type=models.NotificationType.recipe_comment_reply,
+        payload={
+            "recipe_id": recipe_id,
+            "recipe_title": recipe_title,
+            "comment_id": comment_id,
+            "parent_comment_id": parent_comment_id,
             "actor_id": actor_id,
             "actor_name": actor_name,
         },

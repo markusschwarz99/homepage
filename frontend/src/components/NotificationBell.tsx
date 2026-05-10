@@ -28,6 +28,8 @@ function notificationText(n: Notification): string {
   switch (n.type) {
     case 'recipe_comment':
       return `${n.payload.actor_name} hat „${n.payload.recipe_title}“ kommentiert.`;
+    case 'recipe_comment_reply':
+      return `${n.payload.actor_name} hat auf deinen Kommentar zu „${n.payload.recipe_title}“ geantwortet.`;
     default:
       return 'Neue Benachrichtigung';
   }
@@ -36,6 +38,7 @@ function notificationText(n: Notification): string {
 function notificationLink(n: Notification): string {
   switch (n.type) {
     case 'recipe_comment':
+    case 'recipe_comment_reply':
       return `/rezepte/${n.payload.recipe_id}#comment-${n.payload.comment_id}`;
     default:
       return '/';

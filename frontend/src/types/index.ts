@@ -174,9 +174,13 @@ export interface RecipeComment {
   user_id: number | null;
   user_name: string;
   content: string;
+  parent_id: number | null;
   edited: boolean;
   created_at: string;
   updated_at: string;
+  // Nur am Top-Level-Eintrag aus GET /recipes/{id}/comments gesetzt.
+  // POST-Response liefert das Feld NICHT — daher optional.
+  replies?: RecipeComment[];
 }
 
 // ---------- Foto-Tagebuch ----------
@@ -204,7 +208,7 @@ export interface DiaryEntryInput {
 
 // ---------- Notifications ----------
 
-export type NotificationType = 'recipe_comment';
+export type NotificationType = 'recipe_comment' | 'recipe_comment_reply';
 
 export interface RecipeCommentNotificationPayload {
   recipe_id: number;
@@ -214,10 +218,23 @@ export interface RecipeCommentNotificationPayload {
   actor_name: string;
 }
 
+export interface RecipeCommentReplyNotificationPayload {
+  recipe_id: number;
+  recipe_title: string;
+  comment_id: number;
+  parent_comment_id: number;
+  actor_id: number;
+  actor_name: string;
+}
+
+export type NotificationPayload =
+  | RecipeCommentNotificationPayload
+  | RecipeCommentReplyNotificationPayload;
+
 export interface Notification {
   id: number;
   type: NotificationType;
-  payload: RecipeCommentNotificationPayload; // erweitern, sobald weitere Typen dazukommen
+  payload: NotificationPayload;
   read: boolean;
   created_at: string;
 }
