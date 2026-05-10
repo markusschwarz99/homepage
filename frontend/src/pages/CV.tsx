@@ -30,6 +30,7 @@ import {
   adminDeleteProjektreferenz,
 } from '../api/projektreferenzen';
 import type {
+  CVProfile,
   CVExperience,
   CVLanguage,
   CVCertificate,
@@ -38,7 +39,7 @@ import type {
   ProjectReferenceInput,
 } from '../types';
 
-type CVTab = 'personal' | 'experience' | 'skills' | 'education' | 'projects';
+type CVTab = 'personal' | 'experience' | 'skills' | 'education' | 'projects' | 'overview';
 
 const TAB_LABELS: Record<CVTab, string> = {
   personal: 'Persönliches',
@@ -46,6 +47,7 @@ const TAB_LABELS: Record<CVTab, string> = {
   skills: 'Fähigkeiten & Zertifikate',
   education: 'Ausbildung & Studium',
   projects: 'Projektreferenzen',
+  overview: 'Übersicht & Export',
 };
 
 const inputClass =
@@ -872,6 +874,185 @@ function ProjectsTab() {
   );
 }
 
+// ────────────────────── Übersicht & Export ──────────────────────
+
+function formatBirthdate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+function OverviewTab() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [profile, setProfile] = useState<CVProfile | null>(null);
+  const [experiences, setExperiences] = useState<CVExperience[]>([]);
+  const [languages, setLanguages] = useState<CVLanguage[]>([]);
+  const [certs, setCerts] = useState<CVCertificate[]>([]);
+  const [educations, setEducations] = useState<CVEducation[]>([]);
+  const [projects, setProjects] = useState<ProjectReference[]>([]);
+
+  useEffect(() => {
+    Promise.all([
+      getCVProfile(),
+      listCVExperiences(),
+      listCVLanguages(),
+      listCVCertificates(),
+      listCVEducations(),
+      adminListProjektreferenzen(),
+    ])
+      .then(([p, exps, langs, cs, edus, projs]) => {
+        setProfile(p);
+        setExperiences(exps);
+        setLanguages(langs);
+        setCerts(cs);
+        setEducations(edus);
+        setProjects(projs);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Fehler beim Laden'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <p className="text-text-muted">Lade...</p>;
+  if (error) return <p className="text-red-600 bg-red-50 p-4 rounded">{error}</p>;
+
+  const hasPersonal = profile && (profile.vorname || profile.nachname || profile.geburtsdatum);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6 print:hidden">
+        <h2 className="text-sm font-medium uppercase tracking-wider text-text-muted">Übersicht</h2>
+        <Button variant="primary" onClick={() => window.print()}>Als PDF exportieren</Button>
+      </div>
+
+      <div id="cv-overview-print">
+        {hasPersonal && (
+          <div className="mb-8">
+            {(profile.vorname || profile.nachname) && (
+              <h1 className="text-2xl font-semibold">
+                {[profile.vorname, profile.nachname].filter(Boolean).join(' ')}
+              </h1>
+            )}
+            {profile.geburtsdatum && (
+              <p className="text-sm text-text-muted mt-1">* {formatBirthdate(profile.geburtsdatum)}</p>
+            )}
+          </div>
+        )}
+
+        {experiences.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border pb-1 mb-4">
+              Berufliche Tätigkeiten
+            </h2>
+            <div className="space-y-4">
+              {experiences.map((exp) => (
+                <div key={exp.id}>
+                  <div className="flex items-baseline justify-between gap-4 flex-wrap">
+                    <span className="font-medium">{exp.rolle}</span>
+                    <span className="text-sm text-text-muted whitespace-nowrap">
+                      {formatDate(exp.date_from)} – {formatDate(exp.date_to)}
+                    </span>
+                  </div>
+                  {exp.beschreibung && (
+                    <ul className="mt-1 pl-4 list-disc text-sm text-text-muted space-y-0.5">
+                      {exp.beschreibung.split('\n').map((l) => l.trim()).filter((l) => l).map((l, i) => (
+                        <li key={i}>{l}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {(languages.length > 0 || certs.length > 0) && (
+          <section className="mb-8 grid grid-cols-2 gap-8">
+            {languages.length > 0 && (
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border pb-1 mb-4">
+                  Sprachen
+                </h2>
+                <div className="space-y-1">
+                  {languages.map((lang) => (
+                    <div key={lang.id} className="flex justify-between text-sm">
+                      <span>{lang.sprache}</span>
+                      <span className="text-text-muted">{lang.niveau}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {certs.length > 0 && (
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border pb-1 mb-4">
+                  Zertifikate
+                </h2>
+                <div className="space-y-1">
+                  {certs.map((cert) => (
+                    <div key={cert.id} className="flex justify-between text-sm">
+                      <span>{cert.name}</span>
+                      <span className="text-text-muted">{cert.jahr}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {educations.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border pb-1 mb-4">
+              Ausbildung & Studium
+            </h2>
+            <div className="space-y-3">
+              {educations.map((edu) => (
+                <div key={edu.id} className="flex gap-6 text-sm">
+                  <span className="text-text-muted whitespace-nowrap">
+                    {formatDate(edu.date_from)} – {formatDate(edu.date_to)}
+                  </span>
+                  <span className="whitespace-pre-wrap">{edu.beschreibung}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {projects.length > 0 && (
+          <section id="cv-projects-break">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border pb-1 mb-4">
+              Projektreferenzen
+            </h2>
+            <div className="space-y-6">
+              {projects.map((ref) => (
+                <div key={ref.id}>
+                  <div className="flex items-baseline justify-between gap-4 flex-wrap">
+                    <span className="font-medium">{ref.title}</span>
+                    <span className="text-sm text-text-muted whitespace-nowrap">
+                      {formatDate(ref.date_from)} – {formatDate(ref.date_to)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-text-muted mt-0.5">
+                    {ref.industry} · {ref.fte} FTE · {ref.roles}
+                  </p>
+                  <p className="text-sm mt-0.5">{ref.topic}</p>
+                  {ref.responsibilities && (
+                    <ul className="mt-1 pl-4 list-disc text-sm text-text-muted space-y-0.5">
+                      {ref.responsibilities.split('\n').map((l) => l.trim()).filter((l) => l).map((l, i) => (
+                        <li key={i}>{l}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ────────────────────── CV (Hauptseite) ──────────────────────
 
 export function CV() {
@@ -918,6 +1099,7 @@ export function CV() {
         {activeTab === 'skills' && <SkillsTab />}
         {activeTab === 'education' && <EducationTab />}
         {activeTab === 'projects' && <ProjectsTab />}
+        {activeTab === 'overview' && <OverviewTab />}
       </div>
     </Layout>
   );
