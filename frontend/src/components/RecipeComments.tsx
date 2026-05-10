@@ -31,11 +31,16 @@ export function RecipeComments({ recipeId, currentUser }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Neuer Kommentar
+  // Neuer Top-Level-Kommentar
   const [newContent, setNewContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Edit-State
+  // Reply-State (max. eine offene Reply-Form gleichzeitig)
+  const [replyingToId, setReplyingToId] = useState<number | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [submittingReply, setSubmittingReply] = useState(false);
+
+  // Edit-State (greift auf beide Levels: Top-Level + Replies)
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
@@ -53,15 +58,58 @@ export function RecipeComments({ recipeId, currentUser }: Props) {
     return () => { cancelled = true; };
   }, [recipeId]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  // Tree-Update-Helper (flach, max. 1 Level Replies)
+
+  function addTopLevel(created: RecipeComment) {
+    setComments(prev => [...prev, created]);
+  }
+
+  function addReplyToTree(created: RecipeComment) {
+    if (created.parent_id === null) return;
+    setComments(prev => prev.map(c =>
+      c.id === created.parent_id
+        ? { ...c, replies: [created, ...(c.replies ?? [])] }
+        : c,
+    ));
+  }
+
+  function updateInTree(updated: RecipeComment) {
+    setComments(prev => prev.map(c => {
+      if (c.id === updated.id) {
+        // Top-Level updated: replies-Array beibehalten
+        return { ...updated, replies: c.replies };
+      }
+      if (c.replies?.some(r => r.id === updated.id)) {
+        return {
+          ...c,
+          replies: c.replies.map(r => r.id === updated.id ? updated : r),
+        };
+      }
+      return c;
+    }));
+  }
+
+  function removeFromTree(id: number) {
+    setComments(prev => prev
+      .filter(c => c.id !== id)
+      .map(c => c.replies
+        ? { ...c, replies: c.replies.filter(r => r.id !== id) }
+        : c,
+      ),
+    );
+  }
+
+  // Submit-Handler
+
+  async function handleSubmitTopLevel(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = newContent.trim();
     if (!trimmed) return;
     setSubmitting(true);
     setError('');
     try {
-      const created = await createComment(recipeId, trimmed);
-      setComments(prev => [...prev, created]);
+      const created = await createComment(recipeId, trimmed, null);
+      addTopLevel(created);
       setNewContent('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Senden');
@@ -69,6 +117,35 @@ export function RecipeComments({ recipeId, currentUser }: Props) {
       setSubmitting(false);
     }
   }
+
+  function startReply(parent: RecipeComment) {
+    setReplyingToId(parent.id);
+    // @-Mention nur als Display-Text vorausfüllen
+    setReplyContent(`@${parent.user_name} `);
+  }
+
+  function cancelReply() {
+    setReplyingToId(null);
+    setReplyContent('');
+  }
+
+  async function submitReply(parentId: number) {
+    const trimmed = replyContent.trim();
+    if (!trimmed) return;
+    setSubmittingReply(true);
+    setError('');
+    try {
+      const created = await createComment(recipeId, trimmed, parentId);
+      addReplyToTree(created);
+      cancelReply();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fehler beim Senden');
+    } finally {
+      setSubmittingReply(false);
+    }
+  }
+
+  // Edit-Handler
 
   function startEdit(c: RecipeComment) {
     setEditingId(c.id);
@@ -87,7 +164,7 @@ export function RecipeComments({ recipeId, currentUser }: Props) {
     setError('');
     try {
       const updated = await updateComment(recipeId, commentId, trimmed);
-      setComments(prev => prev.map(c => c.id === commentId ? updated : c));
+      updateInTree(updated);
       cancelEdit();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
@@ -96,12 +173,14 @@ export function RecipeComments({ recipeId, currentUser }: Props) {
     }
   }
 
+  // Delete-Handler
+
   async function confirmDelete() {
     if (deletingId === null) return;
     setError('');
     try {
       await deleteComment(recipeId, deletingId);
-      setComments(prev => prev.filter(c => c.id !== deletingId));
+      removeFromTree(deletingId);
       setDeletingId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Löschen');
@@ -112,10 +191,99 @@ export function RecipeComments({ recipeId, currentUser }: Props) {
     return currentUser.is_admin || c.user_id === currentUser.id;
   }
 
+  // Comment-Block-Renderer für Top-Level UND Replies (gleicher Aufbau)
+  function renderCommentBlock(c: RecipeComment, isReply: boolean) {
+    return (
+      <div id={`comment-${c.id}`} className="border border-border rounded p-4 scroll-mt-24">
+        <div className="flex items-baseline justify-between gap-4 mb-2">
+          <div className="text-sm">
+            <span className="font-medium">{c.user_name}</span>
+            <span className="text-text-hint ml-2">
+              {formatDate(c.created_at)}
+              {c.edited && ' · bearbeitet'}
+            </span>
+          </div>
+          {editingId !== c.id && (
+            <div className="flex gap-2 text-xs">
+              {!isReply && (
+                <button
+                  type="button"
+                  onClick={() => startReply(c)}
+                  className="text-text-muted hover:text-accent"
+                >
+                  Antworten
+                </button>
+              )}
+              {canModify(c) && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(c)}
+                    className="text-text-muted hover:text-accent"
+                  >
+                    Bearbeiten
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeletingId(c.id)}
+                    className="text-text-muted hover:text-red-600"
+                  >
+                    Löschen
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {editingId === c.id ? (
+          <div>
+            <textarea
+              value={editContent}
+              onChange={e => setEditContent(e.target.value)}
+              maxLength={MAX_LEN}
+              rows={3}
+              className="w-full p-2 border border-border rounded text-sm resize-y bg-bg-primary"
+              disabled={savingEdit}
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                type="button"
+                onClick={cancelEdit}
+                disabled={savingEdit}
+                className="text-xs text-text-muted hover:text-text-primary px-3 py-1"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                onClick={() => saveEdit(c.id)}
+                disabled={savingEdit || !editContent.trim()}
+                className="text-xs bg-accent text-bg-primary px-3 py-1 rounded disabled:opacity-50"
+              >
+                {savingEdit ? 'Speichere …' : 'Speichern'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+            {c.content}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // Total-Count inkl. Replies (matcht das Backend-comment_count-Feld)
+  const totalCount = comments.reduce(
+    (sum, c) => sum + 1 + (c.replies?.length ?? 0),
+    0,
+  );
+
   return (
     <div className="mt-12 pt-8 border-t border-border">
       <h2 className="text-sm font-medium uppercase tracking-wider text-text-muted mb-4">
-        Kommentare {comments.length > 0 && `(${comments.length})`}
+        Kommentare {totalCount > 0 && `(${totalCount})`}
       </h2>
 
       {error && (
@@ -124,7 +292,6 @@ export function RecipeComments({ recipeId, currentUser }: Props) {
         </div>
       )}
 
-      {/* Liste */}
       {loading ? (
         <p className="text-sm text-text-hint">Lade Kommentare …</p>
       ) : comments.length === 0 ? (
@@ -134,76 +301,65 @@ export function RecipeComments({ recipeId, currentUser }: Props) {
       ) : (
         <ul className="space-y-4 mb-8">
           {comments.map(c => (
-            <li id={`comment-${c.id}`} key={c.id} className="border border-border rounded p-4 scroll-mt-24">
-              <div className="flex items-baseline justify-between gap-4 mb-2">
-                <div className="text-sm">
-                  <span className="font-medium">{c.user_name}</span>
-                  <span className="text-text-hint ml-2">
-                    {formatDate(c.created_at)}
-                    {c.edited && ' · bearbeitet'}
-                  </span>
-                </div>
-                {canModify(c) && editingId !== c.id && (
-                  <div className="flex gap-2 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => startEdit(c)}
-                      className="text-text-muted hover:text-accent"
-                    >
-                      Bearbeiten
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeletingId(c.id)}
-                      className="text-text-muted hover:text-red-600"
-                    >
-                      Löschen
-                    </button>
-                  </div>
-                )}
-              </div>
+            <li key={c.id}>
+              {renderCommentBlock(c, false)}
 
-              {editingId === c.id ? (
-                <div>
+              {/* Reply-Form direkt unter dem Parent, vor den Replies */}
+              {replyingToId === c.id && (
+                <div className="mt-3 ml-6 pl-4 border-l-2 border-border">
                   <textarea
-                    value={editContent}
-                    onChange={e => setEditContent(e.target.value)}
+                    value={replyContent}
+                    onChange={e => setReplyContent(e.target.value)}
                     maxLength={MAX_LEN}
                     rows={3}
+                    placeholder="Antwort schreiben …"
                     className="w-full p-2 border border-border rounded text-sm resize-y bg-bg-primary"
-                    disabled={savingEdit}
+                    disabled={submittingReply}
+                    autoFocus
                   />
-                  <div className="flex justify-end gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={cancelEdit}
-                      disabled={savingEdit}
-                      className="text-xs text-text-muted hover:text-text-primary px-3 py-1"
-                    >
-                      Abbrechen
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => saveEdit(c.id)}
-                      disabled={savingEdit || !editContent.trim()}
-                      className="text-xs bg-accent text-bg-primary px-3 py-1 rounded disabled:opacity-50"
-                    >
-                      {savingEdit ? 'Speichere …' : 'Speichern'}
-                    </button>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-text-hint">
+                      {replyContent.length} / {MAX_LEN}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={cancelReply}
+                        disabled={submittingReply}
+                        className="text-xs text-text-muted hover:text-text-primary px-3 py-1"
+                      >
+                        Abbrechen
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => submitReply(c.id)}
+                        disabled={submittingReply || !replyContent.trim()}
+                        className="text-xs bg-accent text-bg-primary px-3 py-1 rounded disabled:opacity-50"
+                      >
+                        {submittingReply ? 'Sende …' : 'Antworten'}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {c.content}
-                </p>
+              )}
+
+              {/* Replies — newest first, eingerückt mit linker Border */}
+              {c.replies && c.replies.length > 0 && (
+                <ul className="mt-3 ml-6 pl-4 border-l-2 border-border space-y-3">
+                  {c.replies.map(r => (
+                    <li key={r.id}>
+                      {renderCommentBlock(r, true)}
+                    </li>
+                  ))}
+                </ul>
               )}
             </li>
           ))}
         </ul>
       )}
 
-      {/* Eingabe */}
-      <form onSubmit={handleSubmit} className="space-y-2">
+      {/* Top-Level-Eingabe */}
+      <form onSubmit={handleSubmitTopLevel} className="space-y-2">
         <label htmlFor="new-comment" className="sr-only">
           Neuer Kommentar
         </label>

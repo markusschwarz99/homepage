@@ -12,10 +12,11 @@ export async function listComments(recipeId: number): Promise<RecipeComment[]> {
 export async function createComment(
   recipeId: number,
   content: string,
+  parentId: number | null = null,
 ): Promise<RecipeComment> {
   return api<RecipeComment>(`/recipes/${recipeId}/comments`, {
     method: 'POST',
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, parent_id: parentId }),
   });
 }
 
