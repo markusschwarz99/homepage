@@ -24,6 +24,7 @@ import { SeasonalCalendarAdmin } from './pages/SeasonalCalendarAdmin';
 import { Impostor } from './pages/Impostor';
 import { AdminImpostor } from './pages/AdminImpostor';
 import { CV } from './pages/CV';
+import { Feuerrot } from './pages/Feuerrot';
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
         <Route path="/admin/saisonkalender" element={<SeasonalCalendarAdmin />} />
         <Route path="/admin/impostor" element={<AdminImpostor />} />
         <Route path="/cv" element={<CV />} />
+        <Route path="/feuerrot" element={<Feuerrot />} />
         <Route path="/admin/einstellungen" element={<AdminSettings />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
