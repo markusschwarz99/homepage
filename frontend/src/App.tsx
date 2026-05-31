@@ -25,6 +25,7 @@ import { Impostor } from './pages/Impostor';
 import { AdminImpostor } from './pages/AdminImpostor';
 import { CV } from './pages/CV';
 import { Feuerrot } from './pages/Feuerrot';
+import { WandDashboard } from './pages/WandDashboard';
 
 function App() {
   return (
@@ -58,6 +59,7 @@ function App() {
         <Route path="/diary" element={<Diary />} />
         <Route path="/diary/neu" element={<DiaryNew />} />
         <Route path="/diary/:id/bearbeiten" element={<DiaryEdit />} />
+        <Route path="/wand" element={<WandDashboard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

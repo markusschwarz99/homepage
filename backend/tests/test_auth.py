@@ -361,3 +361,43 @@ class TestPasswordReset:
             "confirm_password": "DifferentPass789!",
         })
         assert response.status_code == 400
+
+
+# ========== Integration: /auth/kiosk-token ==========
+
+class TestKioskToken:
+    def test_admin_can_create_kiosk_token_for_household_user(self, client, admin_headers, household_user):
+        response = client.post("/auth/kiosk-token", json={"user_id": household_user.id}, headers=admin_headers)
+        assert response.status_code == 200
+        body = response.json()
+        assert "access_token" in body
+        assert body["token_type"] == "bearer"
+        assert body["expires_in_days"] == 365
+
+    def test_kiosk_token_is_valid_jwt_with_household_sub(self, client, admin_headers, household_user):
+        import os
+        from jose import jwt as jose_jwt
+        response = client.post("/auth/kiosk-token", json={"user_id": household_user.id}, headers=admin_headers)
+        token = response.json()["access_token"]
+        decoded = jose_jwt.decode(token, os.environ["JWT_SECRET"], algorithms=["HS256"])
+        assert decoded["sub"] == household_user.email
+
+    def test_kiosk_token_grants_shopping_access(self, client, admin_headers, household_user):
+        kiosk_token = client.post(
+            "/auth/kiosk-token", json={"user_id": household_user.id}, headers=admin_headers
+        ).json()["access_token"]
+        kiosk_headers = {"Authorization": f"Bearer {kiosk_token}"}
+        response = client.get("/shopping/items", headers=kiosk_headers)
+        assert response.status_code == 200
+
+    def test_non_admin_cannot_create_kiosk_token(self, client, household_headers, household_user):
+        response = client.post("/auth/kiosk-token", json={"user_id": household_user.id}, headers=household_headers)
+        assert response.status_code == 403
+
+    def test_kiosk_token_rejected_for_non_household_user(self, client, admin_headers, test_user):
+        response = client.post("/auth/kiosk-token", json={"user_id": test_user.id}, headers=admin_headers)
+        assert response.status_code == 400
+
+    def test_kiosk_token_rejected_for_unknown_user(self, client, admin_headers):
+        response = client.post("/auth/kiosk-token", json={"user_id": 99999}, headers=admin_headers)
+        assert response.status_code == 404
