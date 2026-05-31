@@ -186,6 +186,27 @@ def request_password_reset(
     return generic_response
 
 
+class KioskTokenRequest(BaseModel):
+    user_id: int
+
+@router.post("/kiosk-token")
+def create_kiosk_token(
+    data: KioskTokenRequest,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(auth.require_admin),
+):
+    user = db.query(models.User).filter(models.User.id == data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Benutzer nicht gefunden")
+    if not user.is_household:
+        raise HTTPException(status_code=400, detail="Benutzer ist kein Haushaltsmitglied")
+    token = auth.create_token_expires_in(
+        {"sub": user.email},
+        timedelta(days=365),
+    )
+    return {"access_token": token, "token_type": "bearer", "expires_in_days": 365}
+
+
 @router.post("/reset-password")
 @limiter.limit("10/hour")
 def reset_password(
