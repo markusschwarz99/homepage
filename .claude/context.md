@@ -16,6 +16,11 @@ Persönliche Homepage mit vier Hauptbereichen:
   Tap-and-Hold-Reveal, Auflösung. Kategorien & Wörter sind DB-backed,
   Verwaltung unter `/admin/impostor`, Backend-Router `impostor.py`,
   Tabellen `impostor_categories` + `impostor_words`)
+- **Wand-Dashboard** (Kiosk-Ansicht unter `/wand`, kein Navbar/Footer, kein
+  interaktiver Login): zeigt Uhr/Datum + Einkaufsliste read-only, 60s-Polling.
+  Auth via 365-Tage-Kiosk-Token (`POST /auth/kiosk-token`, Admin-only).
+  Token-Init einmalig via `?token=`-URL-Param, danach in localStorage gespeichert.
+  Gedacht für Fully Kiosk Browser auf Samsung Galaxy Tab A8 (1920×1200).
 
 Vier Rollen: **Guest / Member / Household / Admin**.
 Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
@@ -373,6 +378,9 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
 
 ## Was du *nicht* tun sollst
 
+- **Wand-Dashboard `/wand`**: kein `useAuth()`-Hook, kein `api()`-Helper verwenden —
+  dessen 401-Handler redirectet auf `/login` und bricht den Kiosk-Modus. Immer
+  direktes `fetch()` + `getToken()` nutzen. Kein `<Layout>`-Wrapper (kein Navbar/Footer).
 - Keine destruktiven Befehle vorschlagen (`DROP`, `TRUNCATE`, `rm -rf`,
   `docker volume rm`) ohne explizite Warnung und Backup-Hinweis
 - Keine Secrets in Code/Configs hardcoden — immer `.env`
