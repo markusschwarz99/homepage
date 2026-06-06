@@ -25,6 +25,10 @@ Läuft self-hosted auf einem Raspberry Pi hinter einem Cloudflare Tunnel.
 - **Fototagebuch** (Admin-only): Mehrere Einträge pro Tag mit
   optionalem Text und beliebig vielen Bildern. Liste oder Kalender,
   Drag-and-Drop-Reorder, Bild-Captions, Lightbox.
+- **CV / Lebenslauf** (Admin-only): Strukturierter Lebenslauf mit
+  Projektreferenzen-Verwaltung und PDF-Export im Seiten-Design.
+- **Wand-Dashboard** (Kiosk-Ansicht unter `/wand`): Uhr/Datum +
+  read-only Einkaufsliste, gedacht für ein Wand-Tablet im Haushalt.
 - **Rollen**: Guest / Member / Household / Admin
 - **Auth**: Email-Verifizierung, JWT, Password-Reset per Mail
 - **Admin-Bereich**: User-Verwaltung, Tag-Verwaltung,
