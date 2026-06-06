@@ -24,8 +24,11 @@ server {
     }
 
     # Statische Assets länger cachen
+    # Access-Control-Allow-Origin: Android WebView 148+ behandelt <script type="module" crossorigin>
+    # als CORS-Request und dropped den Response ohne diesen Header (Chrome ignoriert das bei Same-Origin)
     location ~* \.(js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|webp|ico)$ {
         expires 30d;
         add_header Cache-Control "public, immutable";
+        add_header Access-Control-Allow-Origin "*";
     }
 }
