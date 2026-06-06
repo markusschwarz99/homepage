@@ -6,7 +6,6 @@ einem Raspberry Pi. Antworte bitte auf Deutsch, sei direkt und pragmatisch.
 ## Was die Seite macht
 
 Persönliche Homepage mit vier Hauptbereichen:
-- **Blog** (Admin-only, TipTap-Rich-Editor mit Bild-Upload)
 - **Rezepte-Archiv** (strukturierte Zutaten mit Portions-Skalierung, Schritt-für-Schritt,
   Bilder-Galerie, Tag-Filter)
 - **Einkaufsliste** (geteilt im Haushalt, mit Frequent-Items und History)
