@@ -31,7 +31,6 @@ export function Navbar() {
 
         <div className="hidden md:flex gap-6">
           <Link to="/impostor" className={linkClass}>Impostor</Link>
-          <Link to="/feuerrot" className={linkClass}>Feuerrot</Link>
           {user && (
             <>
               {user.is_member && (
@@ -111,7 +110,6 @@ export function Navbar() {
         >
           <div className="px-6 py-4" onClick={e => e.stopPropagation()}>
             <Link to="/impostor" className={mobileLinkClass}>Impostor</Link>
-            <Link to="/feuerrot" className={mobileLinkClass}>Feuerrot</Link>
             {user ? (
               <>
                 {user.is_member && (
