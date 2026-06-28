@@ -140,6 +140,16 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
   Workflows triggern nur auf `push` zu `main` und auf `pull_request` mit Target
   `main` — Pushes auf Feature-Branches lösen die CI **nicht** aus, erst der PR
   startet die Checks.
+- **Dependabot-PRs batch-mergen**: `main` ist NICHT branch-protected. Folge:
+  `gh pr view --json mergeStateStatus` meldet `CLEAN` schon, solange Checks nur
+  `pending` sind (pending ≠ failing) — das ist KEIN Grün-Beleg. Beim Batch-Merge
+  immer auf die echten Conclusions gaten: `gh pr checks <pr>` muss überall `pass`
+  zeigen, erst dann mergen. Konflikt-Kaskade beachten: PRs derselben Ökosystem-
+  Gruppe teilen sich ein Lockfile (`frontend/package-lock.json`,
+  `e2e/package-lock.json`, `backend/requirements*.txt`) und kollidieren auch
+  UNTEREINANDER — pro Gruppe merged nur einer sauber, die Geschwister danach per
+  `@dependabot rebase`-Kommentar neu aufsetzen (force-pusht + CI läuft frisch,
+  ~2 Min/PR). Iterativ wiederholen, bis die Gruppe leer ist.
 - **Migrations**: Alembic — bei Schema-Änderungen immer `alembic revision --autogenerate
   -m "..."` im Backend-Container generieren, dann `docker cp` ins Repo (Backend hat
   keinen Volume-Mount). Migrations laufen automatisch beim Container-Start via
