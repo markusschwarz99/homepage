@@ -1,5 +1,6 @@
 import resend
 import os
+import html
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@markus-schwarz.cc")
@@ -67,6 +68,58 @@ def send_password_reset_email(to_email: str, name: str, token: str):
             <p style="color: #999; font-size: 12px; margin-top: 32px;">
                 Falls du diese Anfrage nicht gestellt hast, kannst du diese Email ignorieren. Dein Passwort bleibt unverändert.
             </p>
+        </div>
+        """
+    })
+
+def _render_shopping_items(items: list[dict]) -> str:
+    """Rendert eine Artikel-Liste als HTML-<ul>. User-Input wird escaped."""
+    if not items:
+        return '<p style="color: #999; font-size: 14px; margin: 0;">Keine Artikel.</p>'
+    rows = ""
+    for it in items:
+        name = html.escape(it["name"])
+        quantity = html.escape(it["quantity"])
+        desc = it.get("description")
+        desc_html = (
+            f' <span style="color: #999;">– {html.escape(desc)}</span>' if desc else ""
+        )
+        rows += (
+            '<li style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; color: #333;">'
+            f'<strong>{name}</strong> '
+            f'<span style="color: #666;">({quantity})</span>'
+            f'{desc_html}'
+            '</li>'
+        )
+    return f'<ul style="list-style: none; padding: 0; margin: 0;">{rows}</ul>'
+
+def send_shopping_list_digest(to_email: str, name: str, new_items: list[dict], all_items: list[dict]):
+    """
+    Sammel-Mail über neu hinzugefügte Einkaufslisten-Artikel.
+    new_items / all_items sind Listen von {name, quantity, description}-Dicts.
+    """
+    shopping_url = f"{FRONTEND_URL}/einkaufsliste"
+    count = len(new_items)
+    intro = (
+        f"{count} {'neuer Artikel wurde' if count == 1 else 'neue Artikel wurden'} "
+        "zur Einkaufsliste hinzugefügt:"
+    )
+    resend.Emails.send({
+        "from": FROM_EMAIL,
+        "to": to_email,
+        "subject": f"Neue Artikel auf der Einkaufsliste ({count})",
+        "html": f"""
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="font-size: 24px; font-weight: 500; margin-bottom: 16px;">Hallo {html.escape(name)}!</h1>
+            <p style="color: #666; margin-bottom: 24px;">{intro}</p>
+            <h2 style="font-size: 16px; font-weight: 500; margin: 0 0 8px;">Neu</h2>
+            {_render_shopping_items(new_items)}
+            <h2 style="font-size: 16px; font-weight: 500; margin: 32px 0 8px;">Aktuelle Einkaufsliste</h2>
+            {_render_shopping_items(all_items)}
+            <a href="{shopping_url}"
+               style="display: inline-block; margin-top: 32px; background: #0D0D0D; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 14px;">
+                Zur Einkaufsliste
+            </a>
         </div>
         """
     })

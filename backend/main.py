@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -7,6 +9,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from database import Base, engine
 import models
 from routers import auth, shopping, admin, recipes, recipe_comments, tags, seasonal, settings, impostor, diary, notifications, projektreferenzen, cv
+from scheduler import shopping_digest_loop
 from rate_limit import limiter
 import os
 import logging
@@ -15,7 +18,23 @@ logger = logging.getLogger("uvicorn")
 
 os.makedirs(os.getenv("UPLOAD_DIR", "/app/uploads"), exist_ok=True)
 
-app = FastAPI(title="Markus Homepage API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Background-Loop nicht im Test-Stack starten (kein echter Mailversand).
+    task = None
+    if os.getenv("ENVIRONMENT") != "test":
+        task = asyncio.create_task(shopping_digest_loop())
+    yield
+    if task:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(title="Markus Homepage API", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
