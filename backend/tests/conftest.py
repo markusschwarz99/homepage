@@ -21,6 +21,7 @@ import email_service
 email_service.send_verification_email = MagicMock(return_value=None)
 email_service.send_approved_email = MagicMock(return_value=None)
 email_service.send_password_reset_email = MagicMock(return_value=None)
+email_service.send_shopping_list_digest = MagicMock(return_value=None)
 
 from main import app
 from database import Base, get_db
