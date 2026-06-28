@@ -8,7 +8,11 @@ einem Raspberry Pi. Antworte bitte auf Deutsch, sei direkt und pragmatisch.
 Persönliche Homepage mit vier Hauptbereichen:
 - **Rezepte-Archiv** (strukturierte Zutaten mit Portions-Skalierung, Schritt-für-Schritt,
   Bilder-Galerie, Tag-Filter)
-- **Einkaufsliste** (geteilt im Haushalt, mit Frequent-Items und History)
+- **Einkaufsliste** (geteilt im Haushalt, mit Frequent-Items und History.
+  **Digest-Mail**: ein In-Prozess-Scheduler prüft alle 15 Min auf neue Artikel
+  und schickt dann *eine* Sammel-Mail an alle household/admin-User mit neuen +
+  allen Artikeln. State als Highwater-Mark im `site_settings`-Key
+  `shopping_notify_watermark`, Logik in `shopping_digest.py`)
 - **Saisonkalender** (zeigt regional/saisonal verfügbare Lebensmittel,
   Verwaltung unter `/admin/saisonkalender`, Backend-Router `seasonal.py`)
 - **Impostor-Spiel** (öffentlich unter `/impostor`, kein Login nötig — Setup,
@@ -38,6 +42,11 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
 - JWT via `python-jose` + `bcrypt` ≥ 5
 - Resend für Mailversand
 - SlowAPI für Rate Limiting
+- In-Prozess-Scheduler: `asyncio`-Loop in der FastAPI-`lifespan` (kein Celery/
+  APScheduler/cron). Module `scheduler.py` + `shopping_digest.py`. Aktueller Job:
+  Einkaufslisten-Digest-Mail. Intervall via `SHOPPING_DIGEST_INTERVAL_SECONDS`
+  (Default 900). Backend läuft als *einzelner* Uvicorn-Prozess → Loop feuert
+  genau einmal (bei Multi-Worker/Replica würde er mehrfach feuern).
 - Pillow für Bildverarbeitung
 - pytest + Codecov
 
@@ -354,6 +363,19 @@ liegen in der Tabelle `site_settings` (Key/Value, Plain-Text). Für neue editier
 Felder: Key zur `ALLOWED_KEYS`-Whitelist in `backend/routers/settings.py` ergänzen,
 im Frontend `getSetting('<key>')` aus `api/settings.ts` mit Fallback verwenden,
 Admin-UI in `pages/AdminSettings.tsx` erweitern.
+
+**Hintergrund-Jobs / Scheduler** — Periodische Jobs laufen als `asyncio`-Loop,
+gestartet in der `lifespan` von `backend/main.py` und auf `ENVIRONMENT=test`
+deaktiviert (kein Mailversand in Tests). Vorbild: Einkaufslisten-Digest
+(`scheduler.py` ruft alle `SHOPPING_DIGEST_INTERVAL_SECONDS` →
+`shopping_digest.py:run_shopping_digest`). Konventionen für neue Jobs:
+(a) die synchrone Arbeit (DB + Resend) über `asyncio.to_thread` auslagern, damit
+der Event-Loop nicht blockiert; (b) Tick in `try/except` kapseln, damit der Loop
+nie stirbt; (c) Kernlogik als eigene, testbare Funktion `run_<job>(db)` schreiben
+und `email_service.*` über das Modul aufrufen, damit der conftest-MagicMock greift;
+(d) Job-State (z.B. "bis wohin schon verschickt") als `site_settings`-Key
+speichern, der **bewusst NICHT** in `ALLOWED_KEYS` steht → so ist er nicht über
+die Settings-API les-/schreibbar und es braucht **keine** Migration.
 
 **Notifications** — Generische Tabelle `notifications` (siehe
 `backend/models.py`: `Notification` + `NotificationType`-Enum,
