@@ -53,6 +53,55 @@ class TestAddItem:
         assert response.status_code == 403
 
 
+class TestAddItemsBulk:
+    def test_household_adds_multiple_items(self, client, household_headers, db_session):
+        response = client.post(
+            "/shopping/items/bulk",
+            headers=household_headers,
+            json={"items": [
+                {"name": "Mehl", "quantity": "200 g", "description": "Rezept: Pizza"},
+                {"name": "  Hefe  ", "quantity": "  "},
+                {"name": "Tomaten", "quantity": "3"},
+            ]},
+        )
+        assert response.status_code == 200
+        assert response.json()["added"] == 3
+        items = db_session.query(models.ShoppingItem).order_by(models.ShoppingItem.id).all()
+        assert len(items) == 3
+        assert items[0].name == "Mehl"
+        assert items[0].quantity == "200 g"
+        assert items[0].description == "Rezept: Pizza"
+        assert items[1].name == "Hefe"
+        assert items[1].quantity == "1"  # Default wenn leer
+        assert items[1].description is None
+
+    def test_member_cannot_bulk_add(self, client, auth_headers):
+        response = client.post(
+            "/shopping/items/bulk",
+            headers=auth_headers,
+            json={"items": [{"name": "Milch"}]},
+        )
+        assert response.status_code == 403
+
+    def test_empty_list_rejected(self, client, household_headers):
+        response = client.post(
+            "/shopping/items/bulk",
+            headers=household_headers,
+            json={"items": []},
+        )
+        assert response.status_code == 422
+
+    def test_blank_name_rejected(self, client, household_headers, db_session):
+        response = client.post(
+            "/shopping/items/bulk",
+            headers=household_headers,
+            json={"items": [{"name": "Milch"}, {"name": "   "}]},
+        )
+        assert response.status_code == 400
+        # Nichts committed — auch das valide Item nicht
+        assert db_session.query(models.ShoppingItem).count() == 0
+
+
 class TestPurchaseItem:
     def test_mark_purchased_creates_history(self, client, household_headers, db_session, household_user):
         # Erst Item anlegen

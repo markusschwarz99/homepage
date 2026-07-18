@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { Modal } from '../components/Modal';
 import { RecipeComments } from '../components/RecipeComments';
+import { useToast } from '../components/Toast';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import { formatAmount, scaleAmount } from '../lib/recipe';
@@ -22,6 +23,9 @@ export function RecipeDetail() {
   const [servings, setServings] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   const [deleteModal, setDeleteModal] = useState(false);
+  const [shoppingModal, setShoppingModal] = useState(false);
+  const [selectedIngredients, setSelectedIngredients] = useState<Set<number>>(new Set());
+  const { show } = useToast();
 
   useEffect(() => {
     if (loading) return;
@@ -57,6 +61,52 @@ export function RecipeDetail() {
     };
     tryScroll(0);
   }, [loadingRecipe, recipe, location.hash]);
+
+  function openShoppingModal() {
+    if (!recipe) return;
+    setSelectedIngredients(new Set(recipe.ingredients.map((_, idx) => idx)));
+    setShoppingModal(true);
+  }
+
+  function toggleIngredient(idx: number) {
+    setSelectedIngredients(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else {
+        next.add(idx);
+      }
+      return next;
+    });
+  }
+
+  async function handleAddToShopping() {
+    if (!recipe) return;
+    const items = recipe.ingredients
+      .filter((_, idx) => selectedIngredients.has(idx))
+      .map(ing => {
+        const scaled = scaleAmount(ing.amount, factor);
+        return {
+          name: ing.name,
+          quantity: `${scaled != null ? formatAmount(scaled) : ''} ${ing.unit}`.trim() || '1',
+          description: `Rezept: ${recipe.title}`,
+        };
+      });
+    if (items.length === 0) {
+      show('Keine Zutaten ausgewählt', 'error');
+      return;
+    }
+    try {
+      await api('/shopping/items/bulk', {
+        method: 'POST',
+        body: JSON.stringify({ items }),
+      });
+      setShoppingModal(false);
+      show(`${items.length} Artikel zur Einkaufsliste hinzugefügt`, 'success');
+    } catch (err) {
+      show(err instanceof Error ? err.message : 'Fehler', 'error');
+    }
+  }
 
   async function handleDelete() {
     try {
@@ -200,9 +250,19 @@ export function RecipeDetail() {
         <div className="grid md:grid-cols-[1fr_2fr] gap-8">
           {/* Zutaten */}
           <div className="md:sticky md:top-20 self-start">
-            <h2 className="text-sm font-medium uppercase tracking-wider text-text-muted mb-4">
-              Zutaten
-            </h2>
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <h2 className="text-sm font-medium uppercase tracking-wider text-text-muted">
+                Zutaten
+              </h2>
+              {user.is_household && recipe.ingredients.length > 0 && (
+                <button
+                  onClick={openShoppingModal}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-border bg-bg-primary hover:bg-bg-secondary transition-colors shrink-0"
+                >
+                  Auf die Einkaufsliste
+                </button>
+              )}
+            </div>
             {recipe.ingredients.length === 0 ? (
               <p className="text-sm text-text-hint">Keine Zutaten angegeben.</p>
             ) : (
@@ -250,6 +310,45 @@ export function RecipeDetail() {
           <RecipeComments recipeId={recipe.id} currentUser={user} />
         )}
       </div>
+
+      {shoppingModal && (
+        <Modal
+          title="Zutaten zur Einkaufsliste"
+          onClose={() => setShoppingModal(false)}
+          onConfirm={handleAddToShopping}
+          confirmLabel={
+            selectedIngredients.size === 1
+              ? '1 Zutat hinzufügen'
+              : `${selectedIngredients.size} Zutaten hinzufügen`
+          }
+        >
+          <p className="text-sm text-text-muted mb-4">
+            Wähle ab, was du schon zuhause hast. Die Mengen entsprechen der
+            aktuellen Portionsauswahl ({servings} {recipe.servings_unit}).
+          </p>
+          <ul className="space-y-1 max-h-64 overflow-y-auto">
+            {recipe.ingredients.map((ing, idx) => {
+              const scaled = scaleAmount(ing.amount, factor);
+              return (
+                <li key={ing.id ?? idx}>
+                  <label className="flex items-center gap-3 text-sm py-1.5 px-2 rounded-lg hover:bg-bg-secondary cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedIngredients.has(idx)}
+                      onChange={() => toggleIngredient(idx)}
+                      className="accent-accent shrink-0"
+                    />
+                    <span className="text-text-muted min-w-[4rem] shrink-0">
+                      {scaled != null && formatAmount(scaled)} {ing.unit}
+                    </span>
+                    <span>{ing.name}</span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        </Modal>
+      )}
 
       {deleteModal && (
         <Modal
