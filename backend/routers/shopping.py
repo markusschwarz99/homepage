@@ -4,7 +4,7 @@ from sqlalchemy import func
 from database import get_db
 from auth import require_household
 import models
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/shopping", tags=["shopping"])
 
@@ -12,6 +12,9 @@ class ItemCreate(BaseModel):
     name: str
     quantity: str = "1"
     description: str | None = None
+
+class BulkItemsCreate(BaseModel):
+    items: list[ItemCreate] = Field(min_length=1, max_length=100)
 
 @router.get("/items")
 def list_items(
@@ -48,6 +51,24 @@ def add_item(
     db.commit()
     db.refresh(new_item)
     return {"id": new_item.id, "message": "Artikel hinzugefügt"}
+
+@router.post("/items/bulk")
+def add_items_bulk(
+    data: BulkItemsCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(require_household)
+):
+    if any(not item.name.strip() for item in data.items):
+        raise HTTPException(status_code=400, detail="Artikelname darf nicht leer sein")
+    for item in data.items:
+        db.add(models.ShoppingItem(
+            name=item.name.strip(),
+            quantity=item.quantity.strip() or "1",
+            description=(item.description or "").strip() or None,
+            added_by_id=user.id
+        ))
+    db.commit()
+    return {"added": len(data.items), "message": f"{len(data.items)} Artikel hinzugefügt"}
 
 @router.post("/items/{item_id}/purchase")
 def mark_purchased(
