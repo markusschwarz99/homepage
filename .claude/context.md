@@ -7,8 +7,11 @@ einem Raspberry Pi. Antworte bitte auf Deutsch, sei direkt und pragmatisch.
 
 Persönliche Homepage mit vier Hauptbereichen:
 - **Rezepte-Archiv** (strukturierte Zutaten mit Portions-Skalierung, Schritt-für-Schritt,
-  Bilder-Galerie, Tag-Filter)
+  Bilder-Galerie, Tag-Filter. Household/Admin können via Auswahl-Modal auf der
+  Detailseite alle/ausgewählte Zutaten auf die Einkaufsliste setzen —
+  Endpoint `POST /shopping/items/bulk`, Menge nach aktueller Portionsauswahl skaliert)
 - **Einkaufsliste** (geteilt im Haushalt, mit Frequent-Items und History.
+  Bulk-Add via `POST /shopping/items/bulk` (z.B. aus einem Rezept).
   **Digest-Mail**: ein In-Prozess-Scheduler prüft alle 15 Min auf neue Artikel
   und schickt dann *eine* Sammel-Mail an alle household/admin-User mit neuen +
   allen Artikeln. State als Highwater-Mark im `site_settings`-Key
@@ -19,6 +22,11 @@ Persönliche Homepage mit vier Hauptbereichen:
   Tap-and-Hold-Reveal, Auflösung. Kategorien & Wörter sind DB-backed,
   Verwaltung unter `/admin/impostor`, Backend-Router `impostor.py`,
   Tabellen `impostor_categories` + `impostor_words`)
+- **Newsletter** (Admin-only unter `/admin/newsletter`): Betreff + Plain-Text +
+  Rezepte als Mail-Karten (Cover-Bild/Titel/Link), Empfänger per Rollengruppen
+  und/oder Einzelnutzer (dedupliziert per User-ID). Send-and-forget, kein DB-State,
+  keine Migration — Backend-Router `newsletter.py`, Endpoint `POST /newsletter/send`
+  (admin-only), Mail-Template `send_newsletter_email` in `email_service.py`.
 - **Wand-Dashboard** (Kiosk-Ansicht unter `/wand`, kein Navbar/Footer, kein
   interaktiver Login): zeigt Uhr/Datum + Einkaufsliste read-only, 60s-Polling.
   Auth via 365-Tage-Kiosk-Token (`POST /auth/kiosk-token`, Admin-only).
