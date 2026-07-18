@@ -93,6 +93,50 @@ def _render_shopping_items(items: list[dict]) -> str:
         )
     return f'<ul style="list-style: none; padding: 0; margin: 0;">{rows}</ul>'
 
+def _render_newsletter_recipes(recipes: list[dict]) -> str:
+    """Rendert Rezepte als Karten (Bild + Titel + Link). User-Input wird escaped."""
+    cards = ""
+    for r in recipes:
+        title = html.escape(r["title"])
+        recipe_url = f"{FRONTEND_URL}/rezepte/{r['id']}"
+        image_html = (
+            f'<img src="{r["image_url"]}" alt="{title}" '
+            'style="width: 100%; display: block;">'
+            if r.get("image_url") else ""
+        )
+        cards += f"""
+            <div style="border: 1px solid #eee; border-radius: 8px; margin-top: 16px; overflow: hidden;">
+                {image_html}
+                <div style="padding: 16px;">
+                    <p style="font-size: 16px; font-weight: 500; margin: 0 0 12px;">{title}</p>
+                    <a href="{recipe_url}"
+                       style="background: #0D0D0D; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 13px; display: inline-block;">
+                        Zum Rezept
+                    </a>
+                </div>
+            </div>
+        """
+    return cards
+
+def send_newsletter_email(to_email: str, name: str, subject: str, body_text: str, recipes: list[dict]):
+    """
+    Newsletter-Mail: Plain-Text-Body (escaped, Zeilenumbrüche erhalten) plus
+    optionale Rezept-Karten. recipes: Liste von {id, title, image_url}-Dicts.
+    """
+    body_html = html.escape(body_text).replace("\n", "<br>")
+    resend.Emails.send({
+        "from": FROM_EMAIL,
+        "to": to_email,
+        "subject": subject,
+        "html": f"""
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="font-size: 24px; font-weight: 500; margin-bottom: 16px;">Hallo {html.escape(name)}!</h1>
+            <p style="color: #666; margin: 0;">{body_html}</p>
+            {_render_newsletter_recipes(recipes)}
+        </div>
+        """
+    })
+
 def send_shopping_list_digest(to_email: str, name: str, new_items: list[dict], all_items: list[dict]):
     """
     Sammel-Mail über neu hinzugefügte Einkaufslisten-Artikel.

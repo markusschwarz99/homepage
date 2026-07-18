@@ -23,6 +23,7 @@ import { SeasonalCalendar } from './pages/SeasonalCalendar';
 import { SeasonalCalendarAdmin } from './pages/SeasonalCalendarAdmin';
 import { Impostor } from './pages/Impostor';
 import { AdminImpostor } from './pages/AdminImpostor';
+import { AdminNewsletter } from './pages/AdminNewsletter';
 import { CV } from './pages/CV';
 import { WandDashboard } from './pages/WandDashboard';
 
@@ -50,6 +51,7 @@ function App() {
         <Route path="/admin/tags" element={<AdminTags />} />
         <Route path="/admin/saisonkalender" element={<SeasonalCalendarAdmin />} />
         <Route path="/admin/impostor" element={<AdminImpostor />} />
+        <Route path="/admin/newsletter" element={<AdminNewsletter />} />
         <Route path="/cv" element={<CV />} />
         <Route path="/admin/einstellungen" element={<AdminSettings />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
