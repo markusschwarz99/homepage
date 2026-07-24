@@ -158,6 +158,11 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
   UNTEREINANDER — pro Gruppe merged nur einer sauber, die Geschwister danach per
   `@dependabot rebase`-Kommentar neu aufsetzen (force-pusht + CI läuft frisch,
   ~2 Min/PR). Iterativ wiederholen, bis die Gruppe leer ist.
+  Die Kaskade lässt sich vorab lokal simulieren, statt sie beim Merge zu
+  entdecken: Wegwerf-Branch von `origin/main`, dann die Gruppe sequentiell
+  `git merge --squash origin/<branch>` durchspielen — wer zuerst
+  `KONFLIKT` wirft, braucht den Rebase. Danach Branch mit `git branch -D`
+  weg. Kostet nichts und spart pro Gruppe einen Fehlversuch.
 - **Migrations**: Alembic — bei Schema-Änderungen immer `alembic revision --autogenerate
   -m "..."` im Backend-Container generieren, dann `docker cp` ins Repo (Backend hat
   keinen Volume-Mount). Migrations laufen automatisch beim Container-Start via
