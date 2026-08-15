@@ -60,7 +60,7 @@ export function Navbar() {
           {user && <NotificationBell />}
           {user ? (
             <Link
-              to="/account"
+              to="/einstellungen/account"
               className="hidden md:flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-bg-primary transition-colors"
             >
               <span className="text-sm text-text-primary">{user.name}</span>
@@ -76,7 +76,7 @@ export function Navbar() {
           )}
 
           {user && (
-            <Link to="/account" className="md:hidden">
+            <Link to="/einstellungen/account" className="md:hidden">
               <Avatar name={user.name} avatarUrl={user.avatar_url} size="sm" />
             </Link>
           )}
@@ -130,7 +130,7 @@ export function Navbar() {
                 {user.is_admin && (
                   <Link to="/admin" className={mobileLinkClass}>Admin</Link>
                 )}
-                <Link to="/account" className={mobileLinkClass}>Mein Account</Link>
+                <Link to="/einstellungen/account" className={mobileLinkClass}>Einstellungen</Link>
               </>
             ) : (
               <>

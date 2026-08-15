@@ -313,6 +313,31 @@ class RecipeComment(Base):
     )
 
 
+class Improvement(Base):
+    __tablename__ = "improvements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    title = Column(String(200), nullable=False)
+    category = Column(String(20), nullable=False)  # bug, idee, sonstiges
+    description = Column(Text, nullable=False)
+    status = Column(String(20), nullable=False, default="offen", server_default="offen")  # offen, geplant, erledigt, abgelehnt
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    user = relationship("User")
+
+
 # ============================================================
 # Foto-Tagebuch (Admin-only)
 # ============================================================

@@ -32,6 +32,20 @@ Persönliche Homepage mit vier Hauptbereichen:
   Auth via 365-Tage-Kiosk-Token (`POST /auth/kiosk-token`, Admin-only).
   Token-Init einmalig via `?token=`-URL-Param, danach in localStorage gespeichert.
   Gedacht für Fully Kiosk Browser auf Samsung Galaxy Tab A8 (1920×1200).
+- **Improvements** (Verbesserungsvorschläge): freigeschaltete User
+  (member/household/admin) erfassen Vorschläge unter `/einstellungen/improvements`
+  (Titel + Kategorie Bug/Idee/Sonstiges + Beschreibung). Admin sieht/verwaltet sie
+  im Admin-Dashboard-Tab `/admin/improvements` (Status offen/geplant/erledigt/
+  abgelehnt, löschen). Backend-Router `improvements.py`, Tabelle `improvements`,
+  Endpoints `POST /improvements` (require_member) + `GET/PATCH/DELETE` (require_admin).
+  Status/Kategorie sind **String-Spalten, KEIN Postgres-Enum** (spart die
+  ADD-VALUE-Alembic-Stolperfalle).
+
+Der frühere Bereich **"Mein Account"** heißt jetzt **"Einstellungen"** und nutzt ein
+eigenes `SettingsLayout` (spiegelt das `AdminLayout`-Tab-Muster) mit Unterregistern
+**Mein Account** (`/einstellungen/account`) und **Improvement erfassen**
+(`/einstellungen/improvements`, nur für `is_member`). `/account` und `/einstellungen`
+redirecten auf `/einstellungen/account`. Guard im `SettingsLayout`: nur "eingeloggt".
 
 Vier Rollen: **Guest / Member / Household / Admin**.
 Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
