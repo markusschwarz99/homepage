@@ -22,6 +22,15 @@ Persönliche Homepage mit vier Hauptbereichen:
   Tap-and-Hold-Reveal, Auflösung. Kategorien & Wörter sind DB-backed,
   Verwaltung unter `/admin/impostor`, Backend-Router `impostor.py`,
   Tabellen `impostor_categories` + `impostor_words`)
+- **Codewort-Spiel** (öffentlich unter `/codewort`, kein Login — Single-Device-
+  Codenames-Variante: Setup mit aufklappbaren Regeln, Übergabe-Screens
+  (Halten-zum-Bestätigen), Chef-/Tisch-Sicht, Ein-Schritt-Undo, Endscreen.
+  Wortpakete DB-backed, Verwaltung unter `/admin/codewort`, Backend-Router
+  `codewort.py`, Tabellen `codewort_packs` + `codewort_words`. Public-Endpoints
+  `GET /codewort/packs` + `POST /codewort/draw` (25 Wörter ohne Zurücklegen,
+  `exclude`-Meidung zuletzt gespielter Wörter). Reine, seedbare Spiellogik unter
+  `frontend/src/lib/codewort` (Board 9/8/7/1, Zustandsmaschine, Zugauswertung),
+  Vitest-getestet. Regel: erlaubte Tipps = Hinweiszahl + 1 (0 = unbegrenzt).)
 - **Newsletter** (Admin-only unter `/admin/newsletter`): Betreff + Plain-Text +
   Rezepte als Mail-Karten (Cover-Bild/Titel/Link), Empfänger per Rollengruppen
   und/oder Einzelnutzer (dedupliziert per User-ID). Send-and-forget, kein DB-State,
@@ -84,6 +93,11 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
 - DOMPurify für HTML-Sanitization
 - @react-pdf/renderer 4.x (PDF-Export, aktuell nur im CV-Bereich)
 - ESLint 10 + typescript-eslint
+- **Vitest** (Frontend-Unit-Tests, NUR reine Logik wie `src/lib/codewort`).
+  Eigene `vitest.config.ts`, bewusst entkoppelt von `vite.config.ts`, damit der
+  Prod-Build nicht an Vitest hängt. Tests als `src/**/*.test.ts`, node-Env.
+  Lauf: `npm run test` (= `vitest run`). UI-/Geheimhaltungs-/Bedien-Checks laufen
+  über Playwright (`e2e/`), NICHT über Vitest — die Trennung ist Absicht.
 
 **E2E** — Playwright 1.59 (TypeScript), separates Projekt unter `e2e/`
 
@@ -158,7 +172,9 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
   Hintergrund: siehe Abschnitt "Prod-Deploy-Disziplin". Triviale Änderungen
   (README, Kommentare, Primer-Updates, `.env.example`) dürfen direkt auf `main`.
 - **Dependabot** aktiv für backend, frontend, ci
-- **CI**: GitHub Actions — Backend-Tests + E2E-Tests + Codecov, müssen grün sein.
+- **CI**: GitHub Actions — Backend-Tests + Frontend-Tests (Vitest) + E2E-Tests +
+  Codecov, müssen grün sein. Workflow `frontend-tests.yml` macht `tsc -b --noEmit`
+  + `npm run test`.
   Workflows triggern nur auf `push` zu `main` und auf `pull_request` mit Target
   `main` — Pushes auf Feature-Branches lösen die CI **nicht** aus, erst der PR
   startet die Checks.
