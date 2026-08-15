@@ -45,13 +45,6 @@ const NAV_CARDS: NavCard[] = [
     visible: () => true,
   },
   {
-    title: 'Tagebuch',
-    description: 'Persönliche Einträge und Fotos.',
-    icon: '📖',
-    path: '/diary',
-    visible: (u) => !!u?.is_admin,
-  },
-  {
     title: 'Administration',
     description: 'Nutzerverwaltung, Tags und Seiteneinstellungen.',
     icon: '⚙️',

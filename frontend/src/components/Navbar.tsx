@@ -40,9 +40,6 @@ export function Navbar() {
                 <Link to="/saisonkalender" className={linkClass}>Saisonkalender</Link>
               )}
               {user.is_admin && (
-                <Link to="/diary" className={linkClass}>Tagebuch</Link>
-              )}
-              {user.is_admin && (
                 <Link to="/cv" className={linkClass}>CV</Link>
               )}
               {user.is_household && (
@@ -117,9 +114,6 @@ export function Navbar() {
                 )}
                 {user.is_member && (
                   <Link to="/saisonkalender" className={mobileLinkClass}>Saisonkalender</Link>
-                )}
-                {user.is_admin && (
-                  <Link to="/diary" className={mobileLinkClass}>Tagebuch</Link>
                 )}
                 {user.is_admin && (
                   <Link to="/cv" className={mobileLinkClass}>CV</Link>
