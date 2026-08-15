@@ -40,7 +40,11 @@ export function SpymasterView({ state, onGiveClue }: Props) {
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h1 className="text-lg sm:text-xl font-medium">
+        <h1
+          className="text-lg sm:text-xl font-medium"
+          data-testid="spymaster-title"
+          data-team={state.currentTeam}
+        >
           Chef-Sicht · {state.teamNames[state.currentTeam]}
         </h1>
       </div>
