@@ -192,6 +192,44 @@ export function SetupView({ onStart }: Props) {
           <Button onClick={handleStart} disabled={starting || packId === null} data-testid="start-game">
             {starting ? 'Starte …' : 'Partie starten'}
           </Button>
+
+          <details className="mt-8 rounded-xl border border-border bg-bg-secondary" open>
+            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium">
+              Spielregeln
+            </summary>
+            <div className="px-4 pb-4 text-sm text-text-muted space-y-2 leading-relaxed">
+              <p>
+                Zwei Teams teilen sich <strong>ein Gerät</strong>. Jedes Team hat einen
+                Geheimdienstchef; die anderen sind Ermittler.
+              </p>
+              <p>
+                Auf dem Tisch liegen <strong>25 Wörter</strong>. Verdeckt gehört jedes zu Team A
+                oder B, ist neutral oder der Attentäter (Verteilung 9 / 8 / 7 / 1). Nur die Chefs
+                sehen die Zuordnung.
+              </p>
+              <p>
+                Die Chefs geben abwechselnd einen Hinweis aus <strong>genau einem Wort und einer
+                Zahl</strong>. Die Zahl sagt, auf wie viele der eigenen Wörter der Hinweis passt.
+              </p>
+              <p>
+                Das Team deckt Karten auf — erlaubt sind <strong>Zahl + 1</strong> Versuche (der
+                Extra-Tipp ist für Wörter aus früheren Runden gedacht). Bei der Zahl{' '}
+                <strong>0</strong> sind es unbegrenzt viele.
+              </p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Eigener Agent aufgedeckt → weiter raten.</li>
+                <li>Neutrale oder gegnerische Karte → der Zug endet sofort.</li>
+                <li>
+                  <strong>Attentäter</strong> aufgedeckt → das Team verliert sofort die Partie.
+                </li>
+              </ul>
+              <p>
+                Gewonnen hat, wessen Agenten zuerst alle gefunden sind — egal, wer sie aufgedeckt
+                hat. Bei jedem Wechsel reicht ihr das Gerät über den Übergabe-Screen weiter, damit
+                der Schlüssel geheim bleibt.
+              </p>
+            </div>
+          </details>
         </>
       )}
     </div>
