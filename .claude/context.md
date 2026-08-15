@@ -273,10 +273,13 @@ selbst ausführen. Trotzdem gilt:
   `docker cp homepage-backend-1:/app/<pfad> ~/homepage/backend/<pfad>` ins Repo geholt
   werden.
 
-- **Permission-Modus**: Bei Backend-, DB- oder Compose-Änderungen Plan mode
-  oder Ask permissions, niemals Auto-Accept. `docker compose build` ist
-  Prod-Deploy (siehe entsprechenden Abschnitt) — jede Build-Aktion braucht
-  meine explizite Bestätigung.
+- **Permission-Modus**: Git, PR-Erstellung, CI-Gating, Merge und das
+  Prod-Deployment (`git pull && docker compose build && docker compose up -d`)
+  führe ich (Claude) eigenständig aus — siehe Abschnitt "Prod-Deploy-Disziplin".
+  Vor einem Prod-Deploy gelten weiterhin die Guardrails dort (grüne CI,
+  DB-Backup + Fresh-DB-Migrationstest bei Schema-Änderungen). Test-Läufe
+  (pytest/TS-Check) laufen NIE über den Prod-Stack, sondern immer über den
+  Test-Stack (siehe `docker compose build`-Abschnitt).
 
 - **Primer-Updates** liefere immer als Bash-Befehl (nicht als "ergänze
   Zeile X in Datei Y"). Die Datei liegt unter `~/homepage/.claude/context.md`.
@@ -599,10 +602,14 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
 
 ## Prod-Deploy-Disziplin
 
-**Wichtig zum Verständnis**: Es gibt KEIN Auto-Deploy. Ein `git push` auf `main`
-deployed nichts. Code landet erst auf Prod, wenn ich auf dem Pi explizit
-`git pull && docker compose build <service> && docker compose up -d <service>`
-ausführe. Der Pi-Rebuild ist der einzige Deploy-Hebel.
+**Wichtig zum Verständnis**: Es gibt kein GitHub-Auto-Deploy — ein `git push`
+auf `main` deployed nichts von selbst. Der Deploy-Hebel ist der Pi-Rebuild
+(`git pull && docker compose build <service> && docker compose up -d <service>`),
+und diesen Schritt führe ich (Claude) nach grüner CI + Merge selbst auf dem Pi
+aus. Ich arbeite direkt im Pi-Filesystem und kann Bash ausführen — der komplette
+Weg von Branch über PR/CI/Merge bis zum Prod-Deploy läuft eigenständig, ohne
+dass Markus die mechanischen Schritte selbst tippt. Die einzelnen Befehle zeige
+ich transparent im Verlauf, damit er mitlesen kann.
 
 Trotzdem gilt: **`main` muss jederzeit in deploy-bereitem Zustand sein.**
 Hintergrund: Wenn ich auf dem Pi mal ohne genau hinzuschauen pulle und
@@ -626,15 +633,17 @@ Daraus folgt:
      der Branch auf GitHub wirklich weg ist — `git fetch --prune && git branch -r`
      darf den Branch nicht mehr zeigen. Übrig gebliebene Remote-Branches mit
      `git push origin --delete <branch>` nachlöschen.
-- **PR-Erstellung & Merge laufen über `gh` CLI**, nicht über den Browser. Beim
-  Aufgeben von "PR öffnen" o.ä. liefere ich (Claude) immer den vollen
-  `gh pr create ...` Befehl mit Title + Body als Heredoc, plus die Merge-
-  Befehle (`gh pr merge --squash --delete-branch`). Squash-Merge ist Default,
-  damit `main` eine flache Commit-History behält. `--delete-branch` löscht
-  den Remote-Branch automatisch nach dem Merge — IMMER diesen Flag mitgeben.
-- **Pi-Deploy ist ein bewusster, separater Schritt** — kommt nach dem Merge,
-  nicht automatisch. Reihenfolge auf dem Pi:
-  `git pull && docker compose build <service> && docker compose up -d <service>`.
+- **PR-Erstellung & Merge laufen über `gh` CLI**, nicht über den Browser, und
+  führe ich (Claude) selbst aus: `gh pr create ...` mit Title + Body als
+  Heredoc, dann — erst nach grüner CI (`gh pr checks <pr>` überall `pass`) —
+  `gh pr merge --squash --delete-branch`. Squash-Merge ist Default, damit `main`
+  eine flache Commit-History behält. `--delete-branch` löscht den Remote-Branch
+  automatisch nach dem Merge — IMMER diesen Flag mitgeben.
+- **Pi-Deploy führe ich nach dem Merge selbst aus** — als eigener, klar
+  angekündigter Schritt (nicht mit dem Merge vermischt). Reihenfolge auf dem
+  Pi: `git pull && docker compose build <service> && docker compose up -d <service>`.
+  Danach kurzer Health-Check (Container `up`, Endpoint erreichbar / Logs ohne
+  Fehler) und Rückmeldung an Markus, was deployed wurde.
 - **Bei Schema-Änderungen zusätzlich**: vor dem Pi-Deploy DB-Backup ziehen
   (`./scripts/backup-db.sh`), und die Migration vorher auf einer frischen DB
   testen (siehe Hinweis im "Was du *nicht* tun sollst"-Abschnitt zu
