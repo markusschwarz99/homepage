@@ -598,7 +598,8 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   hardcoded. Für Multipart/Form-Data-Uploads muss der Browser die Boundary
   selbst setzen — also NICHT `api()` nutzen, sondern direkt `fetch()` mit
   `FormData`-Body und manuell den Auth-Header via `getToken()` setzen.
-  Beispiel: `uploadImages()` in `frontend/src/api/diary.ts`.
+  Beispiel: der Rezept-Bild-Upload (`fetch` gegen `/recipes/upload-image`)
+  in `frontend/src/components/RecipeForm.tsx`.
 
 ## Prod-Deploy-Disziplin
 
