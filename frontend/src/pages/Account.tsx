@@ -1,6 +1,6 @@
 import { useState, useRef, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layout } from '../components/Layout';
+import { SettingsLayout } from '../components/SettingsLayout';
 import { Button } from '../components/Button';
 import { Avatar } from '../components/Avatar';
 import { useAuth } from '../hooks/useAuth';
@@ -101,10 +101,7 @@ export function Account() {
   }
 
   return (
-    <Layout>
-      <div className="max-w-xl mx-auto px-8 py-12">
-        <h1 className="text-2xl sm:text-3xl font-medium mb-10">Mein Account</h1>
-
+    <SettingsLayout>
         {/* Profilbild */}
         <div className="bg-bg-primary rounded-lg border border-border p-6 mb-6">
           <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider mb-6">Profilbild</h2>
@@ -196,7 +193,6 @@ export function Account() {
           <p className="text-xs text-text-hint mb-4">Angemeldet als {user.email}</p>
           <Button variant="danger" onClick={logout}>Abmelden</Button>
         </div>
-      </div>
-    </Layout>
+    </SettingsLayout>
   );
 }

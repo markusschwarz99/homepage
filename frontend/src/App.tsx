@@ -10,7 +10,9 @@ import { RecipeDetail } from './pages/RecipeDetail';
 import { RecipeNew } from './pages/RecipeNew';
 import { RecipeEdit } from './pages/RecipeEdit';
 import { Account } from './pages/Account';
+import { SettingsImprovements } from './pages/SettingsImprovements';
 import { AdminUsers } from './pages/AdminUsers';
+import { AdminImprovements } from './pages/AdminImprovements';
 import { AdminTags } from './pages/AdminTags';
 import { AdminSettings } from './pages/AdminSettings';
 import { NotFound } from './pages/NotFound';
@@ -45,13 +47,18 @@ function App() {
         <Route path="/saisonkalender/admin" element={<Navigate to="/admin/saisonkalender" replace />} />
         <Route path="/einkaufsliste" element={<Shopping />} />
         <Route path="/impostor" element={<Impostor />} />
-        <Route path="/account" element={<Account />} />
+        {/* Alte URL → neue Einstellungen-URL */}
+        <Route path="/account" element={<Navigate to="/einstellungen/account" replace />} />
+        <Route path="/einstellungen" element={<Navigate to="/einstellungen/account" replace />} />
+        <Route path="/einstellungen/account" element={<Account />} />
+        <Route path="/einstellungen/improvements" element={<SettingsImprovements />} />
         <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/tags" element={<AdminTags />} />
         <Route path="/admin/saisonkalender" element={<SeasonalCalendarAdmin />} />
         <Route path="/admin/impostor" element={<AdminImpostor />} />
         <Route path="/admin/newsletter" element={<AdminNewsletter />} />
+        <Route path="/admin/improvements" element={<AdminImprovements />} />
         <Route path="/cv" element={<CV />} />
         <Route path="/admin/einstellungen" element={<AdminSettings />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

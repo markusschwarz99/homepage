@@ -45,6 +45,7 @@ export function AdminLayout({ children }: Props) {
           <NavLink to="/admin/saisonkalender" className={tabClass}>Saisonkalender</NavLink>
           <NavLink to="/admin/impostor" className={tabClass}>Impostor</NavLink>
           <NavLink to="/admin/newsletter" className={tabClass}>Newsletter</NavLink>
+          <NavLink to="/admin/improvements" className={tabClass}>Improvements</NavLink>
           <NavLink to="/admin/einstellungen" className={tabClass}>Einstellungen</NavLink>
         </div>
         {children}
