@@ -16,9 +16,6 @@ import { AdminImprovements } from './pages/AdminImprovements';
 import { AdminTags } from './pages/AdminTags';
 import { AdminSettings } from './pages/AdminSettings';
 import { NotFound } from './pages/NotFound';
-import { Diary } from './pages/Diary';
-import { DiaryNew } from './pages/DiaryNew';
-import { DiaryEdit } from './pages/DiaryEdit';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { SeasonalCalendar } from './pages/SeasonalCalendar';
@@ -63,9 +60,6 @@ function App() {
         <Route path="/admin/einstellungen" element={<AdminSettings />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/diary" element={<Diary />} />
-        <Route path="/diary/neu" element={<DiaryNew />} />
-        <Route path="/diary/:id/bearbeiten" element={<DiaryEdit />} />
         <Route path="/wand" element={<WandDashboard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

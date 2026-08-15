@@ -183,29 +183,6 @@ export interface RecipeComment {
   replies?: RecipeComment[];
 }
 
-// ---------- Foto-Tagebuch ----------
-export interface DiaryImage {
-  id: number;
-  url: string;        // relativer Pfad, z.B. "/uploads/diary/<uuid>.webp"
-  thumb_url: string;  // relativer Pfad, z.B. "/uploads/diary/thumbs/<uuid>.webp"
-  caption: string | null;
-  position: number;
-}
-
-export interface DiaryEntry {
-  id: number;
-  entry_date: string;   // ISO date "YYYY-MM-DD"
-  entry_time: string;   // ISO time "HH:MM:SS"
-  description: string | null;
-  images: DiaryImage[];
-}
-
-export interface DiaryEntryInput {
-  entry_date: string;
-  entry_time?: string;
-  description?: string | null;
-}
-
 // ---------- Notifications ----------
 
 export type NotificationType = 'recipe_comment' | 'recipe_comment_reply';

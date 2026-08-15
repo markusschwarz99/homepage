@@ -8,7 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from database import Base, engine
 import models
-from routers import auth, shopping, admin, recipes, recipe_comments, tags, seasonal, settings, impostor, diary, notifications, projektreferenzen, cv, newsletter, improvements
+from routers import auth, shopping, admin, recipes, recipe_comments, tags, seasonal, settings, impostor, notifications, projektreferenzen, cv, newsletter, improvements
 from scheduler import shopping_digest_loop
 from rate_limit import limiter
 import os
@@ -57,7 +57,6 @@ app.include_router(tags.router)
 app.include_router(seasonal.router)
 app.include_router(settings.router)
 app.include_router(impostor.router)
-app.include_router(diary.router)
 app.include_router(notifications.router)
 app.include_router(projektreferenzen.router)
 app.include_router(cv.router)
