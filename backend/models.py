@@ -269,6 +269,45 @@ class ImpostorWord(Base):
     category = relationship("ImpostorCategory", back_populates="words")
 
 
+# ==================== Codewort-Spiel ====================
+
+class CodewortPack(Base):
+    __tablename__ = "codewort_packs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, index=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    sort_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    words = relationship(
+        "CodewortWord",
+        back_populates="pack",
+        cascade="all, delete-orphan",
+        order_by="CodewortWord.word",
+    )
+
+
+class CodewortWord(Base):
+    __tablename__ = "codewort_words"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pack_id = Column(
+        Integer,
+        ForeignKey("codewort_packs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    word = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("pack_id", "word", name="uq_codewort_word_per_pack"),
+    )
+
+    pack = relationship("CodewortPack", back_populates="words")
+
+
 class RecipeComment(Base):
     __tablename__ = "recipe_comments"
 

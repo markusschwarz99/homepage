@@ -168,6 +168,34 @@ export interface ImpostorRandomResponse {
   category_name: string;
 }
 
+// ---------- Codewort-Spiel ----------
+
+export interface CodewortPackPublic {
+  id: number;
+  name: string;
+  word_count: number;
+}
+
+export interface CodewortPackAdmin {
+  id: number;
+  name: string;
+  is_active: boolean;
+  sort_order: number;
+  word_count: number;
+  created_at: string;
+}
+
+export interface CodewortWord {
+  id: number;
+  word: string;
+}
+
+export interface CodewortDrawResponse {
+  pack_id: number;
+  pack_name: string;
+  words: string[];
+}
+
 export interface RecipeComment {
   id: number;
   recipe_id: number;
