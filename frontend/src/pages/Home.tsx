@@ -17,6 +17,20 @@ interface NavCard {
 
 const NAV_CARDS: NavCard[] = [
   {
+    title: 'Impostor-Spiel',
+    description: 'Wer kennt das Wort nicht? Ein Ratespiel für die Runde.',
+    icon: '🕵️',
+    path: '/impostor',
+    visible: () => true,
+  },
+  {
+    title: 'Codewort',
+    description: 'Codenames-Variante für ein Gerät — Chef gibt Hinweise, Team rät.',
+    icon: '🔤',
+    path: '/codewort',
+    visible: () => true,
+  },
+  {
     title: 'Rezepte',
     description: 'Gesammelte Rezepte mit Zutaten, Schritten und Bildern.',
     icon: '🍳',
@@ -31,6 +45,13 @@ const NAV_CARDS: NavCard[] = [
     visible: (u) => !!u?.is_member,
   },
   {
+    title: 'CV',
+    description: 'Mein Lebenslauf als Web-Ansicht und PDF-Export.',
+    icon: '📄',
+    path: '/cv',
+    visible: (u) => !!u?.is_admin,
+  },
+  {
     title: 'Einkaufsliste',
     description: 'Gemeinsame Einkaufsliste für den Haushalt.',
     icon: '🛒',
@@ -38,17 +59,10 @@ const NAV_CARDS: NavCard[] = [
     visible: (u) => !!u?.is_household,
   },
   {
-    title: 'Impostor-Spiel',
-    description: 'Wer kennt das Wort nicht? Ein Ratespiel für die Runde.',
-    icon: '🕵️',
-    path: '/impostor',
-    visible: () => true,
-  },
-  {
     title: 'Administration',
     description: 'Nutzerverwaltung, Tags und Seiteneinstellungen.',
     icon: '⚙️',
-    path: '/admin/users',
+    path: '/admin',
     visible: (u) => !!u?.is_admin,
   },
 ];
