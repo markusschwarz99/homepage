@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   DndContext,
   KeyboardSensor,
@@ -57,10 +57,12 @@ const inputClass =
 
 function SortableIngredient(props: {
   row: IngredientRow;
+  isLast: boolean;
   onChange: (field: 'amount' | 'unit' | 'name', value: string) => void;
   onRemove: () => void;
+  onTabLast: () => boolean;
 }) {
-  const { row, onChange, onRemove } = props;
+  const { row, isLast, onChange, onRemove, onTabLast } = props;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: row._uid });
   const style = {
@@ -86,6 +88,7 @@ function SortableIngredient(props: {
       <input
         type="text"
         inputMode="decimal"
+        data-ingredient-amount={row._uid}
         value={row.amount}
         onChange={e => onChange('amount', e.target.value)}
         placeholder="Menge"
@@ -102,6 +105,11 @@ function SortableIngredient(props: {
         type="text"
         value={row.name}
         onChange={e => onChange('name', e.target.value)}
+        onKeyDown={e => {
+          if (isLast && e.key === 'Tab' && !e.shiftKey && onTabLast()) {
+            e.preventDefault();
+          }
+        }}
         placeholder="Zutat"
         className={`${inputClass} min-w-0`}
       />
@@ -120,10 +128,12 @@ function SortableIngredient(props: {
 function SortableStep(props: {
   row: StepRow;
   index: number;
+  isLast: boolean;
   onChange: (value: string) => void;
   onRemove: () => void;
+  onTabLast: () => boolean;
 }) {
-  const { row, index, onChange, onRemove } = props;
+  const { row, index, isLast, onChange, onRemove, onTabLast } = props;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: row._uid });
   const style = {
@@ -146,8 +156,14 @@ function SortableStep(props: {
         {index + 1}
       </span>
       <textarea
+        data-step-content={row._uid}
         value={row.content}
         onChange={e => onChange(e.target.value)}
+        onKeyDown={e => {
+          if (isLast && e.key === 'Tab' && !e.shiftKey && onTabLast()) {
+            e.preventDefault();
+          }
+        }}
         rows={3}
         placeholder="Schritt beschreiben..."
         className={`${inputClass} flex-1 resize-y`}
@@ -207,6 +223,19 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
     api<TagCategory[]>('/tags').then(setCategories).catch(() => setCategories([]));
   }, []);
 
+  // Fokus auf ein neu per Tab angelegtes Zutaten-/Schritt-Feld setzen (nach Render)
+  const pendingFocus = useRef<{ type: 'ingredient' | 'step'; uid: string } | null>(null);
+  useEffect(() => {
+    const pf = pendingFocus.current;
+    if (!pf) return;
+    pendingFocus.current = null;
+    const selector =
+      pf.type === 'ingredient'
+        ? `[data-ingredient-amount="${pf.uid}"]`
+        : `[data-step-content="${pf.uid}"]`;
+    document.querySelector<HTMLElement>(selector)?.focus();
+  }, [ingredients, steps]);
+
   // --- Zutaten ---
   function updateIngredient(uid: string, field: 'amount' | 'unit' | 'name', value: string) {
     setIngredients(prev =>
@@ -215,6 +244,16 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   }
   function addIngredient() {
     setIngredients(prev => [...prev, { _uid: newUid(), amount: '', unit: '', name: '' }]);
+  }
+  // Tab im Lebensmittel-Feld der letzten Zeile: neue Zeile + Fokus. Bei leerer
+  // letzter Zeile false → normales Tab (raus aus dem Block). Return = preventDefault.
+  function tabAddIngredient(): boolean {
+    const last = ingredients[ingredients.length - 1];
+    if (!last || !last.name.trim()) return false;
+    const uid = newUid();
+    pendingFocus.current = { type: 'ingredient', uid };
+    setIngredients(prev => [...prev, { _uid: uid, amount: '', unit: '', name: '' }]);
+    return true;
   }
   function removeIngredient(uid: string) {
     setIngredients(prev => prev.filter(i => i._uid !== uid));
@@ -236,6 +275,16 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   }
   function addStep() {
     setSteps(prev => [...prev, { _uid: newUid(), content: '' }]);
+  }
+  // Tab im letzten Schritt: neuen Schritt + Fokus. Bei leerem letzten Schritt
+  // false → normales Tab. Return = preventDefault.
+  function tabAddStep(): boolean {
+    const last = steps[steps.length - 1];
+    if (!last || !last.content.trim()) return false;
+    const uid = newUid();
+    pendingFocus.current = { type: 'step', uid };
+    setSteps(prev => [...prev, { _uid: uid, content: '' }]);
+    return true;
   }
   function removeStep(uid: string) {
     setSteps(prev => prev.filter(s => s._uid !== uid));
@@ -476,12 +525,14 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-3">
-              {ingredients.map(ing => (
+              {ingredients.map((ing, idx) => (
                 <SortableIngredient
                   key={ing._uid}
                   row={ing}
+                  isLast={idx === ingredients.length - 1}
                   onChange={(field, value) => updateIngredient(ing._uid, field, value)}
                   onRemove={() => removeIngredient(ing._uid)}
+                  onTabLast={tabAddIngredient}
                 />
               ))}
             </div>
@@ -519,8 +570,10 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
                   key={step._uid}
                   row={step}
                   index={idx}
+                  isLast={idx === steps.length - 1}
                   onChange={value => updateStep(step._uid, value)}
                   onRemove={() => removeStep(step._uid)}
+                  onTabLast={tabAddStep}
                 />
               ))}
             </div>
