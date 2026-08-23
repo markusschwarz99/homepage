@@ -67,6 +67,25 @@ class TestCreateRecipe:
         assert len(r.tags) == 1
         assert r.tags[0].id == tag.id
 
+    def test_ingredient_groups_roundtrip(self, client, auth_headers, db_session):
+        """group_name wird gespeichert, leere/whitespace-Gruppen zu None normalisiert."""
+        response = client.post("/recipes", headers=auth_headers, json={
+            "title": "Salat",
+            "servings": 2,
+            "ingredients": [
+                {"amount": 1, "unit": "Stk", "name": "Salatkopf"},
+                {"amount": 2, "unit": "EL", "name": "Olivenöl", "group_name": "Dressing"},
+                {"amount": 1, "unit": "TL", "name": "Senf", "group_name": "  Dressing  "},
+                {"amount": 1, "unit": "Prise", "name": "Salz", "group_name": "   "},
+            ],
+        })
+        assert response.status_code == 200
+        recipe_id = response.json()["id"]
+
+        body = client.get(f"/recipes/{recipe_id}", headers=auth_headers).json()
+        groups = [i["group_name"] for i in body["ingredients"]]
+        assert groups == [None, "Dressing", "Dressing", None]
+
     def test_guest_cannot_create(self, client, guest_headers):
         response = client.post("/recipes", headers=guest_headers, json={
             "title": "x",

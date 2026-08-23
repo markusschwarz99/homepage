@@ -21,6 +21,7 @@ class IngredientIn(BaseModel):
     amount: Optional[float] = None
     unit: str = ""
     name: str
+    group_name: Optional[str] = None
 
 class StepIn(BaseModel):
     content: str
@@ -71,6 +72,7 @@ def _serialize_recipe(r: models.Recipe, detail: bool = False, comment_count: int
                 "amount": i.amount,
                 "unit": i.unit,
                 "name": i.name,
+                "group_name": i.group_name,
             }
             for i in r.ingredients
         ]
@@ -89,8 +91,10 @@ def _replace_children(db: Session, recipe: models.Recipe, data: RecipeCreate):
     db.flush()
 
     for idx, ing in enumerate(data.ingredients):
+        group = (ing.group_name or "").strip() or None
         recipe.ingredients.append(models.RecipeIngredient(
             position=idx, amount=ing.amount, unit=ing.unit, name=ing.name,
+            group_name=group,
         ))
     for idx, st in enumerate(data.steps):
         recipe.steps.append(models.RecipeStep(position=idx, content=st.content))
