@@ -8,7 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import { formatAmount, scaleAmount } from '../lib/recipe';
 import { NotFound } from './NotFound';
-import type { Recipe } from '../types';
+import type { Recipe, RecipeIngredient } from '../types';
 
 export function RecipeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -133,6 +133,19 @@ export function RecipeDetail() {
   const factor = servings / recipe.servings;
   const canEdit = user.is_admin || user.id === recipe.author_id;
   const canDelete = user.is_admin;
+
+  // Zutaten in Gruppen-Blöcke bündeln (aufeinanderfolgende gleiche group_name).
+  // Ein Block ohne Namen (null) wird ohne Überschrift gerendert.
+  const ingredientGroups: { name: string | null; items: RecipeIngredient[] }[] = [];
+  for (const ing of recipe.ingredients) {
+    const group = ing.group_name ?? null;
+    const last = ingredientGroups[ingredientGroups.length - 1];
+    if (last && last.name === group) {
+      last.items.push(ing);
+    } else {
+      ingredientGroups.push({ name: group, items: [ing] });
+    }
+  }
 
   return (
     <Layout>
@@ -266,19 +279,30 @@ export function RecipeDetail() {
             {recipe.ingredients.length === 0 ? (
               <p className="text-sm text-text-hint">Keine Zutaten angegeben.</p>
             ) : (
-              <ul className="space-y-2">
-                {recipe.ingredients.map(ing => {
-                  const scaled = scaleAmount(ing.amount, factor);
-                  return (
-                    <li key={ing.id} className="flex gap-2 text-sm">
-                      <span className="text-text-muted min-w-[4rem] shrink-0">
-                        {scaled != null && formatAmount(scaled)} {ing.unit}
-                      </span>
-                      <span>{ing.name}</span>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="space-y-4">
+                {ingredientGroups.map((grp, gi) => (
+                  <div key={gi}>
+                    {grp.name && (
+                      <h3 className="text-xs font-medium uppercase tracking-wider text-text-muted mb-2">
+                        {grp.name}
+                      </h3>
+                    )}
+                    <ul className="space-y-2">
+                      {grp.items.map(ing => {
+                        const scaled = scaleAmount(ing.amount, factor);
+                        return (
+                          <li key={ing.id} className="flex gap-2 text-sm">
+                            <span className="text-text-muted min-w-[4rem] shrink-0">
+                              {scaled != null && formatAmount(scaled)} {ing.unit}
+                            </span>
+                            <span>{ing.name}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

@@ -114,6 +114,9 @@ class RecipeIngredient(Base):
     amount = Column(Float, nullable=True)
     unit = Column(String, default="", nullable=False)
     name = Column(String, nullable=False)
+    # Optionale Zutaten-Gruppe (z.B. "Dressing"). Gruppierung/Reihenfolge auf der
+    # Detailseite ergibt sich rein aus position + Wechsel dieses Werts.
+    group_name = Column(String, nullable=True)
     recipe = relationship("Recipe", back_populates="ingredients")
 
 class RecipeStep(Base):

@@ -18,7 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from './Button';
 import { api, getToken } from '../lib/api';
-import type { Recipe, RecipeInput, TagCategory } from '../types';
+import type { Recipe, RecipeIngredient, RecipeInput, TagCategory } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -30,12 +30,25 @@ interface Props {
   onSubmit: (data: RecipeInput) => Promise<void>;
 }
 
-interface IngredientRow {
+// Die Zutaten-Liste ist eine einzige sortierbare Liste aus zwei Item-Arten:
+// Gruppen-Überschriften und Zutaten. Eine Zutat gehört zur Gruppe der nächsten
+// Überschrift darüber (siehe Serialisierung in handleSubmit). Beides ist frei
+// über Gruppengrenzen hinweg ziehbar, weil alles in EINEM SortableContext liegt.
+interface IngredientItem {
   _uid: string;
+  kind: 'ingredient';
   amount: string;
   unit: string;
   name: string;
 }
+
+interface GroupItem {
+  _uid: string;
+  kind: 'group';
+  name: string;
+}
+
+type RecipeItem = IngredientItem | GroupItem;
 
 interface StepRow {
   _uid: string;
@@ -50,13 +63,83 @@ function newUid(): string {
   return crypto.randomUUID();
 }
 
+function emptyIngredient(): IngredientItem {
+  return { _uid: newUid(), kind: 'ingredient', amount: '', unit: '', name: '' };
+}
+
+// Zutaten (position-sortiert) in die gemischte Item-Liste überführen: vor jeder
+// Zutat, deren group_name sich zum Vorgänger ändert (und nicht null ist), eine
+// Überschrift einfügen. Spiegelbild der Serialisierung in handleSubmit.
+function buildItems(ingredients: RecipeIngredient[]): RecipeItem[] {
+  const out: RecipeItem[] = [];
+  let prevGroup: string | null | undefined = undefined;
+  for (const i of ingredients) {
+    const group = i.group_name ?? null;
+    if (group !== prevGroup && group != null) {
+      out.push({ _uid: newUid(), kind: 'group', name: group });
+    }
+    prevGroup = group;
+    out.push({
+      _uid: newUid(),
+      kind: 'ingredient',
+      amount: i.amount != null ? String(i.amount).replace('.', ',') : '',
+      unit: i.unit,
+      name: i.name,
+    });
+  }
+  return out;
+}
+
 const inputClass =
   'w-full px-3 py-2.5 text-sm rounded-lg border border-border bg-bg-primary focus:outline-none focus:border-text-muted';
 
 // ---------- Sortable-Items ----------
 
+function SortableGroupHeading(props: {
+  row: GroupItem;
+  onChange: (value: string) => void;
+  onRemove: () => void;
+}) {
+  const { row, onChange, onRemove } = props;
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: row._uid });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="flex gap-2 items-center pt-2">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="p-1.5 text-text-muted hover:text-text-primary cursor-grab active:cursor-grabbing touch-none select-none"
+        aria-label="Gruppe verschieben"
+      >
+        ⋮⋮
+      </button>
+      <input
+        type="text"
+        value={row.name}
+        onChange={e => onChange(e.target.value)}
+        placeholder="Gruppenname (z.B. Dressing)"
+        className={`${inputClass} flex-1 min-w-0 font-medium`}
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="p-1.5 text-red-500 hover:text-red-700 shrink-0"
+        aria-label="Gruppe entfernen"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 function SortableIngredient(props: {
-  row: IngredientRow;
+  row: IngredientItem;
   isLast: boolean;
   onChange: (field: 'amount' | 'unit' | 'name', value: string) => void;
   onRemove: () => void;
@@ -187,13 +270,8 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
   const [servings, setServings] = useState(initial?.servings ?? 4);
   const [servingsUnit, setServingsUnit] = useState(initial?.servings_unit ?? 'Portionen');
 
-  const [ingredients, setIngredients] = useState<IngredientRow[]>(
-    initial?.ingredients.map(i => ({
-      _uid: newUid(),
-      amount: i.amount != null ? String(i.amount).replace('.', ',') : '',
-      unit: i.unit,
-      name: i.name,
-    })) ?? [{ _uid: newUid(), amount: '', unit: '', name: '' }]
+  const [items, setItems] = useState<RecipeItem[]>(
+    initial ? buildItems(initial.ingredients) : [emptyIngredient()]
   );
 
   const [steps, setSteps] = useState<StepRow[]>(
@@ -234,36 +312,47 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
         ? `[data-ingredient-amount="${pf.uid}"]`
         : `[data-step-content="${pf.uid}"]`;
     document.querySelector<HTMLElement>(selector)?.focus();
-  }, [ingredients, steps]);
+  }, [items, steps]);
 
-  // --- Zutaten ---
+  // --- Zutaten & Gruppen (eine gemeinsame Item-Liste) ---
   function updateIngredient(uid: string, field: 'amount' | 'unit' | 'name', value: string) {
-    setIngredients(prev =>
-      prev.map(i => (i._uid === uid ? { ...i, [field]: value } : i))
+    setItems(prev =>
+      prev.map(it =>
+        it._uid === uid && it.kind === 'ingredient' ? { ...it, [field]: value } : it
+      )
+    );
+  }
+  function updateGroup(uid: string, value: string) {
+    setItems(prev =>
+      prev.map(it => (it._uid === uid && it.kind === 'group' ? { ...it, name: value } : it))
     );
   }
   function addIngredient() {
-    setIngredients(prev => [...prev, { _uid: newUid(), amount: '', unit: '', name: '' }]);
+    setItems(prev => [...prev, emptyIngredient()]);
   }
-  // Tab im Lebensmittel-Feld der letzten Zeile: neue Zeile + Fokus. Bei leerer
-  // letzter Zeile false → normales Tab (raus aus dem Block). Return = preventDefault.
+  function addGroup() {
+    setItems(prev => [...prev, { _uid: newUid(), kind: 'group', name: '' }]);
+  }
+  // Tab im Lebensmittel-Feld der letzten Zeile: neue Zeile + Fokus. Nur wenn das
+  // letzte Item eine ausgefüllte Zutat ist; sonst false → normales Tab (raus aus
+  // dem Block). Return = preventDefault.
   function tabAddIngredient(): boolean {
-    const last = ingredients[ingredients.length - 1];
-    if (!last || !last.name.trim()) return false;
-    const uid = newUid();
-    pendingFocus.current = { type: 'ingredient', uid };
-    setIngredients(prev => [...prev, { _uid: uid, amount: '', unit: '', name: '' }]);
+    const last = items[items.length - 1];
+    if (!last || last.kind !== 'ingredient' || !last.name.trim()) return false;
+    const row = emptyIngredient();
+    pendingFocus.current = { type: 'ingredient', uid: row._uid };
+    setItems(prev => [...prev, row]);
     return true;
   }
-  function removeIngredient(uid: string) {
-    setIngredients(prev => prev.filter(i => i._uid !== uid));
+  function removeItem(uid: string) {
+    setItems(prev => prev.filter(it => it._uid !== uid));
   }
-  function handleIngredientDragEnd(event: DragEndEvent) {
+  function handleItemsDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    setIngredients(prev => {
-      const oldIndex = prev.findIndex(i => i._uid === active.id);
-      const newIndex = prev.findIndex(i => i._uid === over.id);
+    setItems(prev => {
+      const oldIndex = prev.findIndex(it => it._uid === active.id);
+      const newIndex = prev.findIndex(it => it._uid === over.id);
       if (oldIndex < 0 || newIndex < 0) return prev;
       return arrayMove(prev, oldIndex, newIndex);
     });
@@ -362,16 +451,28 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
       return;
     }
 
-    const cleanIngredients = ingredients
-      .filter(i => i.name.trim())
-      .map(i => {
-        const raw = i.amount.replace(',', '.').trim();
-        const amount = raw === '' ? null : parseFloat(raw);
-        if (raw !== '' && (isNaN(amount!) || amount! < 0)) {
-          throw new Error(`Ungültige Menge bei "${i.name}"`);
-        }
-        return { amount, unit: i.unit.trim(), name: i.name.trim() };
+    // Items in flache Zutaten-Liste überführen: jede Zutat erbt die zuletzt
+    // gesehene Gruppen-Überschrift (leere Überschrift = keine Gruppe).
+    const cleanIngredients: RecipeInput['ingredients'] = [];
+    let currentGroup: string | null = null;
+    for (const it of items) {
+      if (it.kind === 'group') {
+        currentGroup = it.name.trim() || null;
+        continue;
+      }
+      if (!it.name.trim()) continue;
+      const raw = it.amount.replace(',', '.').trim();
+      const amount = raw === '' ? null : parseFloat(raw);
+      if (raw !== '' && (isNaN(amount!) || amount! < 0)) {
+        throw new Error(`Ungültige Menge bei "${it.name}"`);
+      }
+      cleanIngredients.push({
+        amount,
+        unit: it.unit.trim(),
+        name: it.name.trim(),
+        group_name: currentGroup,
       });
+    }
 
     const cleanSteps = steps
       .filter(s => s.content.trim())
@@ -515,26 +616,39 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
       {/* Zutaten */}
       <div>
         <label className="block text-xs text-text-muted mb-2">Zutaten</label>
+        <p className="text-xs text-text-hint mb-2">
+          Zutaten unter einer Gruppen-Überschrift gehören zusammen (z.B. „Dressing").
+          Alles frei ziehbar — auch über Gruppen hinweg.
+        </p>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragEnd={handleIngredientDragEnd}
+          onDragEnd={handleItemsDragEnd}
         >
           <SortableContext
-            items={ingredients.map(i => i._uid)}
+            items={items.map(it => it._uid)}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-3">
-              {ingredients.map((ing, idx) => (
-                <SortableIngredient
-                  key={ing._uid}
-                  row={ing}
-                  isLast={idx === ingredients.length - 1}
-                  onChange={(field, value) => updateIngredient(ing._uid, field, value)}
-                  onRemove={() => removeIngredient(ing._uid)}
-                  onTabLast={tabAddIngredient}
-                />
-              ))}
+              {items.map((it, idx) =>
+                it.kind === 'group' ? (
+                  <SortableGroupHeading
+                    key={it._uid}
+                    row={it}
+                    onChange={value => updateGroup(it._uid, value)}
+                    onRemove={() => removeItem(it._uid)}
+                  />
+                ) : (
+                  <SortableIngredient
+                    key={it._uid}
+                    row={it}
+                    isLast={idx === items.length - 1}
+                    onChange={(field, value) => updateIngredient(it._uid, field, value)}
+                    onRemove={() => removeItem(it._uid)}
+                    onTabLast={tabAddIngredient}
+                  />
+                )
+              )}
             </div>
           </SortableContext>
         </DndContext>
@@ -543,13 +657,22 @@ export function RecipeForm({ initial, submitLabel, onSubmit }: Props) {
             <option key={u} value={u} />
           ))}
         </datalist>
-        <button
-          type="button"
-          onClick={addIngredient}
-          className="mt-2 text-xs text-text-muted hover:text-text-primary"
-        >
-          + Zutat hinzufügen
-        </button>
+        <div className="mt-2 flex gap-4">
+          <button
+            type="button"
+            onClick={addIngredient}
+            className="text-xs text-text-muted hover:text-text-primary"
+          >
+            + Zutat hinzufügen
+          </button>
+          <button
+            type="button"
+            onClick={addGroup}
+            className="text-xs text-text-muted hover:text-text-primary"
+          >
+            + Gruppe hinzufügen
+          </button>
+        </div>
       </div>
 
       {/* Schritte */}

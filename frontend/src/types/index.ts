@@ -66,6 +66,7 @@ export interface RecipeIngredient {
   amount: number | null;
   unit: string;
   name: string;
+  group_name?: string | null;
 }
 
 export interface RecipeStep {
@@ -107,7 +108,7 @@ export interface RecipeInput {
   title: string;
   servings: number;
   servings_unit: string;
-  ingredients: { amount: number | null; unit: string; name: string }[];
+  ingredients: { amount: number | null; unit: string; name: string; group_name: string | null }[];
   steps: { content: string }[];
   images: { url: string }[];
   tag_ids: number[];
