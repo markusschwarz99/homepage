@@ -155,18 +155,17 @@ def list_active_categories(db: Session = Depends(get_db)):
     return [_category_to_public(c) for c in cats if len(c.words) > 0]
 
 
-@router.post("/random", response_model=RandomResponse)
-def random_word(payload: RandomRequest, db: Session = Depends(get_db)):
+def draw_random_word(db: Session, category_ids: list[int]) -> RandomResponse:
     """
     Liefert genau ein zufälliges Wort aus einer der gewählten (und aktiven)
     Kategorien. Strategie: Zuerst zufällig eine Kategorie wählen (gewichtet
     nach Wortanzahl, damit kleine Kategorien nicht überrepräsentiert werden),
-    dann ein zufälliges Wort daraus.
+    dann ein zufälliges Wort daraus. Wird auch vom Online-Modus genutzt.
     """
     cats = (
         db.query(models.ImpostorCategory)
         .filter(
-            models.ImpostorCategory.id.in_(payload.category_ids),
+            models.ImpostorCategory.id.in_(category_ids),
             models.ImpostorCategory.is_active.is_(True),
         )
         .all()
@@ -193,6 +192,11 @@ def random_word(payload: RandomRequest, db: Session = Depends(get_db)):
         category_id=chosen_cat.id,
         category_name=chosen_cat.name,
     )
+
+
+@router.post("/random", response_model=RandomResponse)
+def random_word(payload: RandomRequest, db: Session = Depends(get_db)):
+    return draw_random_word(db, payload.category_ids)
 
 
 # ---------- Admin: Categories ----------

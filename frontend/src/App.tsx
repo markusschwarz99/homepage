@@ -21,6 +21,7 @@ import { ResetPassword } from './pages/ResetPassword';
 import { SeasonalCalendar } from './pages/SeasonalCalendar';
 import { SeasonalCalendarAdmin } from './pages/SeasonalCalendarAdmin';
 import { Impostor } from './pages/Impostor';
+import { ImpostorOnlineStart, ImpostorOnlineRoom } from './pages/ImpostorOnline';
 import { AdminImpostor } from './pages/AdminImpostor';
 import { Codewort } from './pages/Codewort';
 import { AdminCodewort } from './pages/AdminCodewort';
@@ -46,6 +47,8 @@ function App() {
         <Route path="/saisonkalender/admin" element={<Navigate to="/admin/saisonkalender" replace />} />
         <Route path="/einkaufsliste" element={<Shopping />} />
         <Route path="/impostor" element={<Impostor />} />
+        <Route path="/impostor/online" element={<ImpostorOnlineStart />} />
+        <Route path="/impostor/online/:code" element={<ImpostorOnlineRoom />} />
         <Route path="/codewort" element={<Codewort />} />
         {/* Alte URL → neue Einstellungen-URL */}
         <Route path="/account" element={<Navigate to="/einstellungen/account" replace />} />

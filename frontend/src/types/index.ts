@@ -169,6 +169,39 @@ export interface ImpostorRandomResponse {
   category_name: string;
 }
 
+// Online-Modus (jeder am eigenen Gerät, In-Memory-Räume im Backend)
+
+export type ImpostorRoomPhase = 'lobby' | 'reveal' | 'voting' | 'result';
+
+export interface ImpostorRoomJoin {
+  code: string;
+  player_id: number;
+  token: string;
+}
+
+export interface ImpostorRoom {
+  code: string;
+  phase: ImpostorRoomPhase;
+  round_number: number;
+  me: number;
+  host_id: number;
+  players: { id: number; name: string }[];
+  settings: { category_ids: number[]; show_category_to_impostor: boolean };
+  min_players: number;
+  max_players: number;
+  role: { is_impostor: boolean; word: string | null; category_name: string | null } | null;
+  starter_id: number | null;
+  voted_ids: number[];
+  my_vote: number | null;
+  result: {
+    impostor_id: number;
+    word: string;
+    category_name: string;
+    votes: { voter_id: number; target_id: number }[];
+    caught: boolean;
+  } | null;
+}
+
 // ---------- Codewort-Spiel ----------
 
 export interface CodewortPackPublic {

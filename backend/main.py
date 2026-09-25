@@ -8,7 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from database import Base, engine
 import models
-from routers import auth, shopping, admin, recipes, recipe_comments, tags, seasonal, settings, impostor, notifications, projektreferenzen, cv, newsletter, improvements, codewort
+from routers import auth, shopping, admin, recipes, recipe_comments, tags, seasonal, settings, impostor, impostor_online, notifications, projektreferenzen, cv, newsletter, improvements, codewort
 from scheduler import shopping_digest_loop
 from rate_limit import limiter
 import os
@@ -43,7 +43,7 @@ app.add_middleware(
     allow_origins=os.getenv("CORS_ORIGINS", "https://markus-schwarz.cc").split(","),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["Authorization", "Content-Type", "X-Player-Token"],
     max_age=3600,
 )
 app.mount("/uploads", StaticFiles(directory=os.getenv("UPLOAD_DIR", "/app/uploads")), name="uploads")
@@ -57,6 +57,7 @@ app.include_router(tags.router)
 app.include_router(seasonal.router)
 app.include_router(settings.router)
 app.include_router(impostor.router)
+app.include_router(impostor_online.router)
 app.include_router(codewort.router)
 app.include_router(notifications.router)
 app.include_router(projektreferenzen.router)
