@@ -1,17 +1,35 @@
-import type { GameState, Team } from '../../lib/codewort/types';
+import type { Clue, GameState, Team, TeamNames } from '../../lib/codewort/types';
 import { remainingAgents, guessesRemaining } from '../../lib/codewort/engine';
 import { ROLE_STYLE } from '../../lib/codewort/presentation';
 
 /** Restagenten beider Teams; das aktive Team ist hervorgehoben. */
 export function ScoreBar({ state }: { state: GameState }) {
-  const rem = remainingAgents(state);
+  return (
+    <ScoreBarView
+      remaining={remainingAgents(state)}
+      activeTeam={state.phase !== 'ended' ? state.currentTeam : null}
+      teamNames={state.teamNames}
+    />
+  );
+}
+
+/** Wie `ScoreBar`, aber aus fertigen Werten (Online-Modus: Zähler kommen vom Server). */
+export function ScoreBarView({
+  remaining,
+  activeTeam,
+  teamNames,
+}: {
+  remaining: Record<Team, number>;
+  activeTeam: Team | null;
+  teamNames: TeamNames;
+}) {
   const teams: Team[] = ['A', 'B'];
   return (
     <div className="flex gap-2" data-testid="score-bar">
       {teams.map((t) => {
         const role = t === 'A' ? 'teamA' : 'teamB';
         const style = ROLE_STYLE[role];
-        const active = state.currentTeam === t && state.phase !== 'ended';
+        const active = activeTeam === t;
         return (
           <div
             key={t}
@@ -27,9 +45,9 @@ export function ScoreBar({ state }: { state: GameState }) {
             >
               {style.symbol}
             </span>
-            <span className="text-sm truncate min-w-0 flex-1">{state.teamNames[t]}</span>
+            <span className="text-sm truncate min-w-0 flex-1">{teamNames[t]}</span>
             <span className="text-lg font-semibold tabular-nums" data-testid={`remaining-${t}`}>
-              {rem[t]}
+              {remaining[t]}
             </span>
           </div>
         );
@@ -41,16 +59,20 @@ export function ScoreBar({ state }: { state: GameState }) {
 /** Aktueller Hinweis + verbleibende Versuche (Tisch-Sicht). */
 export function ClueBanner({ state }: { state: GameState }) {
   if (!state.clue) return null;
-  const remaining = guessesRemaining(state);
+  return <ClueBannerView clue={state.clue} remaining={guessesRemaining(state)} />;
+}
+
+/** Wie `ClueBanner`, aber aus fertigen Werten. `remaining` Infinity = unbegrenzt. */
+export function ClueBannerView({ clue, remaining }: { clue: Clue; remaining: number }) {
   return (
     <div
       className="rounded-lg border border-accent bg-bg-secondary px-4 py-3 text-center"
       data-testid="clue-banner"
     >
       <p className="text-2xl sm:text-3xl font-semibold tracking-wide break-words">
-        <span data-testid="clue-word">{state.clue.word.toUpperCase()}</span>
+        <span data-testid="clue-word">{clue.word.toUpperCase()}</span>
         <span className="text-text-muted"> · </span>
-        <span data-testid="clue-count">{state.clue.count}</span>
+        <span data-testid="clue-count">{clue.count}</span>
       </p>
       <p className="text-xs text-text-muted mt-1" data-testid="guesses-remaining">
         {remaining === Infinity

@@ -24,6 +24,7 @@ import { Impostor } from './pages/Impostor';
 import { ImpostorOnlineStart, ImpostorOnlineRoom } from './pages/ImpostorOnline';
 import { AdminImpostor } from './pages/AdminImpostor';
 import { Codewort } from './pages/Codewort';
+import { CodewortOnlineStart, CodewortOnlineRoom } from './pages/CodewortOnline';
 import { AdminCodewort } from './pages/AdminCodewort';
 import { AdminNewsletter } from './pages/AdminNewsletter';
 import { CV } from './pages/CV';
@@ -50,6 +51,8 @@ function App() {
         <Route path="/impostor/online" element={<ImpostorOnlineStart />} />
         <Route path="/impostor/online/:code" element={<ImpostorOnlineRoom />} />
         <Route path="/codewort" element={<Codewort />} />
+        <Route path="/codewort/online" element={<CodewortOnlineStart />} />
+        <Route path="/codewort/online/:code" element={<CodewortOnlineRoom />} />
         {/* Alte URL → neue Einstellungen-URL */}
         <Route path="/account" element={<Navigate to="/einstellungen/account" replace />} />
         <Route path="/einstellungen" element={<Navigate to="/einstellungen/account" replace />} />

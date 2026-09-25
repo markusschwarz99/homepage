@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { CodewortPackPublic } from '../../types';
 import type { Team, TeamNames } from '../../lib/codewort/types';
 import { BOARD_SIZE } from '../../lib/codewort/engine';
@@ -75,10 +76,15 @@ export function SetupView({ onStart }: Props) {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
       <h1 className="text-2xl sm:text-3xl font-medium mb-2">Codewort</h1>
-      <p className="text-sm text-text-muted mb-8">
+      <p className="text-sm text-text-muted mb-3">
         Zwei Teams, ein Gerät. Die Geheimdienstchefs geben Ein-Wort-Hinweise, ihre
         Teams erraten die eigenen Agenten — und meiden den Attentäter. Setzt euch zu
         viert an einen Tisch und legt los.
+      </p>
+      <p className="text-sm mb-8">
+        <Link to="/codewort/online" className="underline" data-testid="online-link">
+          Jeder am eigenen Handy? Online spielen →
+        </Link>
       </p>
 
       {loading ? (
