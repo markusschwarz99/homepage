@@ -145,7 +145,7 @@ export function removeImpostorRoomPlayer(
 export function impostorRoomAction(
   code: string,
   token: string,
-  action: 'start' | 'voting' | 'finish' | 'lobby',
+  action: 'start' | 'voting' | 'finish' | 'resolve' | 'lobby',
 ): Promise<ImpostorRoom> {
   return roomRequest(`/${code}/${action}`, token, { method: 'POST' });
 }
