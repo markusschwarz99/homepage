@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { Button } from '../components/Button';
 import {
@@ -184,9 +185,14 @@ export function Impostor() {
       <Layout>
         <div className="max-w-2xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
           <h1 className="text-2xl sm:text-3xl font-medium mb-2">Impostor</h1>
-          <p className="text-sm text-text-muted mb-8">
+          <p className="text-sm text-text-muted mb-3">
             Alle Spieler sehen das gleiche Wort — bis auf einen, den Impostor.
             In der Diskussion müsst ihr ihn entlarven.
+          </p>
+          <p className="text-sm mb-8">
+            <Link to="/impostor/online" className="underline" data-testid="online-link">
+              Jeder am eigenen Handy? Online spielen →
+            </Link>
           </p>
 
           {loadingCats ? (
