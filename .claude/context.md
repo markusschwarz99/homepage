@@ -21,7 +21,12 @@ Persönliche Homepage mit vier Hauptbereichen:
 - **Impostor-Spiel** (öffentlich unter `/impostor`, kein Login nötig — Setup,
   Tap-and-Hold-Reveal, Auflösung. Kategorien & Wörter sind DB-backed,
   Verwaltung unter `/admin/impostor`, Backend-Router `impostor.py`,
-  Tabellen `impostor_categories` + `impostor_words`)
+  Tabellen `impostor_categories` + `impostor_words`.
+  **Online-Modus** unter `/impostor/online` (jeder am eigenen Handy): In-Memory-Räume
+  in `routers/impostor_online.py` (kein DB-State), Spieler-Token im Header `X-Player-Token`,
+  2s-Polling. Phasen lobby → reveal → voting → eliminated → (voting …) → result: pro
+  Abstimmung fliegt genau einer raus (Gleichstand per Los), Impostor wird erst per
+  Host-Button `POST /impostor/rooms/{code}/resolve` aufgedeckt)
 - **Codewort-Spiel** (öffentlich unter `/codewort`, kein Login — Single-Device-
   Codenames-Variante: Setup mit aufklappbaren Regeln, Übergabe-Screens
   (Halten-zum-Bestätigen), Chef-/Tisch-Sicht, Ein-Schritt-Undo, Endscreen.
