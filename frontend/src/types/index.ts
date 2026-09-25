@@ -1,3 +1,13 @@
+import type {
+  CardRole,
+  Clue,
+  Team,
+  TeamNames,
+  TurnEndReason,
+  TurnEntry,
+  WinReason,
+} from '../lib/codewort/types';
+
 export interface User {
   id: number;
   name: string;
@@ -228,6 +238,60 @@ export interface CodewortDrawResponse {
   pack_id: number;
   pack_name: string;
   words: string[];
+}
+
+// Online-Modus (jeder am eigenen Gerät, In-Memory-Räume im Backend)
+
+export type CodewortRoomPhase = 'lobby' | 'clue' | 'guessing' | 'ended';
+
+export interface CodewortRoomJoin {
+  code: string;
+  player_id: number;
+  token: string;
+}
+
+export interface CodewortRoomPlayer {
+  id: number;
+  name: string;
+  team: Team | null;
+  spymaster: boolean;
+}
+
+export interface CodewortRoomGame {
+  /** `role` ist null, solange die Zugehörigkeit für diesen Spieler verborgen ist. */
+  cards: { word: string; role: CardRole | null; revealed: boolean }[];
+  start_team: Team;
+  current_team: Team;
+  clue: Clue | null;
+  guesses_made: number;
+  /** null = unbegrenzt */
+  guesses_remaining: number | null;
+  remaining: Record<Team, number>;
+  history: TurnEntry[];
+  winner: Team | null;
+  win_reason: WinReason | null;
+  last_reveal: {
+    team: Team;
+    word: string;
+    role: CardRole;
+    /** null = Team darf weiter raten */
+    end_reason: TurnEndReason | null;
+  } | null;
+}
+
+export interface CodewortRoom {
+  code: string;
+  phase: CodewortRoomPhase;
+  round_number: number;
+  me: number;
+  host_id: number;
+  players: CodewortRoomPlayer[];
+  pack_id: number;
+  pack_name: string;
+  team_names: TeamNames;
+  min_players: number;
+  max_players: number;
+  game: CodewortRoomGame | null;
 }
 
 export interface RecipeComment {

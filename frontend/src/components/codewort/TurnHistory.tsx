@@ -9,7 +9,7 @@ const END_REASON_TEXT: Record<TurnEndReason, string> = {
   game_end: 'Spielende',
 };
 
-export function TurnHistory({ state }: { state: GameState }) {
+export function TurnHistory({ state }: { state: Pick<GameState, 'history' | 'teamNames'> }) {
   if (state.history.length === 0) {
     return <p className="text-sm text-text-muted">Noch keine Züge.</p>;
   }

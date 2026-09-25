@@ -165,17 +165,18 @@ def list_active_packs(db: Session = Depends(get_db)):
     return [_pack_to_public(p) for p in packs if len(p.words) > 0]
 
 
-@router.post("/draw", response_model=DrawResponse)
-def draw_words(payload: DrawRequest, db: Session = Depends(get_db)):
+def draw_pack_words(
+    db: Session, pack_id: int, exclude: list[str], count: int = BOARD_SIZE
+) -> DrawResponse:
     """Zieht `count` (Default 25) paarweise verschiedene Wörter aus einem aktiven
     Paket, ohne Zurücklegen (INV-17). Wörter aus `exclude` werden bevorzugt
     gemieden; reicht der Rest nicht für eine volle Auslage, wird die Meidung
-    ignoriert.
+    ignoriert. Wird auch vom Online-Modus genutzt.
     """
     pack = (
         db.query(models.CodewortPack)
         .filter(
-            models.CodewortPack.id == payload.pack_id,
+            models.CodewortPack.id == pack_id,
             models.CodewortPack.is_active.is_(True),
         )
         .first()
@@ -187,28 +188,33 @@ def draw_words(payload: DrawRequest, db: Session = Depends(get_db)):
         )
 
     all_words = [w.word for w in pack.words]
-    if len(all_words) < payload.count:
+    if len(all_words) < count:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
                 f"Paket enthält nur {len(all_words)} Wörter, "
-                f"benötigt werden {payload.count}."
+                f"benötigt werden {count}."
             ),
         )
 
-    exclude_lower = {w.strip().lower() for w in payload.exclude}
+    exclude_lower = {w.strip().lower() for w in exclude}
     preferred = [w for w in all_words if w.lower() not in exclude_lower]
 
-    if len(preferred) >= payload.count:
-        chosen = random.sample(preferred, payload.count)
+    if len(preferred) >= count:
+        chosen = random.sample(preferred, count)
     else:
         # Nicht genug ungenutzte Wörter: mit den gemiedenen auffüllen.
         rest = [w for w in all_words if w.lower() in exclude_lower]
         random.shuffle(rest)
-        chosen = preferred + rest[: payload.count - len(preferred)]
+        chosen = preferred + rest[: count - len(preferred)]
         random.shuffle(chosen)
 
     return DrawResponse(pack_id=pack.id, pack_name=pack.name, words=chosen)
+
+
+@router.post("/draw", response_model=DrawResponse)
+def draw_words(payload: DrawRequest, db: Session = Depends(get_db)):
+    return draw_pack_words(db, payload.pack_id, payload.exclude, payload.count)
 
 
 # ---------- Admin: Packs ----------
