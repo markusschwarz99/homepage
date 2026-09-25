@@ -47,7 +47,7 @@ test.describe('Impostor online (mehrere Geräte)', () => {
     await expect(page.getByTestId('join-error')).toContainText(/nicht gefunden/i);
   });
 
-  test('Vollständige Runde: Lobby → Rollen → Abstimmung → Ergebnis', async ({ browser }) => {
+  test('Vollständige Runde: Lobby → Rollen → zwei Abstimmungen → Auflösen', async ({ browser }) => {
     const host = await newPlayer(browser);
     await host.goto('/impostor/online');
     await host.getByTestId('create-name').fill('Alice');
@@ -61,16 +61,18 @@ test.describe('Impostor online (mehrere Geräte)', () => {
 
     const bob = await newPlayer(browser);
     const carol = await newPlayer(browser);
+    const dave = await newPlayer(browser);
     await joinByLink(bob, code, 'Bob');
     await joinByLink(carol, code, 'Carol');
+    await joinByLink(dave, code, 'Dave');
     await expect(bob.getByTestId('waiting-for-host')).toBeVisible();
 
-    // Host sieht alle drei per Polling
-    await expect(host.getByTestId('player-list')).toContainText('Carol', SYNC);
+    // Host sieht alle vier per Polling
+    await expect(host.getByTestId('player-list')).toContainText('Dave', SYNC);
     await host.getByTestId('start-button').click();
 
     // ---------- Rollen: genau ein Impostor ----------
-    const players = { Alice: host, Bob: bob, Carol: carol };
+    const players: Record<string, Page> = { Alice: host, Bob: bob, Carol: carol, Dave: dave };
     const roles: Record<string, boolean> = {};
     for (const [name, page] of Object.entries(players)) {
       roles[name] = await peekRole(page);
@@ -78,23 +80,49 @@ test.describe('Impostor online (mehrere Geräte)', () => {
     const impostors = Object.keys(roles).filter((n) => roles[n]);
     expect(impostors).toHaveLength(1);
     const impostorName = impostors[0];
+    const crew = Object.keys(players).filter((n) => n !== impostorName);
 
     // Reload behält die Identität (Token in localStorage)
     await bob.reload();
     await expect(bob.getByTestId('reveal-card')).toBeVisible(SYNC);
 
-    // ---------- Abstimmung: alle gegen den Impostor ----------
-    await host.getByTestId('start-voting').click();
-    for (const [name, page] of Object.entries(players)) {
-      const target = name === impostorName
-        ? Object.keys(players).find((n) => n !== name)!
-        : impostorName;
-      const btn = page.getByRole('button', { name: target, exact: true });
-      await expect(btn).toBeVisible(SYNC);
-      await btn.click();
+    /** Jeder aktive Spieler stimmt; `pick` liefert das Ziel pro Wähler. */
+    async function voteAll(voters: string[], pick: (voter: string) => string) {
+      for (const voter of voters) {
+        const btn = players[voter].getByRole('button', { name: pick(voter), exact: true });
+        await expect(btn).toBeVisible(SYNC);
+        await btn.click();
+      }
     }
 
-    // ---------- Ergebnis auf allen Geräten ----------
+    // ---------- Abstimmung 1: ein Crew-Mitglied fliegt raus ----------
+    const victim = crew[0];
+    await host.getByTestId('start-voting').click();
+    await voteAll(Object.keys(players), (v) => (v === victim ? impostorName : victim));
+
+    for (const page of Object.values(players)) {
+      await expect(page.getByTestId('eliminated-name')).toHaveText(victim, SYNC);
+      // Geheimhaltung: noch keine Auflösung
+      await expect(page.getByTestId('result-impostor')).toHaveCount(0);
+    }
+
+    // ---------- Abstimmung 2: Ausgeschiedener stimmt nicht mehr mit ----------
+    await host.getByTestId('next-voting').click();
+    await expect(players[victim].getByTestId('voting-eliminated')).toBeVisible(SYNC);
+    const remaining = Object.keys(players).filter((n) => n !== victim);
+    await voteAll(remaining, (v) =>
+      v === impostorName ? crew.find((n) => n !== victim)! : impostorName,
+    );
+    for (const page of Object.values(players)) {
+      await expect(page.getByTestId('eliminated-name')).toHaveText(impostorName, SYNC);
+      await expect(page.getByTestId('result-impostor')).toHaveCount(0);
+    }
+
+    // Nur noch 2 übrig → keine weitere Abstimmung
+    await expect(host.getByTestId('next-voting')).toBeDisabled();
+
+    // ---------- Auflösen per Host-Button ----------
+    await host.getByTestId('resolve-button').click();
     for (const page of Object.values(players)) {
       await expect(page.getByTestId('result-impostor')).toHaveText(impostorName, SYNC);
       await expect(page.getByTestId('result-caught')).toHaveText('Impostor erwischt!');

@@ -277,6 +277,7 @@ function Room({ code }: { code: string }) {
       )}
       {room.phase === 'reveal' && <Reveal {...props} />}
       {room.phase === 'voting' && <Voting {...props} />}
+      {room.phase === 'eliminated' && <Eliminated {...props} />}
       {room.phase === 'result' && <Result {...props} />}
 
       {actionError && (
@@ -369,7 +370,14 @@ function PlayerList({
     <ul className="divide-y divide-border-light border border-border rounded-lg mb-6" data-testid="player-list">
       {room.players.map((p) => (
         <li key={p.id} className="flex items-center gap-2 px-3 py-2 text-sm">
-          <span>{p.name}</span>
+          {room.eliminated_ids.includes(p.id) ? (
+            <>
+              <span className="line-through text-text-muted">{p.name}</span>
+              <span className="text-xs text-text-muted">raus</span>
+            </>
+          ) : (
+            <span>{p.name}</span>
+          )}
           {p.id === room.host_id && <span className="text-xs text-text-muted">Host</span>}
           {p.id === room.me && <span className="text-xs text-text-muted">(du)</span>}
           {marked?.includes(p.id) && <span className="text-xs" aria-label="erledigt">✓</span>}
@@ -602,38 +610,48 @@ function Reveal({ room, isHost, nameOf, busy, act }: PhaseProps) {
 }
 
 function Voting({ room, isHost, busy, act }: PhaseProps) {
+  const active = room.players.filter((p) => !room.eliminated_ids.includes(p.id));
+  const iAmOut = room.eliminated_ids.includes(room.me);
+
   return (
     <>
       <h2 className="text-lg font-medium mb-1">Wer ist der Impostor?</h2>
       <p className="text-sm text-text-muted mb-4">
-        {room.voted_ids.length} von {room.players.length} haben abgestimmt. Du kannst
-        deine Stimme ändern, bis alle abgestimmt haben.
+        {room.voted_ids.length} von {active.length} haben abgestimmt. Wer die meisten
+        Stimmen hat, fliegt raus — bei Gleichstand entscheidet das Los.
+        {!iAmOut && ' Du kannst deine Stimme ändern, bis alle abgestimmt haben.'}
       </p>
 
-      <div className="grid grid-cols-2 gap-2 mb-6">
-        {room.players
-          .filter((p) => p.id !== room.me)
-          .map((p) => {
-            const chosen = room.my_vote === p.id;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => act((t) => voteImpostorRoom(room.code, t, p.id))}
-                disabled={busy}
-                className={`px-3 py-3 rounded-lg border text-sm transition-colors ${
-                  chosen
-                    ? 'border-accent bg-accent text-bg-primary'
-                    : 'border-border bg-bg-secondary hover:border-text-muted'
-                }`}
-                data-testid={`vote-${p.id}`}
-                aria-pressed={chosen}
-              >
-                {p.name}
-              </button>
-            );
-          })}
-      </div>
+      {iAmOut ? (
+        <p className="text-sm mb-6" data-testid="voting-eliminated">
+          Du bist raus und stimmst nicht mehr mit.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2 mb-6">
+          {active
+            .filter((p) => p.id !== room.me)
+            .map((p) => {
+              const chosen = room.my_vote === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => act((t) => voteImpostorRoom(room.code, t, p.id))}
+                  disabled={busy}
+                  className={`px-3 py-3 rounded-lg border text-sm transition-colors ${
+                    chosen
+                      ? 'border-accent bg-accent text-bg-primary'
+                      : 'border-border bg-bg-secondary hover:border-text-muted'
+                  }`}
+                  data-testid={`vote-${p.id}`}
+                  aria-pressed={chosen}
+                >
+                  {p.name}
+                </button>
+              );
+            })}
+        </div>
+      )}
 
       <PlayerList room={room} marked={room.voted_ids} />
 
@@ -641,7 +659,7 @@ function Voting({ room, isHost, busy, act }: PhaseProps) {
         <Button
           variant="secondary"
           onClick={() => act((t) => impostorRoomAction(room.code, t, 'finish'))}
-          disabled={busy}
+          disabled={busy || room.voted_ids.length === 0}
           data-testid="finish-voting"
         >
           Abstimmung beenden
@@ -651,14 +669,89 @@ function Voting({ room, isHost, busy, act }: PhaseProps) {
   );
 }
 
-function Result({ room, isHost, nameOf, busy, act }: PhaseProps) {
-  const result = room.result!;
+// Nach jeder Abstimmung: wer ist raus — aber bewusst NICHT, ob es der Impostor war.
+function Eliminated({ room, isHost, nameOf, busy, act }: PhaseProps) {
+  const elimination = room.elimination!;
+  const active = room.players.filter((p) => !room.eliminated_ids.includes(p.id));
+  const canVoteAgain = active.length >= room.min_players;
   const tally = room.players
     .map((p) => ({
       ...p,
-      voters: result.votes.filter((v) => v.target_id === p.id).map((v) => nameOf(v.voter_id)),
+      voters: elimination.votes
+        .filter((v) => v.target_id === p.id)
+        .map((v) => nameOf(v.voter_id)),
     }))
+    .filter((p) => p.voters.length > 0)
     .sort((a, b) => b.voters.length - a.voters.length);
+
+  return (
+    <>
+      <div className="rounded-2xl border border-border bg-bg-secondary p-6 sm:p-8 mb-6 text-center">
+        <p className="text-sm text-text-muted mb-2">
+          Abstimmung {room.eliminated_ids.length} — rausgewählt wurde
+        </p>
+        <p className="text-3xl sm:text-4xl font-bold mb-3" data-testid="eliminated-name">
+          {nameOf(elimination.player_id)}
+        </p>
+        {elimination.tie && (
+          <p className="text-sm text-text-muted" data-testid="eliminated-tie">
+            Gleichstand — per Los entschieden
+          </p>
+        )}
+        {elimination.player_id === room.me && (
+          <p className="text-sm mt-2">Du bist raus.</p>
+        )}
+      </div>
+
+      <h2 className="text-lg font-medium mb-3">Stimmen</h2>
+      <ul className="divide-y divide-border-light border border-border rounded-lg mb-6">
+        {tally.map((p) => (
+          <li key={p.id} className="flex items-baseline gap-2 px-3 py-2 text-sm">
+            <span>{p.name}</span>
+            <span className="text-xs text-text-muted truncate">{p.voters.join(', ')}</span>
+            <span className="ml-auto font-medium">{p.voters.length}</span>
+          </li>
+        ))}
+      </ul>
+
+      <PlayerList room={room} />
+
+      {isHost ? (
+        <>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => act((t) => impostorRoomAction(room.code, t, 'voting'))}
+              disabled={busy || !canVoteAgain}
+              data-testid="next-voting"
+            >
+              Nächste Abstimmung
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => act((t) => impostorRoomAction(room.code, t, 'resolve'))}
+              disabled={busy}
+              data-testid="resolve-button"
+            >
+              Auflösen
+            </Button>
+          </div>
+          {!canVoteAgain && (
+            <p className="text-xs text-text-muted mt-2">
+              Nur noch {active.length} Spieler übrig — Zeit zum Auflösen.
+            </p>
+          )}
+        </>
+      ) : (
+        <p className="text-sm text-text-muted" data-testid="waiting-for-resolve">
+          {nameOf(room.host_id)} startet die nächste Abstimmung oder löst auf …
+        </p>
+      )}
+    </>
+  );
+}
+
+function Result({ room, isHost, nameOf, busy, act }: PhaseProps) {
+  const result = room.result!;
 
   return (
     <>
@@ -677,18 +770,20 @@ function Result({ room, isHost, nameOf, busy, act }: PhaseProps) {
         <p className="text-sm text-text-muted">aus {result.category_name}</p>
       </div>
 
-      <h2 className="text-lg font-medium mb-3">Stimmen</h2>
-      <ul className="divide-y divide-border-light border border-border rounded-lg mb-6">
-        {tally.map((p) => (
-          <li key={p.id} className="flex items-baseline gap-2 px-3 py-2 text-sm">
-            <span className={p.id === result.impostor_id ? 'text-red-600 font-medium' : ''}>
-              {p.name}
+      <h2 className="text-lg font-medium mb-3">Rausgewählt</h2>
+      <ol className="divide-y divide-border-light border border-border rounded-lg mb-6">
+        {room.eliminated_ids.map((id, i) => (
+          <li key={id} className="flex items-baseline gap-2 px-3 py-2 text-sm">
+            <span className="text-xs text-text-muted">{i + 1}.</span>
+            <span className={id === result.impostor_id ? 'text-red-600 font-medium' : ''}>
+              {nameOf(id)}
             </span>
-            <span className="text-xs text-text-muted truncate">{p.voters.join(', ')}</span>
-            <span className="ml-auto font-medium">{p.voters.length}</span>
+            {id === result.impostor_id && (
+              <span className="ml-auto text-xs text-red-600">Impostor</span>
+            )}
           </li>
         ))}
-      </ul>
+      </ol>
 
       {isHost ? (
         <div className="flex flex-wrap gap-2">

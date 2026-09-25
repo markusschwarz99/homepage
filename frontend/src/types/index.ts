@@ -181,7 +181,7 @@ export interface ImpostorRandomResponse {
 
 // Online-Modus (jeder am eigenen Gerät, In-Memory-Räume im Backend)
 
-export type ImpostorRoomPhase = 'lobby' | 'reveal' | 'voting' | 'result';
+export type ImpostorRoomPhase = 'lobby' | 'reveal' | 'voting' | 'eliminated' | 'result';
 
 export interface ImpostorRoomJoin {
   code: string;
@@ -203,11 +203,16 @@ export interface ImpostorRoom {
   starter_id: number | null;
   voted_ids: number[];
   my_vote: number | null;
+  eliminated_ids: number[];
+  elimination: {
+    player_id: number;
+    votes: { voter_id: number; target_id: number }[];
+    tie: boolean;
+  } | null;
   result: {
     impostor_id: number;
     word: string;
     category_name: string;
-    votes: { voter_id: number; target_id: number }[];
     caught: boolean;
   } | null;
 }
