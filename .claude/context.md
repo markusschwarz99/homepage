@@ -193,6 +193,12 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
   `git merge --squash origin/<branch>` durchspielen — wer zuerst
   `KONFLIKT` wirft, braucht den Rebase. Danach Branch mit `git branch -D`
   weg. Kostet nichts und spart pro Gruppe einen Fehlversuch.
+  **Upstream-Drift beachten**: Backend-Deps in `requirements.txt` sind
+  großteils ungepinnt → jeder frische Image-Build zieht die neueste Version.
+  Wird E2E auf `main` nach einem harmlosen Merge rot, zuerst im CI-Log
+  (`Wait for backend`) nach Import-Fehlern schauen — der Bruch kommt dann oft
+  von upstream, nicht vom PR. Beispiel: SQLAlchemy 2.1 erwartet für
+  `postgresql://` den psycopg-v3-Treiber → gepinnt auf `sqlalchemy<2.1` (#131).
 - **Migrations**: Alembic — bei Schema-Änderungen immer `alembic revision --autogenerate
   -m "..."` im Backend-Container generieren, dann `docker cp` ins Repo (Backend hat
   keinen Volume-Mount). Migrations laufen automatisch beim Container-Start via
