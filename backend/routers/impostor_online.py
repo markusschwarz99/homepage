@@ -8,7 +8,10 @@ Inaktive Räume werden nach ROOM_TTL_SECONDS aufgeräumt (lazy, bei jedem Reques
 Identität ohne Login: Beim Erstellen/Beitreten bekommt jeder Spieler ein
 zufälliges Token, das der Client im Header `X-Player-Token` mitschickt.
 
-Phasen: lobby → reveal → voting → result → (nächste Runde) reveal / lobby
+Phasen: lobby → reveal → voting → eliminated → (voting …) → result → reveal / lobby
+
+Pro Abstimmung fliegt genau ein Spieler raus (Gleichstand → per Los). Ob das
+der Impostor war, erfährt man erst, wenn der Host auflöst (`resolve`).
 
 Endpoints:
 - POST   /impostor/rooms                        — Raum erstellen (Ersteller = Host)
@@ -17,9 +20,10 @@ Endpoints:
 - PATCH  /impostor/rooms/{code}/settings        — Host: Kategorien/Optionen (nur Lobby)
 - DELETE /impostor/rooms/{code}/players/{id}    — Host kickt / Spieler verlässt (nur Lobby)
 - POST   /impostor/rooms/{code}/start           — Host: Runde starten (Lobby oder Ergebnis)
-- POST   /impostor/rooms/{code}/voting          — Host: Abstimmung starten
+- POST   /impostor/rooms/{code}/voting          — Host: (nächste) Abstimmung starten
 - POST   /impostor/rooms/{code}/vote            — Stimme abgeben/ändern
 - POST   /impostor/rooms/{code}/finish          — Host: Abstimmung vorzeitig beenden
+- POST   /impostor/rooms/{code}/resolve         — Host: auflösen (Impostor + Wort zeigen)
 - POST   /impostor/rooms/{code}/lobby           — Host: zurück in die Lobby
 """
 
@@ -72,6 +76,8 @@ class Room:
     impostor_id: Optional[int] = None
     starter_id: Optional[int] = None
     votes: dict[int, int] = field(default_factory=dict)  # voter_id → target_id
+    eliminated_ids: list[int] = field(default_factory=list)  # in Reihenfolge
+    last_tie: bool = False  # letzte Abstimmung per Los entschieden
     next_player_id: int = 1
 
 
@@ -134,12 +140,17 @@ class VoteView(BaseModel):
     target_id: int
 
 
+class EliminationView(BaseModel):
+    player_id: int
+    votes: list[VoteView]
+    tie: bool  # Gleichstand, per Los entschieden
+
+
 class ResultView(BaseModel):
     impostor_id: int
     word: str
     category_name: str
-    votes: list[VoteView]
-    caught: bool  # Impostor hat allein die meisten Stimmen
+    caught: bool  # Impostor wurde rausgewählt
 
 
 class RoomView(BaseModel):
@@ -156,6 +167,8 @@ class RoomView(BaseModel):
     starter_id: Optional[int] = None
     voted_ids: list[int] = []
     my_vote: Optional[int] = None
+    eliminated_ids: list[int] = []
+    elimination: Optional[EliminationView] = None
     result: Optional[ResultView] = None
 
 
@@ -213,15 +226,20 @@ def _require_phase(room: Room, *phases: str) -> None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Aktion in dieser Spielphase nicht möglich")
 
 
-def _is_caught(room: Room) -> bool:
+def _active(room: Room) -> list[Player]:
+    return [p for p in room.players if p.id not in room.eliminated_ids]
+
+
+def _eliminate(room: Room) -> None:
+    """Wertet die Abstimmung aus: meiste Stimmen fliegt raus, Gleichstand per Los."""
     tally: dict[int, int] = {}
     for target in room.votes.values():
         tally[target] = tally.get(target, 0) + 1
-    if not tally:
-        return False
     top = max(tally.values())
     leaders = [pid for pid, n in tally.items() if n == top]
-    return leaders == [room.impostor_id]
+    room.eliminated_ids.append(random.choice(leaders))
+    room.last_tie = len(leaders) > 1
+    room.phase = "eliminated"
 
 
 def _view(room: Room, me: Player) -> RoomView:
@@ -255,16 +273,22 @@ def _view(room: Room, me: Player) -> RoomView:
         ),
     )
     view.starter_id = room.starter_id
-    if room.phase in ("voting", "result"):
+    view.eliminated_ids = list(room.eliminated_ids)
+    if room.phase in ("voting", "eliminated"):
         view.voted_ids = list(room.votes.keys())
         view.my_vote = room.votes.get(me.id)
+    if room.phase == "eliminated":
+        view.elimination = EliminationView(
+            player_id=room.eliminated_ids[-1],
+            votes=[VoteView(voter_id=v, target_id=t) for v, t in room.votes.items()],
+            tie=room.last_tie,
+        )
     if room.phase == "result":
         view.result = ResultView(
             impostor_id=room.impostor_id,
             word=room.word,
             category_name=room.category_name,
-            votes=[VoteView(voter_id=v, target_id=t) for v, t in room.votes.items()],
-            caught=_is_caught(room),
+            caught=room.impostor_id in room.eliminated_ids,
         )
     return view
 
@@ -368,6 +392,7 @@ def start_round(
         room.impostor_id = random.choice(room.players).id
         room.starter_id = random.choice(room.players).id
         room.votes = {}
+        room.eliminated_ids = []
         room.round_number += 1
         room.phase = "reveal"
         return _view(room, me)
@@ -379,7 +404,13 @@ def start_voting(code: str, x_player_token: Optional[str] = Header(None)):
         room = _get_room(code)
         me = _get_player(room, x_player_token)
         _require_host(room, me)
-        _require_phase(room, "reveal")
+        _require_phase(room, "reveal", "eliminated")
+        if len(_active(room)) < MIN_PLAYERS:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                f"Für eine Abstimmung sind mindestens {MIN_PLAYERS} Spieler nötig — bitte auflösen",
+            )
+        room.votes = {}
         room.phase = "voting"
         return _view(room, me)
 
@@ -390,13 +421,16 @@ def vote(code: str, payload: VoteRequest, x_player_token: Optional[str] = Header
         room = _get_room(code)
         me = _get_player(room, x_player_token)
         _require_phase(room, "voting")
+        active = _active(room)
+        if me not in active:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Du bist raus und stimmst nicht mehr mit")
         if payload.target_id == me.id:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Du kannst nicht für dich selbst stimmen")
-        if not any(p.id == payload.target_id for p in room.players):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unbekannter Spieler")
+        if not any(p.id == payload.target_id for p in active):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unbekannter oder ausgeschiedener Spieler")
         room.votes[me.id] = payload.target_id
-        if len(room.votes) == len(room.players):
-            room.phase = "result"
+        if len(room.votes) == len(active):
+            _eliminate(room)
         return _view(room, me)
 
 
@@ -407,6 +441,19 @@ def finish_voting(code: str, x_player_token: Optional[str] = Header(None)):
         me = _get_player(room, x_player_token)
         _require_host(room, me)
         _require_phase(room, "voting")
+        if not room.votes:
+            raise HTTPException(status.HTTP_409_CONFLICT, "Noch keine Stimme abgegeben")
+        _eliminate(room)
+        return _view(room, me)
+
+
+@router.post("/{code}/resolve", response_model=RoomView)
+def resolve(code: str, x_player_token: Optional[str] = Header(None)):
+    with _lock:
+        room = _get_room(code)
+        me = _get_player(room, x_player_token)
+        _require_host(room, me)
+        _require_phase(room, "eliminated")
         room.phase = "result"
         return _view(room, me)
 
@@ -423,4 +470,5 @@ def back_to_lobby(code: str, x_player_token: Optional[str] = Header(None)):
         room.impostor_id = None
         room.starter_id = None
         room.votes = {}
+        room.eliminated_ids = []
         return _view(room, me)

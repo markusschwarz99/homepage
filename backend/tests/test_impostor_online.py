@@ -213,8 +213,8 @@ class TestRound:
 
 # ---------- Abstimmung & Ergebnis ----------
 
-def _start_voting(client):
-    host, others = _room_with_players(client)
+def _start_voting(client, n=3):
+    host, others = _room_with_players(client, n=n)
     code = host["code"]
     client.post(f"/impostor/rooms/{code}/start", headers=_h(host))
     assert client.post(f"/impostor/rooms/{code}/voting", headers=_h(host)).status_code == 200
@@ -222,76 +222,159 @@ def _start_voting(client):
     return code, [host, *others], impostor_id
 
 
+def _vote(client, code, voter, target):
+    return client.post(
+        f"/impostor/rooms/{code}/vote", json={"target_id": target["player_id"]}, headers=_h(voter)
+    )
+
+
+def _split(players, impostor_id):
+    impostor = next(p for p in players if p["player_id"] == impostor_id)
+    crew = [p for p in players if p["player_id"] != impostor_id]
+    return impostor, crew
+
+
 class TestVoting:
     def test_vote_not_before_voting_phase(self, client, words):
         host, (bob, _) = _room_with_players(client)
         code = host["code"]
         client.post(f"/impostor/rooms/{code}/start", headers=_h(host))
-        res = client.post(f"/impostor/rooms/{code}/vote", json={"target_id": host["player_id"]}, headers=_h(bob))
+        res = _vote(client, code, bob, host)
         assert res.status_code == 409
 
     def test_cannot_vote_self_or_unknown(self, client, words):
         code, players, _ = _start_voting(client)
         me = players[1]
-        res = client.post(f"/impostor/rooms/{code}/vote", json={"target_id": me["player_id"]}, headers=_h(me))
-        assert res.status_code == 400
+        assert _vote(client, code, me, me).status_code == 400
         res = client.post(f"/impostor/rooms/{code}/vote", json={"target_id": 999}, headers=_h(me))
         assert res.status_code == 400
 
-    def test_all_votes_lead_to_result_and_catch(self, client, words):
+    def test_all_votes_eliminate_without_revealing_impostor(self, client, words):
         code, players, impostor_id = _start_voting(client)
-        others = [p for p in players if p["player_id"] != impostor_id]
-        impostor = next(p for p in players if p["player_id"] == impostor_id)
+        impostor, crew = _split(players, impostor_id)
 
         # Stimme darf geändert werden, solange abgestimmt wird
-        client.post(f"/impostor/rooms/{code}/vote", json={"target_id": others[1]["player_id"]}, headers=_h(others[0]))
-        state = client.post(f"/impostor/rooms/{code}/vote", json={"target_id": impostor_id}, headers=_h(others[0])).json()
+        _vote(client, code, crew[0], crew[1])
+        state = _vote(client, code, crew[0], impostor).json()
         assert state["my_vote"] == impostor_id
         assert state["phase"] == "voting"
-        assert state["voted_ids"] == [others[0]["player_id"]]
-        assert state["result"] is None
+        assert state["voted_ids"] == [crew[0]["player_id"]]
 
-        client.post(f"/impostor/rooms/{code}/vote", json={"target_id": impostor_id}, headers=_h(others[1]))
-        state = client.post(
-            f"/impostor/rooms/{code}/vote", json={"target_id": others[0]["player_id"]}, headers=_h(impostor)
-        ).json()
+        _vote(client, code, crew[1], impostor)
+        state = _vote(client, code, impostor, crew[0]).json()
+        assert state["phase"] == "eliminated"
+        assert state["eliminated_ids"] == [impostor_id]
+        elim = state["elimination"]
+        assert elim["player_id"] == impostor_id
+        assert elim["tie"] is False
+        assert len(elim["votes"]) == 3
+
+        # Geheimhaltung: bis zum Auflösen kein Ergebnis — für niemanden
+        for p in crew:
+            s = _state(client, code, p)
+            assert s["result"] is None
+            assert s["role"]["is_impostor"] is False
+
+    def test_resolve_host_only_and_shows_result(self, client, words):
+        code, players, impostor_id = _start_voting(client)
+        impostor, crew = _split(players, impostor_id)
+        for p in crew:
+            _vote(client, code, p, impostor)
+        _vote(client, code, impostor, crew[0])
+
+        host = players[0]
+        not_host = players[1]
+        assert client.post(f"/impostor/rooms/{code}/resolve", headers=_h(not_host)).status_code == 403
+        state = client.post(f"/impostor/rooms/{code}/resolve", headers=_h(host)).json()
         assert state["phase"] == "result"
         result = state["result"]
         assert result["impostor_id"] == impostor_id
         assert result["word"] in {"Hund", "Katze"}
         assert result["category_name"] == "Tiere"
         assert result["caught"] is True
-        assert len(result["votes"]) == 3
 
-    def test_tie_means_not_caught(self, client, words):
+    def test_resolve_not_during_voting(self, client, words):
+        code, players, _ = _start_voting(client)
+        assert client.post(f"/impostor/rooms/{code}/resolve", headers=_h(players[0])).status_code == 409
+
+    def test_tie_eliminates_exactly_one_of_the_leaders(self, client, words):
         code, players, impostor_id = _start_voting(client)
-        others = [p for p in players if p["player_id"] != impostor_id]
-        impostor = next(p for p in players if p["player_id"] == impostor_id)
-        # 1:1:1 — Gleichstand, Impostor entkommt
-        client.post(f"/impostor/rooms/{code}/vote", json={"target_id": impostor_id}, headers=_h(others[0]))
-        client.post(f"/impostor/rooms/{code}/vote", json={"target_id": others[0]["player_id"]}, headers=_h(others[1]))
-        state = client.post(
-            f"/impostor/rooms/{code}/vote", json={"target_id": others[1]["player_id"]}, headers=_h(impostor)
-        ).json()
+        impostor, crew = _split(players, impostor_id)
+        # 1:1:1 — Gleichstand, einer fliegt per Los
+        _vote(client, code, crew[0], impostor)
+        _vote(client, code, crew[1], crew[0])
+        state = _vote(client, code, impostor, crew[1]).json()
+        assert state["phase"] == "eliminated"
+        assert state["elimination"]["tie"] is True
+        assert len(state["eliminated_ids"]) == 1
+        assert state["eliminated_ids"][0] in {p["player_id"] for p in players}
+
+    def test_multiple_vote_rounds(self, client, words):
+        code, players, impostor_id = _start_voting(client, n=4)
+        host = players[0]
+        impostor, crew = _split(players, impostor_id)
+        victim = crew[0]
+
+        # Runde 1: Crew-Mitglied fliegt (3:1)
+        for p in players:
+            _vote(client, code, p, impostor if p is victim else victim)
+        state = _state(client, code, host)
+        assert state["eliminated_ids"] == [victim["player_id"]]
+
+        # Runde 2: Stimmen zurückgesetzt, Ausgeschiedene sind außen vor
+        state = client.post(f"/impostor/rooms/{code}/voting", headers=_h(host)).json()
+        assert state["phase"] == "voting"
+        assert state["voted_ids"] == []
+        assert state["my_vote"] is None
+        assert _vote(client, code, victim, impostor).status_code == 403
+        assert _vote(client, code, crew[1], victim).status_code == 400
+
+        # Alle 3 Aktiven stimmen → Auswertung ohne den Ausgeschiedenen
+        remaining = [p for p in players if p is not victim]
+        for p in remaining:
+            _vote(client, code, p, crew[1] if p is impostor else impostor)
+        state = _state(client, code, host)
+        assert state["phase"] == "eliminated"
+        assert state["eliminated_ids"] == [victim["player_id"], impostor_id]
+
+        # Nur noch 2 aktiv → keine weitere Abstimmung, nur Auflösen
+        assert client.post(f"/impostor/rooms/{code}/voting", headers=_h(host)).status_code == 409
+        state = client.post(f"/impostor/rooms/{code}/resolve", headers=_h(host)).json()
+        assert state["result"]["caught"] is True
+
+    def test_not_caught_if_impostor_survives(self, client, words):
+        code, players, impostor_id = _start_voting(client)
+        impostor, crew = _split(players, impostor_id)
+        _vote(client, code, crew[0], crew[1])
+        _vote(client, code, impostor, crew[1])
+        _vote(client, code, crew[1], impostor)
+        state = client.post(f"/impostor/rooms/{code}/resolve", headers=_h(players[0])).json()
         assert state["result"]["caught"] is False
 
     def test_host_finishes_early(self, client, words):
         code, players, _ = _start_voting(client)
         host = players[0]
         assert client.post(f"/impostor/rooms/{code}/finish", headers=_h(players[1])).status_code == 403
+        # Ohne Stimmen lässt sich nicht auswerten
+        assert client.post(f"/impostor/rooms/{code}/finish", headers=_h(host)).status_code == 409
+        _vote(client, code, players[1], players[2])
         state = client.post(f"/impostor/rooms/{code}/finish", headers=_h(host)).json()
-        assert state["phase"] == "result"
-        assert state["result"]["caught"] is False  # keine Stimmen
+        assert state["phase"] == "eliminated"
+        assert state["eliminated_ids"] == [players[2]["player_id"]]
+        assert state["result"] is None
 
     def test_next_round_and_back_to_lobby(self, client, words):
         code, players, _ = _start_voting(client)
         host = players[0]
+        _vote(client, code, players[1], players[2])
         client.post(f"/impostor/rooms/{code}/finish", headers=_h(host))
+        client.post(f"/impostor/rooms/{code}/resolve", headers=_h(host))
 
         state = client.post(f"/impostor/rooms/{code}/start", headers=_h(host)).json()
         assert state["phase"] == "reveal"
         assert state["round_number"] == 2
         assert state["voted_ids"] == []
+        assert state["eliminated_ids"] == []
 
         state = client.post(f"/impostor/rooms/{code}/lobby", headers=_h(host)).json()
         assert state["phase"] == "lobby"
