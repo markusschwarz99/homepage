@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { assetUrl } from '../lib/api'
-import type { GalleryImage } from '../lib/types'
+import type { Img } from '../lib/content'
 
-export default function Gallery({ images }: { images: GalleryImage[] }) {
+export default function Gallery({ images }: { images: Img[] }) {
   const [open, setOpen] = useState<number | null>(null)
   if (images.length === 0) return null
   return (
@@ -10,15 +10,15 @@ export default function Gallery({ images }: { images: GalleryImage[] }) {
       <div className="grid grid-cols-2 items-start gap-3 sm:gap-4 md:grid-cols-3">
         {images.map((img, i) => (
           <button
-            key={img.id}
+            key={img.src}
             type="button"
             onClick={() => setOpen(i)}
             className="group overflow-hidden rounded-xl bg-white text-left shadow-sm ring-1 ring-alm-line focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-alm-forest"
           >
             <span className="block aspect-[4/3] overflow-hidden bg-alm-sand">
               <img
-                src={assetUrl(img.url)}
-                alt={img.caption}
+                src={assetUrl(img.src)}
+                alt={img.alt}
                 loading="lazy"
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
               />
@@ -40,7 +40,7 @@ function Lightbox({
   onChange,
   onClose,
 }: {
-  images: GalleryImage[]
+  images: Img[]
   index: number
   onChange: (index: number) => void
   onClose: () => void
@@ -101,8 +101,8 @@ function Lightbox({
         }}
       >
         <img
-          src={assetUrl(img.url)}
-          alt={img.caption}
+          src={assetUrl(img.src)}
+          alt={img.alt}
           className="max-h-full max-w-full rounded-lg object-contain"
           onClick={e => e.stopPropagation()}
         />
