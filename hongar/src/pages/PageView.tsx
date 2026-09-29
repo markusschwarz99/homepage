@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import Gallery from '../components/Gallery'
 import Hero from '../components/Hero'
 import RichText from '../components/RichText'
+import RouteMap from '../components/RouteMap'
 import TeaserGrid from '../components/TeaserGrid'
 import { START_SLUG } from '../config'
 import { ApiError, api } from '../lib/api'
+import { gpxLinks } from '../lib/gpx'
 import { isEditor, useAuth } from '../lib/auth'
 import { childPages, pagePath } from '../lib/nav'
 import { useSite } from '../lib/site'
@@ -40,6 +42,9 @@ export default function PageView() {
       cancelled = true
     }
   }, [slug])
+
+  // GPX-Links im Text -> Routenkarte unter dem Text
+  const gpxFiles = useMemo(() => (page ? gpxLinks(page.content_html) : []), [page])
 
   if (slug === START_SLUG) return <Navigate to="/" replace />
   if (state === 'notfound') return <NotFound />
@@ -83,6 +88,8 @@ export default function PageView() {
         )}
         {page.content_html && <RichText html={page.content_html} className="md:prose-lg" />}
       </div>
+
+      {gpxFiles.length > 0 && <RouteMap files={gpxFiles} />}
 
       {page.images.length > 0 && (
         <div className="mx-auto mt-12 max-w-6xl px-4 sm:px-6">

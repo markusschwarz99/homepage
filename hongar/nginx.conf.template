@@ -11,8 +11,9 @@ server {
     add_header X-Frame-Options "DENY" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
-    # Webcam-Bilder kommen (vorerst) direkt von hongar.at.
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: ${API_URL} https://hongar.at; font-src 'self' data:; connect-src 'self' ${API_URL}; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+    # Webcam-Bilder kommen (vorerst) direkt von hongar.at, Kartenkacheln der
+    # Routenkarte von basemap.at (mapsneu.wien.gv.at).
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: ${API_URL} https://hongar.at https://mapsneu.wien.gv.at; font-src 'self' data:; connect-src 'self' ${API_URL}; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
     # Solange hongar.at parallel mit denselben Inhalten läuft: nicht indexieren.
     add_header X-Robots-Tag "noindex, nofollow" always;
 
