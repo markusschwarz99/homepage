@@ -148,7 +148,8 @@ class TestPageCrud:
             "title": "Geschichte",
             "content_html": '<p style="text-align: center; color: red">Hallo</p>'
                             '<script>alert(1)</script><img src="x" onerror="alert(1)">'
-                            '<a href="javascript:alert(1)">x</a>',
+                            '<a href="javascript:alert(1)">x</a>'
+                            '<p style="color: blue">Farbe</p>',
         })
         assert r.status_code == 200
         data = r.json()
@@ -160,6 +161,7 @@ class TestPageCrud:
         assert "javascript:" not in html
         assert "text-align" in html
         assert "color" not in html
+        assert "<p>Farbe</p>" in html
 
     def test_invalid_slug_422(self, client, hongar_headers):
         r = client.post("/hongar/pages", headers=hongar_headers, json={"slug": "a b", "title": "X"})
