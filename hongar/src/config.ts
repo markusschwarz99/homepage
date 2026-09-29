@@ -8,3 +8,6 @@ export const MAIN_SITE_URL = 'https://markus-schwarz.cc'
 
 // Die CMS-Seite mit diesem Kürzel ist die Startseite.
 export const START_SLUG = 'start'
+
+// Lage des Almgasthofs (Ziel der Wanderrouten) – Markierung auf den GPX-Karten.
+export const HONGAR_LATLNG: [number, number] = [47.92141, 13.68516]
