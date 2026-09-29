@@ -55,11 +55,11 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
   `${linkBase} ${isActive ? 'text-alm-forest bg-alm-sand/70' : 'text-alm-stone hover:text-alm-forest hover:bg-alm-sand/50'}`
 
 function Header() {
-  const { pages, settings } = useSite()
+  const { content, settings } = useSite()
   const [open, setOpen] = useState(false)
   const nav = useMemo(
-    () => buildNav(pages, webcamUrls(settings.webcam_urls).length > 0),
-    [pages, settings.webcam_urls],
+    () => buildNav(content.pages, webcamUrls(settings.webcam_urls).length > 0),
+    [content.pages, settings.webcam_urls],
   )
   const close = () => setOpen(false)
 
@@ -150,8 +150,8 @@ function Header() {
 }
 
 function Footer() {
-  const { pages, settings } = useSite()
-  const has = (slug: string) => pages.some(p => p.slug === slug)
+  const { content, settings } = useSite()
+  const has = (slug: string) => content.pages.some(p => p.slug === slug)
   const hasWebcam = webcamUrls(settings.webcam_urls).length > 0
   const links = [
     settings.booking_url && { label: 'Ferienhaus buchen', href: settings.booking_url },

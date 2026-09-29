@@ -1,5 +1,4 @@
 import { API_URL } from '../config'
-import { prepareImage } from './image'
 
 const TOKEN_KEY = 'hongar_token'
 // Fallback, falls localStorage nicht verfügbar ist (privater Modus o.ä.).
@@ -92,19 +91,13 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return data as T
 }
 
-// Multipart-Upload: Content-Type setzt der Browser selbst (Boundary).
-export async function uploadFile<T>(path: string, file: File): Promise<T> {
-  const form = new FormData()
-  form.append('file', await prepareImage(file))
-  return api<T>(path, { method: 'POST', body: form })
-}
-
 export function errorText(err: unknown): string {
   return err instanceof ApiError ? err.message : 'Unbekannter Fehler'
 }
 
-// Die API liefert Upload-Pfade relativ ("/uploads/…").
+// Hochgeladene Fotos liegen beim Backend ("/uploads/…"), die Beispielbilder
+// in dieser Seite selbst ("/img/…").
 export function assetUrl(path: string | null | undefined): string | undefined {
   if (!path) return undefined
-  return /^https?:\/\//.test(path) ? path : `${API_URL}${path}`
+  return path.startsWith('/uploads/') ? `${API_URL}${path}` : path
 }

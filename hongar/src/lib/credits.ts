@@ -1,0 +1,191 @@
+// Bildnachweis der Beispielbilder unter hongar/public/img/ (Wikimedia Commons).
+// Diese Bilder stehen NICHT unter der GPL des Repos, sondern unter der jeweils
+// genannten Creative-Commons-Lizenz; sie wurden verkleinert und nach WebP umgewandelt.
+// Neues Beispielbild: Datei ablegen und hier eintragen (Pflicht bei CC BY/BY-SA).
+export interface ImageCredit {
+  file: string
+  title: string
+  author: string
+  license: string
+  licenseUrl: string
+  source: string
+}
+
+export const IMAGE_CREDITS: ImageCredit[] = [
+  {
+    file: '/img/almgasthof.webp',
+    title: 'Almgasthof Schwarz am Hongar 20231228a',
+    author: 'Tigerente',
+    license: 'CC BY 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Almgasthof_Schwarz_am_Hongar_20231228a.jpg',
+  },
+  {
+    file: '/img/almgasthof-spielplatz.webp',
+    title: 'Almgasthof Schwarz am Hongar 20240203a',
+    author: 'Tigerente',
+    license: 'CC BY 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Almgasthof_Schwarz_am_Hongar_20240203a.jpg',
+  },
+  {
+    file: '/img/gaststube.webp',
+    title: 'Almgasthof Schwarz Hongar Stube 20240419a',
+    author: 'Tigerente',
+    license: 'CC BY 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Almgasthof_Schwarz_Hongar_Stube_20240419a.jpg',
+  },
+  {
+    file: '/img/schank.webp',
+    title: 'Almgasthof Schwarz Hongar Stube 20240419b',
+    author: 'Tigerente',
+    license: 'CC BY 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Almgasthof_Schwarz_Hongar_Stube_20240419b.jpg',
+  },
+  {
+    file: '/img/stueberl.webp',
+    title: 'Almgasthof Schwarz Hongar Stube 20240419c',
+    author: 'Tigerente',
+    license: 'CC BY 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Almgasthof_Schwarz_Hongar_Stube_20240419c.jpg',
+  },
+  {
+    file: '/img/gastgarten.webp',
+    title: 'Almgasthof Schwarz Hongar Gastgarten 20240419a',
+    author: 'Tigerente',
+    license: 'CC BY 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Almgasthof_Schwarz_Hongar_Gastgarten_20240419a.jpg',
+  },
+  {
+    file: '/img/nebelmeer-traunstein.webp',
+    title: 'Aussicht Hongar Blick Richtung Traunstein',
+    author: 'Burnheidl80',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Aussicht_Hongar_Blick_Richtung_Traunstein.jpg',
+  },
+  {
+    file: '/img/weg-laerchen.webp',
+    title: 'Hongar 20201122a',
+    author: 'Tigerente',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Hongar_20201122a.jpg',
+  },
+  {
+    file: '/img/herbst-traunstein.webp',
+    title: 'Hongar 20201122b',
+    author: 'Tigerente',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Hongar_20201122b.jpg',
+  },
+  {
+    file: '/img/wanderweg-traunstein.webp',
+    title: 'Hongar 20201122c',
+    author: 'Tigerente',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Hongar_20201122c.jpg',
+  },
+  {
+    file: '/img/hongar-gmundnerberg.webp',
+    title: 'Hongar 20250101a',
+    author: 'Tigerente',
+    license: 'CC BY 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Hongar_20250101a.jpg',
+  },
+  {
+    file: '/img/winter-aussicht.webp',
+    title: 'Hongar Aussicht 20110105a',
+    author: 'Tigerente',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Hongar_Aussicht_20110105a.jpg',
+  },
+  {
+    file: '/img/hongarkreuz.webp',
+    title: 'Hongarkreuz 20110105',
+    author: 'Tigerente',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Hongarkreuz_20110105.jpg',
+  },
+  {
+    file: '/img/hongarkreuz-raureif.webp',
+    title: 'Hongarkreuz Raureif 20260117a',
+    author: 'Tigerente',
+    license: 'CC BY 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Hongarkreuz_Raureif_20260117a.jpg',
+  },
+  {
+    file: '/img/schweinsbraten.webp',
+    title: 'Schweinebraten mit Knödel und Krautsalat',
+    author: 'Karl Schillinger',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Schweinebraten_mit_Kn%C3%B6del_und_Krautsalat.jpg',
+  },
+  {
+    file: '/img/jause.webp',
+    title: 'Brettljause 01',
+    author: 'Johann Jaritz',
+    license: 'CC BY-SA 3.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/3.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Brettljause_01.jpg',
+  },
+  {
+    file: '/img/harmonika.webp',
+    title: 'Steirische Harmonika Styria Austria Ziehharmonika Knöpferlharmonika',
+    author: 'Nxr-at',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Steirische_Harmonika_Styria_Austria_Ziehharmonika_Kn%C3%B6pferlharmonika.JPG',
+  },
+  {
+    file: '/img/musikanten.webp',
+    title: 'Gruppe von 4 Alphornbläsern - Bergmesse auf der Alpe Buhl 1',
+    author: 'Ursula Jaeger',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Gruppe_von_4_Alphornbl%C3%A4sern_-_Bergmesse_auf_der_Alpe_Buhl_1.jpg',
+  },
+  {
+    file: '/img/aepfel.webp',
+    title: 'Beilstein - Maad - reife Äpfel an einem Baum in einer Streuobstwiese',
+    author: 'Roman Eisele',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Beilstein_-_Maad_-_reife_%C3%84pfel_an_einem_Baum_in_einer_Streuobstwiese.jpg',
+  },
+  {
+    file: '/img/holunder.webp',
+    title: 'Holunderblüten 2020',
+    author: 'Michael Wittwer',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Holunderbl%C3%BCten_2020.jpg',
+  },
+  {
+    file: '/img/zwergziege.webp',
+    title: 'Chèvre naine - Sérent 8',
+    author: 'Amélie Tsaag Valren',
+    license: 'CC BY-SA 4.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Ch%C3%A8vre_naine_-_S%C3%A9rent_8.jpg',
+  },
+  {
+    file: '/img/rodel.webp',
+    title: 'Holzschlitten Sleds in Austria Wooden sleighs 01',
+    author: 'Iswoar',
+    license: 'CC BY-SA 3.0',
+    licenseUrl: 'https://creativecommons.org/licenses/by-sa/3.0/',
+    source: 'https://commons.wikimedia.org/wiki/File:Holzschlitten_Sleds_in_Austria_Wooden_sleighs_01.JPG',
+  },
+]

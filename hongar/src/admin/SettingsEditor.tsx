@@ -14,7 +14,7 @@ export default function SettingsEditor() {
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [flash, setFlash] = useState<FlashMessage | null>(null)
-  useDocumentTitle('Allgemeines')
+  useDocumentTitle('Aktuelles & Öffnungszeiten')
 
   useEffect(() => {
     api<SiteSettings>('/hongar/settings')
@@ -47,8 +47,10 @@ export default function SettingsEditor() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-semibold">Allgemeines</h1>
-      <p className="mt-2 text-sm text-alm-muted">Texte und Links, die auf mehreren Seiten erscheinen.</p>
+      <h1 className="font-display text-3xl font-semibold">Aktuelles &amp; Öffnungszeiten</h1>
+      <p className="mt-2 text-sm text-alm-muted">
+        Texte und Links, die auf der Startseite, der Kontaktseite und in der Fußzeile erscheinen.
+      </p>
 
       <div className="mt-6">
         <Flash flash={flash} onClose={() => setFlash(null)} />
@@ -60,15 +62,15 @@ export default function SettingsEditor() {
         <form onSubmit={save} className="space-y-8">
           <Field
             label="Aktuelles"
-            hint="Wird auf der Startseite hervorgehoben (z.B. Ruhetage, Veranstaltungshinweise, Stellenangebote). Leer lassen, um nichts anzuzeigen."
+            hint="Wird auf der Startseite hervorgehoben (z.B. Ruhetage, Stellenangebote, Hinweise). Termine bitte unter „Veranstaltungen“ eintragen. Leer lassen, um nichts anzuzeigen."
           >
-            <RichEditor simple value={data.news} onChange={v => set('news', v)} placeholder="z.B. Wir haben Betriebsurlaub …" />
+            <RichEditor value={data.news} onChange={v => set('news', v)} placeholder="z.B. Wir haben Betriebsurlaub …" />
           </Field>
-          <Field label="Öffnungszeiten" hint="Auf der Startseite und in der Fußzeile.">
-            <RichEditor simple value={data.opening_hours} onChange={v => set('opening_hours', v)} />
+          <Field label="Öffnungszeiten" hint="Auf der Startseite, der Kontaktseite und in der Fußzeile.">
+            <RichEditor value={data.opening_hours} onChange={v => set('opening_hours', v)} />
           </Field>
-          <Field label="Kontakt" hint="Adresse, Telefon und E-Mail – erscheint in der Fußzeile.">
-            <RichEditor simple value={data.contact} onChange={v => set('contact', v)} />
+          <Field label="Kontakt" hint="Adresse, Telefon und E-Mail – erscheint auf der Kontaktseite und in der Fußzeile.">
+            <RichEditor value={data.contact} onChange={v => set('contact', v)} />
           </Field>
 
           <div className="grid gap-6 md:grid-cols-2">

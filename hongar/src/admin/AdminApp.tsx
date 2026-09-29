@@ -1,9 +1,8 @@
-import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import LoginScreen from '../components/LoginScreen'
 import Logo from '../components/Logo'
 import { isEditor, useAuth } from '../lib/auth'
-import PageEditor from './PageEditor'
-import PageList from './PageList'
+import EventsEditor from './EventsEditor'
 import SettingsEditor from './SettingsEditor'
 
 export default function AdminApp() {
@@ -11,7 +10,7 @@ export default function AdminApp() {
   const { pathname } = useLocation()
   if (!isEditor(user)) return <LoginScreen />
 
-  const onSettings = pathname.startsWith('/admin/allgemein')
+  const onEvents = pathname.startsWith('/admin/veranstaltungen')
   const tab = (active: boolean) =>
     `rounded-lg px-3 py-1.5 font-semibold ${active ? 'bg-alm-forest text-white' : 'hover:bg-alm-sand'}`
 
@@ -24,11 +23,11 @@ export default function AdminApp() {
             <span className="font-display text-lg font-semibold">Verwaltung</span>
           </Link>
           <nav className="flex gap-1" aria-label="Verwaltung">
-            <Link to="/admin" className={tab(!onSettings)}>
-              Seiten
+            <Link to="/admin" className={tab(!onEvents)}>
+              Aktuelles &amp; Öffnungszeiten
             </Link>
-            <Link to="/admin/allgemein" className={tab(onSettings)}>
-              Allgemeines
+            <Link to="/admin/veranstaltungen" className={tab(onEvents)}>
+              Veranstaltungen
             </Link>
           </nav>
           <div className="ml-auto flex items-center gap-4 text-sm">
@@ -43,19 +42,11 @@ export default function AdminApp() {
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">
         <Routes>
-          <Route index element={<PageList />} />
-          <Route path="seiten/neu" element={<PageEditor key="neu" />} />
-          <Route path="seiten/:id" element={<EditRoute />} />
-          <Route path="allgemein" element={<SettingsEditor />} />
+          <Route index element={<SettingsEditor />} />
+          <Route path="veranstaltungen" element={<EventsEditor />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>
     </div>
   )
-}
-
-// key erzwingt einen frischen Editor pro Seite (z.B. direkt nach dem Anlegen).
-function EditRoute() {
-  const { id } = useParams()
-  return <PageEditor key={id} pageId={Number(id)} />
 }

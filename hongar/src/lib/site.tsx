@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { api } from './api'
-import type { NavPage, SiteSettings } from './types'
+import type { SiteContent } from './content'
+import type { SiteSettings } from './types'
 
 interface SiteContextValue {
   isPublic: boolean
-  pages: NavPage[]
+  content: SiteContent
   settings: SiteSettings
   loaded: boolean
   reload: () => void
@@ -22,23 +23,23 @@ const EMPTY_SETTINGS: SiteSettings = {
 
 const SiteContext = createContext<SiteContextValue | null>(null)
 
-// Menü + globale Texte, einmal geladen und von Header/Footer/Seiten geteilt.
+// Seiteninhalte + globale Texte, einmal geladen und von Header/Footer/Seiten geteilt.
 export function SiteProvider({ isPublic, children }: { isPublic: boolean; children: ReactNode }) {
-  const [pages, setPages] = useState<NavPage[]>([])
+  const [content, setContent] = useState<SiteContent>({ pages: [] })
   const [settings, setSettings] = useState<SiteSettings>(EMPTY_SETTINGS)
   const [loaded, setLoaded] = useState(false)
   const [version, setVersion] = useState(0)
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([api<NavPage[]>('/hongar/pages'), api<SiteSettings>('/hongar/settings')])
-      .then(([p, s]) => {
+    Promise.all([api<SiteContent>('/hongar/content'), api<SiteSettings>('/hongar/settings')])
+      .then(([c, s]) => {
         if (cancelled) return
-        setPages(p)
+        setContent(c)
         setSettings(s)
       })
       .catch(() => {
-        // Menü bleibt leer; die einzelnen Seiten zeigen ihre eigenen Fehler.
+        // Menü bleibt leer, Seiten zeigen dann "nicht gefunden".
       })
       .finally(() => {
         if (!cancelled) setLoaded(true)
@@ -51,8 +52,8 @@ export function SiteProvider({ isPublic, children }: { isPublic: boolean; childr
   const reload = useCallback(() => setVersion(v => v + 1), [])
 
   const value = useMemo(
-    () => ({ isPublic, pages, settings, loaded, reload }),
-    [isPublic, pages, settings, loaded, reload],
+    () => ({ isPublic, content, settings, loaded, reload }),
+    [isPublic, content, settings, loaded, reload],
   )
   return <SiteContext.Provider value={value}>{children}</SiteContext.Provider>
 }

@@ -1,41 +1,30 @@
-import Image from '@tiptap/extension-image'
 import TextAlign from '@tiptap/extension-text-align'
 import { Placeholder } from '@tiptap/extensions'
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { assetUrl, errorText, uploadFile } from '../lib/api'
 
-// Wysiwyg-Editor. Die Werkzeuge entsprechen der Server-Allowlist (nh3):
-// Absätze, Überschrift 2/3, fett/kursiv/unterstrichen/durchgestrichen,
-// Listen, Zitat, Links, Bilder, Zentrieren.
+// Wysiwyg-Editor für kurze Texte (Aktuelles, Öffnungszeiten, Kontakt). Die
+// Werkzeuge liegen innerhalb der Server-Allowlist (nh3): Absätze,
+// fett/kursiv/unterstrichen, Listen, Links, Zentrieren.
 export default function RichEditor({
   value,
   onChange,
   placeholder = '',
-  simple = false,
-  onError,
 }: {
   value: string
   onChange: (html: string) => void
   placeholder?: string
-  /** Ohne Überschriften und Bilder – für kurze Texte wie Öffnungszeiten. */
-  simple?: boolean
-  onError?: (message: string) => void
 }) {
-  const fileInput = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
-
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: simple ? false : { levels: [2, 3] },
+        heading: false,
+        blockquote: false,
         code: false,
         codeBlock: false,
         link: { openOnClick: false, autolink: true, defaultProtocol: 'https' },
       }),
-      ...(simple ? [] : [Image]),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({ placeholder }),
     ],
@@ -43,7 +32,7 @@ export default function RichEditor({
     onUpdate: ({ editor: e }) => onChange(e.isEmpty ? '' : e.getHTML()),
     editorProps: {
       attributes: {
-        class: `prose prose-stone max-w-none px-4 py-3 focus:outline-none prose-headings:font-display ${simple ? 'min-h-24' : 'min-h-72'}`,
+        class: `prose prose-stone max-w-none px-4 py-3 focus:outline-none prose-headings:font-display min-h-24`,
       },
     },
   })
@@ -56,11 +45,8 @@ export default function RichEditor({
             bold: e.isActive('bold'),
             italic: e.isActive('italic'),
             underline: e.isActive('underline'),
-            h2: e.isActive('heading', { level: 2 }),
-            h3: e.isActive('heading', { level: 3 }),
             bullet: e.isActive('bulletList'),
             ordered: e.isActive('orderedList'),
-            quote: e.isActive('blockquote'),
             center: e.isActive({ textAlign: 'center' }),
             link: e.isActive('link'),
             canUndo: e.can().undo(),
@@ -82,20 +68,6 @@ export default function RichEditor({
     else chain.setLink({ href }).run()
   }
 
-  async function insertImage(file: File) {
-    if (!editor) return
-    setUploading(true)
-    try {
-      const res = await uploadFile<{ url: string }>('/hongar/images', file)
-      const src = assetUrl(res.url)
-      if (src) editor.chain().focus().setImage({ src, alt: '' }).run()
-    } catch (err) {
-      onError?.(`Bild-Upload fehlgeschlagen: ${errorText(err)}`)
-    } finally {
-      setUploading(false)
-    }
-  }
-
   const run = (fn: () => void) => () => fn()
 
   return (
@@ -115,25 +87,6 @@ export default function RichEditor({
           <span className="underline">U</span>
         </Tool>
         <Divider />
-        {!simple && (
-          <>
-            <Tool
-              label="Überschrift"
-              active={state.h2}
-              onClick={run(() => editor.chain().focus().toggleHeading({ level: 2 }).run())}
-            >
-              Überschrift
-            </Tool>
-            <Tool
-              label="Zwischentitel"
-              active={state.h3}
-              onClick={run(() => editor.chain().focus().toggleHeading({ level: 3 }).run())}
-            >
-              Zwischentitel
-            </Tool>
-            <Divider />
-          </>
-        )}
         <Tool
           label="Aufzählung"
           active={state.bullet}
@@ -148,11 +101,6 @@ export default function RichEditor({
         >
           1. Liste
         </Tool>
-        {!simple && (
-          <Tool label="Zitat" active={state.quote} onClick={run(() => editor.chain().focus().toggleBlockquote().run())}>
-            „Zitat“
-          </Tool>
-        )}
         <Tool
           label="Zentrieren"
           active={state.center}
@@ -168,24 +116,6 @@ export default function RichEditor({
         <Tool label="Link" active={state.link} onClick={editLink}>
           Link
         </Tool>
-        {!simple && (
-          <>
-            <Tool label="Bild einfügen" disabled={uploading} onClick={() => fileInput.current?.click()}>
-              {uploading ? 'Lädt …' : 'Bild'}
-            </Tool>
-            <input
-              ref={fileInput}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={e => {
-                const file = e.target.files?.[0]
-                e.target.value = ''
-                if (file) void insertImage(file)
-              }}
-            />
-          </>
-        )}
         <span className="ml-auto flex gap-1">
           <Tool label="Rückgängig" disabled={!state.canUndo} onClick={run(() => editor.chain().focus().undo().run())}>
             ↶
