@@ -57,18 +57,25 @@ Persönliche Homepage mit vier Hauptbereichen:
 - **hongar-Website** (`hongar.markus-schwarz.cc`, Almgasthof der Mutter –
   modernisierter Nachbau von hongar.at, Rechte an Texten/Fotos liegen vor): eigener
   Container `hongar` (Projekt `hongar/`, Vite/React/Tailwind wie `frontend/`, nginx
-  auf Port 8081). CMS-API im bestehenden Backend: Router `hongar.py`, Tabellen
-  `hongar_pages` + `hongar_page_images`, globale Texte als `site_settings`-Keys mit
-  Prefix `hongar_` (bewusst NICHT in `ALLOWED_KEYS`). Redaktion unter
-  `hongar.markus-schwarz.cc/admin` (TipTap, Galerie, Drag-and-Drop) mit dem normalen
-  Konto, Rolle `hongar` oder `admin` (`require_hongar_editor`). Rich-Text wird beim
+  auf Port 8081). **Kein Seiten-CMS**: Seiten sind im Frontend gestaltet (Block-
+  Bausteine in `hongar/src/components/blocks.tsx`, Typen in `src/lib/content.ts`,
+  Icons `lucide-react`), ihre Texte liegen als JSON im `site_settings`-Key
+  `hongar_content` (`GET /hongar/content`), Quelle `~/hongar-content/content.json`
+  AUSSERHALB des Repos, laden per `docker cp` + `python scripts/hongar_content.py
+  load /tmp/content.json [--dry-run]` (auch `export`). Redaktionell bearbeitbar nur
+  globale Texte (`site_settings`-Keys mit Prefix `hongar_`, bewusst NICHT in
+  `ALLOWED_KEYS`) und Veranstaltungen (Tabelle `hongar_events`, öffentlich nur
+  kommende). Router `hongar.py`. Redaktion unter `hongar.markus-schwarz.cc/admin`
+  (TipTap) mit dem normalen Konto, Rolle `hongar` oder `admin` (`require_hongar_editor`). Rich-Text wird beim
   Speichern mit `nh3` gesäubert (`sanitize_html`), beim Anzeigen zusätzlich mit
   DOMPurify. Testphase: `HONGAR_PUBLIC=false` (Default) sperrt Seite UND Lese-API
   für alle außer der Redaktion; `X-Robots-Tag: noindex`, solange hongar.at parallel
   läuft. `.env`: `CORS_ORIGINS` muss `https://hongar.markus-schwarz.cc` enthalten.
   Webcam-Bilder kommen direkt von hongar.at (CSP `img-src`).
-  **Inhalte (Texte/Fotos) NIE ins Repo** (öffentlich, GPLv3) – nur DB/Upload-Volume;
-  Übernahme per `backend/scripts/import_hongar.py` (legt Entwürfe an, idempotent).
+  **Inhalte (Texte/Fotos) NIE ins Repo** (öffentlich, GPLv3) – nur DB/Upload-Volume
+  bzw. `~/hongar-content/`. Beispielbilder (Wikimedia Commons, CC BY/BY-SA) liegen in
+  `hongar/public/img/` als WebP; jedes neue Bild MUSS in `src/lib/credits.ts`
+  (Bildnachweis im Impressum).
 
 Der frühere Bereich **"Mein Account"** heißt jetzt **"Einstellungen"** und nutzt ein
 eigenes `SettingsLayout` (spiegelt das `AdminLayout`-Tab-Muster) mit Unterregistern
@@ -112,9 +119,8 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
   raus — v4 macht das intern.
 - TipTap 3 + DOMPurify: aktuell NUR im Projekt `hongar/` (im Haupt-Frontend nicht
   installiert)
-- Leaflet 1.9 (OSM-Kacheln): NUR in `hongar/`. `RichText` hängt unter jedem Absatz
-  mit Link auf eine eigene `.gpx`-Datei per Portal eine Karte ein (`GpxMap.tsx`,
-  lazy geladen). CSP `img-src` enthält dafür `https://tile.openstreetmap.org`.
+- Leaflet 1.9 (OSM-Kacheln): NUR in `hongar/`. Der Baustein `routes` zeigt je Route
+  mit `gpx`-Feld eine Karte (`GpxMap.tsx`, lazy geladen). CSP `img-src` enthält dafür `https://tile.openstreetmap.org`.
 - @react-pdf/renderer 4.x (PDF-Export, aktuell nur im CV-Bereich)
 - ESLint 10 + typescript-eslint
 - **Vitest** (Frontend-Unit-Tests, NUR reine Logik wie `src/lib/codewort`).
@@ -434,7 +440,7 @@ kollidieren sie nicht mit anderen Test-Läufen.
 
 **Standalone-Maintenance-Skripte** liegen unter `backend/scripts/`,
 werden mit `docker compose exec -T backend python scripts/<name>.py`
-ausgeführt. Beispiele: `scripts/refine_seasonal_data.py`, `scripts/import_hongar.py`. Skripte
+ausgeführt. Beispiele: `scripts/refine_seasonal_data.py`, `scripts/hongar_content.py`. Skripte
 sollten idempotent sein und einen `--dry-run`-Modus anbieten.
 
 **Neue Features** — Schlage Code vor, der zum bestehenden Stil passt
