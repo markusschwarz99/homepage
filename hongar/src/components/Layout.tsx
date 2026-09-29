@@ -114,7 +114,7 @@ function Header() {
         <nav id="mobile-menu" aria-label="Hauptmenü" className="border-t border-alm-line bg-alm-cream lg:hidden">
           <ul className="mx-auto max-w-6xl space-y-1 px-4 py-4 sm:px-6">
             <li>
-              <NavLink to="/" end onClick={close} className={linkClass + ' block'}>
+              <NavLink to="/" end onClick={close} className={args => `${linkClass(args)} block`}>
                 Start
               </NavLink>
             </li>

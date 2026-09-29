@@ -84,7 +84,7 @@ export default function Home() {
               src={withCacheBuster(webcam, Date.now())}
               alt="Aktuelles Webcam-Bild"
               referrerPolicy="no-referrer"
-              className="aspect-video h-full w-full object-cover"
+              className="aspect-video h-full w-full object-cover object-left"
             />
             <div className="flex flex-col justify-center gap-4 p-8">
               <h2 className="font-display text-2xl font-semibold">Wie schaut's heute aus?</h2>

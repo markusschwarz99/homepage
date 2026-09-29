@@ -7,7 +7,7 @@ export default function Gallery({ images }: { images: GalleryImage[] }) {
   if (images.length === 0) return null
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-2 items-start gap-3 sm:gap-4 md:grid-cols-3">
         {images.map((img, i) => (
           <button
             key={img.id}
