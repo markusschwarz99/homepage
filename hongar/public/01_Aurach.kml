@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+  <Document>
+    <name>GPS device</name>
+    <snippet>Created Tue Sep 29 18:25:05 2026 GMT</snippet>
+    <LookAt>
+      <longitude>13.683784</longitude>
+      <latitude>47.927172</latitude>
+      <range>1766.801801</range>
+    </LookAt>
+    <!-- Normal track style -->
+    <Style id="track_n">
+      <IconStyle>
+        <scale>.5</scale>
+        <Icon>
+          <href>https://earth.google.com/images/kml-icons/track-directional/track-none.png</href>
+        </Icon>
+      </IconStyle>
+      <LabelStyle>
+        <scale>0</scale>
+      </LabelStyle>
+    </Style>
+    <!-- Highlighted track style -->
+    <Style id="track_h">
+      <IconStyle>
+        <scale>1.2</scale>
+        <Icon>
+          <href>https://earth.google.com/images/kml-icons/track-directional/track-none.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <StyleMap id="track">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#track_n</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#track_h</styleUrl>
+      </Pair>
+    </StyleMap>
+    <!-- Normal waypoint style -->
+    <Style id="waypoint_n">
+      <IconStyle>
+        <Icon>
+          <href>https://maps.google.com/mapfiles/kml/pal4/icon61.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <!-- Highlighted waypoint style -->
+    <Style id="waypoint_h">
+      <IconStyle>
+        <scale>1.2</scale>
+        <Icon>
+          <href>https://maps.google.com/mapfiles/kml/pal4/icon61.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <StyleMap id="waypoint">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#waypoint_n</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#waypoint_h</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Style id="lineStyle">
+      <LineStyle>
+        <color>99ffac59</color>
+        <width>6</width>
+      </LineStyle>
+    </Style>
+    <Folder>
+      <name>Tracks</name>
+      <Folder>
+        <name>+++ Hongar, Aurach am Hongar, Österreich</name>
+        <Placemark>
+          <name>Path</name>
+          <styleUrl>#lineStyle</styleUrl>
+          <LineString>
+            <tessellate>1</tessellate>
+            <coordinates>
+13.683154,47.932926,574.00
+13.683157,47.932777,575.00
+13.683513,47.932327,580.00
+13.684176,47.932068,582.00
+13.684552,47.931767,585.00
+13.684640,47.931583,588.00
+13.685202,47.931358,593.00
+13.685278,47.931225,593.00
+13.685161,47.931187,594.00
+13.684528,47.931316,596.00
+13.683870,47.931644,599.00
+13.682953,47.931831,605.00
+13.682433,47.931534,610.00
+13.681803,47.930958,622.00
+13.681655,47.930637,629.00
+13.681681,47.930248,637.00
+13.681549,47.930023,641.00
+13.681551,47.929867,642.00
+13.681249,47.929432,646.00
+13.680744,47.928329,658.00
+13.680951,47.928356,660.00
+13.681152,47.928185,660.00
+13.681278,47.928257,661.00
+13.681303,47.928467,662.00
+13.681401,47.928535,662.00
+13.681548,47.928547,662.00
+13.681684,47.928413,663.00
+13.682055,47.928600,663.00
+13.682323,47.928879,665.00
+13.682622,47.928989,668.00
+13.683389,47.929085,672.00
+13.683401,47.928921,674.00
+13.683605,47.928905,676.00
+13.683056,47.928734,686.00
+13.682797,47.928421,692.00
+13.682185,47.927982,697.00
+13.681961,47.927666,701.00
+13.681972,47.927124,707.00
+13.682228,47.926624,714.00
+13.682308,47.926250,720.00
+13.682530,47.926674,724.00
+13.682833,47.926876,725.00
+13.682806,47.926830,725.00
+13.682630,47.926838,727.00
+13.683039,47.927402,729.00
+13.683630,47.927479,731.00
+13.683824,47.927326,735.00
+13.683796,47.927231,736.00
+13.683400,47.927158,740.00
+13.683222,47.927223,741.00
+13.683173,47.927082,742.00
+13.683342,47.926708,745.00
+13.683536,47.926567,748.00
+13.683838,47.926117,754.00
+13.683846,47.925907,757.00
+13.684219,47.925678,762.00
+13.684735,47.924965,774.00
+13.685259,47.924538,782.00
+13.685911,47.924374,787.00
+13.685592,47.924271,790.00
+13.685147,47.924400,794.00
+13.684806,47.924252,800.00
+13.684510,47.923912,807.00
+13.683723,47.923611,815.00
+13.683602,47.923489,817.00
+13.683796,47.923439,818.00
+13.683950,47.923534,819.00
+13.684291,47.923515,821.00
+13.684645,47.923660,822.00
+13.685395,47.923546,825.00
+13.685538,47.923515,826.00
+13.685733,47.923306,829.00
+13.686024,47.923306,831.00
+13.686818,47.922813,844.00
+13.686824,47.922680,847.00
+13.686129,47.922497,857.00
+13.684974,47.921894,869.00
+13.684627,47.921822,873.00
+13.684332,47.921608,876.00
+13.685233,47.921417,881.00
+</coordinates>
+          </LineString>
+        </Placemark>
+      </Folder>
+    </Folder>
+  </Document>
+</kml>

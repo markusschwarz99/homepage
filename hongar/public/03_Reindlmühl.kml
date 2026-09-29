@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+  <Document>
+    <name>GPS device</name>
+    <snippet>Created Tue Sep 29 18:29:52 2026 GMT</snippet>
+    <LookAt>
+      <longitude>13.699967</longitude>
+      <latitude>47.908139</latitude>
+      <range>4811.788913</range>
+    </LookAt>
+    <!-- Normal track style -->
+    <Style id="track_n">
+      <IconStyle>
+        <scale>.5</scale>
+        <Icon>
+          <href>https://earth.google.com/images/kml-icons/track-directional/track-none.png</href>
+        </Icon>
+      </IconStyle>
+      <LabelStyle>
+        <scale>0</scale>
+      </LabelStyle>
+    </Style>
+    <!-- Highlighted track style -->
+    <Style id="track_h">
+      <IconStyle>
+        <scale>1.2</scale>
+        <Icon>
+          <href>https://earth.google.com/images/kml-icons/track-directional/track-none.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <StyleMap id="track">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#track_n</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#track_h</styleUrl>
+      </Pair>
+    </StyleMap>
+    <!-- Normal waypoint style -->
+    <Style id="waypoint_n">
+      <IconStyle>
+        <Icon>
+          <href>https://maps.google.com/mapfiles/kml/pal4/icon61.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <!-- Highlighted waypoint style -->
+    <Style id="waypoint_h">
+      <IconStyle>
+        <scale>1.2</scale>
+        <Icon>
+          <href>https://maps.google.com/mapfiles/kml/pal4/icon61.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <StyleMap id="waypoint">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#waypoint_n</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#waypoint_h</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Style id="lineStyle">
+      <LineStyle>
+        <color>99ffac59</color>
+        <width>6</width>
+      </LineStyle>
+    </Style>
+    <Folder>
+      <name>Tracks</name>
+      <Folder>
+        <name>Reindlmühl Hongar</name>
+        <Placemark>
+          <name>Path</name>
+          <styleUrl>#lineStyle</styleUrl>
+          <LineString>
+            <tessellate>1</tessellate>
+            <coordinates>
+13.714448,47.894843,523.50
+13.714691,47.894957,523.60
+13.714760,47.894892,523.80
+13.714856,47.894936,523.80
+13.714211,47.895511,522.40
+13.714040,47.896303,522.00
+13.713738,47.897037,521.90
+13.712529,47.898348,520.70
+13.711702,47.898944,519.80
+13.711342,47.899728,519.10
+13.710851,47.900141,519.50
+13.710687,47.900461,519.40
+13.709117,47.900273,523.20
+13.708070,47.899845,524.30
+13.707646,47.899544,524.80
+13.707239,47.899033,524.10
+13.706724,47.898790,525.50
+13.704905,47.898328,527.20
+13.703693,47.898283,530.40
+13.703195,47.898034,531.80
+13.702121,47.898163,533.70
+13.700556,47.898163,536.50
+13.699995,47.898319,538.30
+13.699482,47.898521,536.70
+13.698472,47.899103,539.10
+13.697930,47.899248,540.60
+13.696793,47.899772,543.20
+13.695724,47.900669,547.30
+13.695520,47.901082,546.10
+13.695611,47.901431,547.20
+13.695477,47.902087,548.70
+13.694787,47.903464,551.20
+13.694383,47.904964,556.00
+13.693968,47.905380,558.30
+13.693690,47.905873,560.10
+13.693674,47.906054,560.50
+13.693856,47.906615,561.60
+13.693646,47.907166,563.90
+13.694220,47.907625,569.70
+13.693736,47.907564,573.90
+13.693803,47.908068,594.20
+13.693729,47.908250,596.10
+13.692897,47.909044,613.30
+13.692580,47.909108,613.60
+13.692360,47.909646,621.10
+13.690993,47.911049,665.90
+13.690532,47.911425,677.80
+13.689900,47.912403,704.40
+13.689561,47.912716,713.20
+13.688788,47.913787,752.80
+13.688856,47.914540,767.70
+13.689135,47.914878,772.80
+13.689256,47.915324,787.40
+13.689432,47.915622,787.60
+13.689232,47.916129,785.70
+13.689222,47.916436,784.80
+13.689107,47.916747,786.40
+13.689136,47.916972,788.70
+13.689466,47.917689,808.40
+13.689438,47.917753,810.40
+13.689041,47.918237,824.30
+13.688209,47.918819,837.20
+13.687704,47.919618,853.60
+13.687331,47.919732,853.70
+13.687234,47.919866,856.10
+13.687259,47.920004,859.50
+13.687412,47.920189,868.60
+13.687765,47.920337,876.70
+13.687854,47.920432,880.40
+13.687830,47.920586,882.00
+13.687255,47.921174,886.90
+13.687185,47.921231,887.70
+13.686148,47.921419,885.40
+13.685566,47.921435,883.20
+13.685340,47.921309,880.80
+13.685078,47.921407,884.00
+</coordinates>
+          </LineString>
+        </Placemark>
+      </Folder>
+    </Folder>
+  </Document>
+</kml>
