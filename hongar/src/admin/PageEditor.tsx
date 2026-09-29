@@ -190,8 +190,9 @@ export default function PageEditor({ pageId }: { pageId?: number }) {
 
       <form onSubmit={save} className="space-y-8">
         <div className="grid gap-6 rounded-2xl border border-alm-line bg-white p-5 sm:p-6 md:grid-cols-2">
-          <Field label="Titel">
+          <Field label="Titel" htmlFor="page-title">
             <input
+              id="page-title"
               required
               maxLength={200}
               value={form.title}
@@ -201,6 +202,7 @@ export default function PageEditor({ pageId }: { pageId?: number }) {
           </Field>
           <Field
             label="Kürzel in der Adresse"
+            htmlFor="page-slug"
             hint={
               form.slug === START_SLUG
                 ? 'Diese Seite ist die Startseite.'
@@ -208,6 +210,7 @@ export default function PageEditor({ pageId }: { pageId?: number }) {
             }
           >
             <input
+              id="page-slug"
               required
               maxLength={100}
               pattern="[a-z0-9]+(-[a-z0-9]+)*"
@@ -221,9 +224,11 @@ export default function PageEditor({ pageId }: { pageId?: number }) {
           </Field>
           <Field
             label="Einordnung im Menü"
+            htmlFor="page-parent"
             hint={hasChildren ? 'Diese Seite hat Unterseiten und bleibt deshalb im Hauptmenü.' : undefined}
           >
             <select
+              id="page-parent"
               value={form.parent_id ?? ''}
               disabled={hasChildren}
               onChange={e => update('parent_id', e.target.value === '' ? null : Number(e.target.value))}

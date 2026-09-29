@@ -31,10 +31,27 @@ export function Flash({ flash, onClose }: { flash: FlashMessage | null; onClose:
   )
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+export function Field({
+  label,
+  hint,
+  htmlFor,
+  children,
+}: {
+  label: string
+  hint?: ReactNode
+  /** id des Eingabefelds – nur bei einfachen Feldern (nicht beim Editor). */
+  htmlFor?: string
+  children: ReactNode
+}) {
   return (
     <div className="space-y-1.5">
-      <div className="text-sm font-semibold">{label}</div>
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className="block text-sm font-semibold">
+          {label}
+        </label>
+      ) : (
+        <div className="text-sm font-semibold">{label}</div>
+      )}
       {children}
       {hint && <p className="text-sm text-alm-muted">{hint}</p>}
     </div>

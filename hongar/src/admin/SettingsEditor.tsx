@@ -72,8 +72,9 @@ export default function SettingsEditor() {
           </Field>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <Field label="Facebook-Link">
+            <Field label="Facebook-Link" htmlFor="set-facebook">
               <input
+                id="set-facebook"
                 type="url"
                 value={data.facebook_url}
                 onChange={e => set('facebook_url', e.target.value)}
@@ -81,8 +82,9 @@ export default function SettingsEditor() {
                 className={inputClass}
               />
             </Field>
-            <Field label="Buchungs-Link Ferienhaus">
+            <Field label="Buchungs-Link Ferienhaus" htmlFor="set-booking">
               <input
+                id="set-booking"
                 type="url"
                 value={data.booking_url}
                 onChange={e => set('booking_url', e.target.value)}
@@ -94,9 +96,11 @@ export default function SettingsEditor() {
 
           <Field
             label="Webcam-Bilder"
+            htmlFor="set-webcams"
             hint="Eine Bild-Adresse pro Zeile. Angezeigt werden derzeit nur Bilder von https://hongar.at."
           >
             <textarea
+              id="set-webcams"
               rows={3}
               value={data.webcam_urls}
               onChange={e => set('webcam_urls', e.target.value)}
