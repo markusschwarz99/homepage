@@ -54,6 +54,21 @@ Persönliche Homepage mit vier Hauptbereichen:
   Endpoints `POST /improvements` (require_member) + `GET/PATCH/DELETE` (require_admin).
   Status/Kategorie sind **String-Spalten, KEIN Postgres-Enum** (spart die
   ADD-VALUE-Alembic-Stolperfalle).
+- **hongar-Website** (`hongar.markus-schwarz.cc`, Almgasthof der Mutter –
+  modernisierter Nachbau von hongar.at, Rechte an Texten/Fotos liegen vor): eigener
+  Container `hongar` (Projekt `hongar/`, Vite/React/Tailwind wie `frontend/`, nginx
+  auf Port 8081). CMS-API im bestehenden Backend: Router `hongar.py`, Tabellen
+  `hongar_pages` + `hongar_page_images`, globale Texte als `site_settings`-Keys mit
+  Prefix `hongar_` (bewusst NICHT in `ALLOWED_KEYS`). Redaktion unter
+  `hongar.markus-schwarz.cc/admin` (TipTap, Galerie, Drag-and-Drop) mit dem normalen
+  Konto, Rolle `hongar` oder `admin` (`require_hongar_editor`). Rich-Text wird beim
+  Speichern mit `nh3` gesäubert (`sanitize_html`), beim Anzeigen zusätzlich mit
+  DOMPurify. Testphase: `HONGAR_PUBLIC=false` (Default) sperrt Seite UND Lese-API
+  für alle außer der Redaktion; `X-Robots-Tag: noindex`, solange hongar.at parallel
+  läuft. `.env`: `CORS_ORIGINS` muss `https://hongar.markus-schwarz.cc` enthalten.
+  Webcam-Bilder kommen direkt von hongar.at (CSP `img-src`).
+  **Inhalte (Texte/Fotos) NIE ins Repo** (öffentlich, GPLv3) – nur DB/Upload-Volume;
+  Übernahme per `backend/scripts/import_hongar.py` (legt Entwürfe an, idempotent).
 
 Der frühere Bereich **"Mein Account"** heißt jetzt **"Einstellungen"** und nutzt ein
 eigenes `SettingsLayout` (spiegelt das `AdminLayout`-Tab-Muster) mit Unterregistern
@@ -61,7 +76,8 @@ eigenes `SettingsLayout` (spiegelt das `AdminLayout`-Tab-Muster) mit Unterregist
 (`/einstellungen/improvements`, nur für `is_member`). `/account` und `/einstellungen`
 redirecten auf `/einstellungen/account`. Guard im `SettingsLayout`: nur "eingeloggt".
 
-Vier Rollen: **Guest / Member / Household / Admin**.
+Rollen: **Guest / Member / Household / Admin**, dazu **hongar** (nur Redaktion der
+hongar-Website; auf markus-schwarz.cc wie Guest, `is_member` = False).
 Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
 
 ## Hardware & OS
@@ -94,8 +110,8 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
   Mindest-Browser: Safari ≥16.4, Chrome ≥111, Firefox ≥128
   (CSS Cascade Layers, `@property`, `color-mix()`). `autoprefixer` ist
   raus — v4 macht das intern.
-- TipTap 3 (Rich-Editor: Image, Link, Placeholder, TextAlign, Underline, StarterKit)
-- DOMPurify für HTML-Sanitization
+- TipTap 3 + DOMPurify: aktuell NUR im Projekt `hongar/` (im Haupt-Frontend nicht
+  installiert)
 - @react-pdf/renderer 4.x (PDF-Export, aktuell nur im CV-Bereich)
 - ESLint 10 + typescript-eslint
 - **Vitest** (Frontend-Unit-Tests, NUR reine Logik wie `src/lib/codewort`).
@@ -104,16 +120,18 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
   Lauf: `npm run test` (= `vitest run`). UI-/Geheimhaltungs-/Bedien-Checks laufen
   über Playwright (`e2e/`), NICHT über Vitest — die Trennung ist Absicht.
 
-**E2E** — Playwright 1.59 (TypeScript), separates Projekt unter `e2e/`
+**E2E** — Playwright 1.63 (TypeScript), separates Projekt unter `e2e/`
 
 **Infrastruktur**
-- Docker Compose (3 Services: backend, frontend, db) + dedizierte Volumes
+- Docker Compose (4 Services: backend, frontend, hongar, db) + dedizierte Volumes
   `postgres_data`, `user_uploads`
 - Backend baut aus `./backend/Dockerfile` (non-root user `app`, Port 8000)
 - Backend startet via `entrypoint.sh`: erst `alembic upgrade head`, dann Uvicorn.
   Schema-Source-of-Truth ist Alembic, NICHT `Base.metadata.create_all`
 - Frontend baut aus `./frontend` mit Build-Arg `VITE_API_URL=https://api.markus-schwarz.cc`,
   serviert über Nginx im Container auf Port 80
+- hongar-Website baut aus `./hongar` (gleiches Muster), Host-Port 8081. Im Test-Stack
+  als `hongar-test` auf 8082, nur mit `--profile hongar` (E2E-CI baut ihn nicht mit)
 - DB nur intern erreichbar (Container-Netzwerk, kein Port-Mapping)
 - Backend hat IPv6 disabled via sysctl
 - **Cloudflare Tunnel** (`cloudflared` als systemd-Service, Token-Mode) zeigt direkt
@@ -149,11 +167,12 @@ homepage/
 │   ├── pytest.ini
 │   └── Dockerfile
 ├── frontend/                 # React + Vite
+├── hongar/                   # hongar-Website (React + Vite, eigener Container)
 ├── e2e/                      # Playwright-Tests
 ├── scripts/
 │   └── backup-db.sh          # DB-Backup-Skript
 ├── backups/                  # DB-Backup-Output
-├── .github/                  # CI-Workflows (Backend-Tests, E2E, Dependabot)
+├── .github/                  # CI-Workflows (Backend-, Frontend-, hongar-Tests, E2E, Dependabot)
 ├── docker-compose.yml
 └── .env.example
 ```
@@ -166,6 +185,7 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
 
 - Frontend: `https://markus-schwarz.cc` → Cloudflare Tunnel → Frontend-Container :80
 - Backend: `https://api.markus-schwarz.cc` → Cloudflare Tunnel → Backend-Container :8000
+- hongar: `https://hongar.markus-schwarz.cc` → Cloudflare Tunnel → hongar-Container :8081
 - SSH: nur lokal/LAN
 
 ## Konventionen & Workflows
@@ -176,10 +196,10 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
   Dependencies) ein `feature/<name>`-Branch + PR + grüne CI vor Merge.
   Hintergrund: siehe Abschnitt "Prod-Deploy-Disziplin". Triviale Änderungen
   (README, Kommentare, Primer-Updates, `.env.example`) dürfen direkt auf `main`.
-- **Dependabot** aktiv für backend, frontend, ci
+- **Dependabot** aktiv für backend, frontend, e2e, hongar, ci
 - **CI**: GitHub Actions — Backend-Tests + Frontend-Tests (Vitest) + E2E-Tests +
   Codecov, müssen grün sein. Workflow `frontend-tests.yml` macht `tsc -b --noEmit`
-  + `npm run test`.
+  + `npm run test`, `hongar-tests.yml` macht `tsc -b --noEmit` + Build für `hongar/`.
   Workflows triggern nur auf `push` zu `main` und auf `pull_request` mit Target
   `main` — Pushes auf Feature-Branches lösen die CI **nicht** aus, erst der PR
   startet die Checks.
@@ -236,6 +256,11 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
   Das File, dessen `revision`-Wert in keinem `down_revision` auftaucht, ist der
   echte Head. Falsche `down_revision` erzeugt "Multiple head revisions" beim
   `alembic upgrade head`.
+  **Stolperfalle bei handgeschriebenen Revision-IDs**: keine "schönen" IDs wie
+  `a7b8c9d0e1f2` ausdenken – genau die gab es schon, Folge: "Cycle is detected in
+  revisions". Neue ID zufällig erzeugen
+  (`python3 -c "import uuid; print(uuid.uuid4().hex[:12])"`) und per
+  `grep -r "<id>" backend/alembic/versions/` prüfen, dass sie frei ist.
 - **Secrets**: ausschließlich in `.env` (nicht committed). `.env.example` als Template
   pflegen, wenn neue Env-Vars dazukommen
 - **Lizenz**: GPLv3
@@ -395,10 +420,15 @@ dann `docker compose -f docker-compose.test.yml exec -T backend-test pip install
 `docker compose -f docker-compose.test.yml down -v`. pytest selbst braucht die
 DB nicht (In-Memory-SQLite via `conftest.py`), aber das `homepage-backend-test`-
 Image ist ein separates Tag und kollidiert nicht mit Prod.
+Achtung: `backend-test` hat KEIN Upload-Volume. Wird der Container neu erstellt
+(auch indirekt, z.B. `up -d --build hongar-test` über `depends_on`), sind
+hochgeladene Bilder weg, während `db-test` sie noch referenziert – kaputte Bilder
+im Test, kein Prod-Problem. Eigene Stacks mit `-p <projektname>` starten, dann
+kollidieren sie nicht mit anderen Test-Läufen.
 
 **Standalone-Maintenance-Skripte** liegen unter `backend/scripts/`,
 werden mit `docker compose exec -T backend python scripts/<name>.py`
-ausgeführt. Beispiel: `scripts/refine_seasonal_data.py`. Skripte
+ausgeführt. Beispiele: `scripts/refine_seasonal_data.py`, `scripts/import_hongar.py`. Skripte
 sollten idempotent sein und einen `--dry-run`-Modus anbieten.
 
 **Neue Features** — Schlage Code vor, der zum bestehenden Stil passt
@@ -589,6 +619,10 @@ CORS, Cloudflare-Konfig, Container-Hardening (read-only FS wo möglich, etc.).
   welchem Branch du bist** (`git branch --show-current`). Bei Inkonsistenz
   entweder zurück auf den Feature-Branch oder PR mergen, BEVOR rebuilt
   wird.
+- **`docker compose up -d --force-recreate <service>` erstellt auch die
+  Abhängigkeiten neu** – bei `backend` also die DB (Daten bleiben im Volume, aber
+  kurzer DB-Neustart). Um nur einen Service neu zu erstellen (z.B. damit er eine
+  geänderte `.env` liest): `docker compose up -d --force-recreate --no-deps <service>`.
 
 - **SQLite-In-Memory in pytest unterscheidet sich von Prod-Postgres**:
   - `ON DELETE CASCADE` und `ON DELETE SET NULL` werden in SQLite nicht
