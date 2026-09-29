@@ -20,6 +20,7 @@ const ROLE_COLORS: Record<string, string> = {
   guest: 'bg-yellow-100 text-yellow-800',
   member: 'bg-green-100 text-green-800',
   household: 'bg-purple-100 text-purple-800',
+  hongar: 'bg-amber-100 text-amber-800',
   admin: 'bg-blue-100 text-blue-800',
 };
 
@@ -165,6 +166,7 @@ export function AdminUsers() {
                   <option value="guest">Gast</option>
                   <option value="member">Mitglied</option>
                   <option value="household">Haushalt</option>
+                  <option value="hongar">hongar-Redaktion</option>
                   <option value="admin">Admin</option>
                 </select>
                 {u.id !== user?.id && (
@@ -219,6 +221,7 @@ export function AdminUsers() {
                       <option value="guest">Gast</option>
                       <option value="member">Mitglied</option>
                       <option value="household">Haushalt</option>
+                      <option value="hongar">hongar-Redaktion</option>
                       <option value="admin">Admin</option>
                     </select>
                   </td>

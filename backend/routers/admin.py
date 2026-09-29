@@ -43,7 +43,7 @@ def update_role(
     db: Session = Depends(get_db),
     admin: models.User = Depends(require_admin)
 ):
-    if data.role not in ("guest", "member", "household", "admin"):
+    if data.role not in ("guest", "member", "household", "admin", "hongar"):
         raise HTTPException(status_code=400, detail="Ungültige Rolle")
 
     user = db.query(models.User).filter(models.User.id == user_id).first()

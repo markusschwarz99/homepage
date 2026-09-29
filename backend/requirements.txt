@@ -9,3 +9,4 @@ alembic
 resend
 Pillow>=12.3.0
 slowapi>=0.1.10
+nh3>=0.3
