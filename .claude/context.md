@@ -112,6 +112,9 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
   raus — v4 macht das intern.
 - TipTap 3 + DOMPurify: aktuell NUR im Projekt `hongar/` (im Haupt-Frontend nicht
   installiert)
+- Leaflet 1.9 (OSM-Kacheln): NUR in `hongar/`. `RichText` hängt unter jedem Absatz
+  mit Link auf eine eigene `.gpx`-Datei per Portal eine Karte ein (`GpxMap.tsx`,
+  lazy geladen). CSP `img-src` enthält dafür `https://tile.openstreetmap.org`.
 - @react-pdf/renderer 4.x (PDF-Export, aktuell nur im CV-Bereich)
 - ESLint 10 + typescript-eslint
 - **Vitest** (Frontend-Unit-Tests, NUR reine Logik wie `src/lib/codewort`).
@@ -420,6 +423,9 @@ dann `docker compose -f docker-compose.test.yml exec -T backend-test pip install
 `docker compose -f docker-compose.test.yml down -v`. pytest selbst braucht die
 DB nicht (In-Memory-SQLite via `conftest.py`), aber das `homepage-backend-test`-
 Image ist ein separates Tag und kollidiert nicht mit Prod.
+Für `hongar-test` (Port 8082) fehlt `http://localhost:8082` in `CORS_ORIGINS` der
+`.env.test`, und `HONGAR_PUBLIC` ist aus → per Override-File (`-f /tmp/override.yml`
+mit `environment:` für `backend-test`) beides setzen, sonst lädt die Seite nicht.
 Achtung: `backend-test` hat KEIN Upload-Volume. Wird der Container neu erstellt
 (auch indirekt, z.B. `up -d --build hongar-test` über `depends_on`), sind
 hochgeladene Bilder weg, während `db-test` sie noch referenziert – kaputte Bilder
