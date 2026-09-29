@@ -97,6 +97,13 @@ class TestPublicRead:
         slugs = [p["slug"] for p in client.get("/hongar/pages").json()]
         assert slugs == ["start"]
 
+    def test_list_contains_cover_url(self, client, public_mode, db_session):
+        page = _page(db_session)
+        page.cover_image = "hongar_" + "b" * 32 + ".jpg"
+        db_session.commit()
+        data = client.get("/hongar/pages").json()
+        assert data[0]["cover_image_url"] == "/uploads/hongar_" + "b" * 32 + ".jpg"
+
     def test_draft_detail_404(self, client, public_mode, db_session):
         _page(db_session, "entwurf", published=False)
         assert client.get("/hongar/pages/entwurf").status_code == 404

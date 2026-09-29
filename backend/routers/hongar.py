@@ -194,6 +194,7 @@ def _serialize_nav(page: models.HongarPage) -> dict:
         "position": page.position,
         "show_in_nav": page.show_in_nav,
         "is_published": page.is_published,
+        "cover_image_url": _upload_url(page.cover_image),
     }
 
 
@@ -202,7 +203,6 @@ def _serialize_full(page: models.HongarPage) -> dict:
         **_serialize_nav(page),
         "content_html": page.content_html,
         "cover_image": page.cover_image,
-        "cover_image_url": _upload_url(page.cover_image),
         "images": [_serialize_image(i) for i in page.images],
         "updated_at": page.updated_at.isoformat() if page.updated_at else None,
     }
