@@ -65,7 +65,7 @@ ALLOWED_ATTRIBUTES = {
 
 
 def sanitize_html(html: str) -> str:
-    return nh3.clean(
+    cleaned = nh3.clean(
         html,
         tags=ALLOWED_TAGS,
         attributes=ALLOWED_ATTRIBUTES,
@@ -73,6 +73,8 @@ def sanitize_html(html: str) -> str:
         link_rel="noopener noreferrer",
         filter_style_properties={"text-align"},
     )
+    # nh3 lässt style="" stehen, wenn alle Eigenschaften herausgefiltert wurden
+    return cleaned.replace(' style=""', "")
 
 
 def _upload_url(filename: Optional[str]) -> Optional[str]:

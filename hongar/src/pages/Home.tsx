@@ -44,7 +44,7 @@ export default function Home() {
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         {infoCards.length > 0 && (
-          <section className={`relative z-10 -mt-12 grid gap-4 ${infoCards.length > 1 ? 'md:grid-cols-2' : ''}`}>
+          <section className={`relative z-10 -mt-12 grid items-start gap-4 ${infoCards.length > 1 ? 'md:grid-cols-2' : ''}`}>
             {infoCards.map(card => (
               <div
                 key={card.title}
