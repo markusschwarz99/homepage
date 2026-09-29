@@ -30,6 +30,21 @@ updates:
     commit-message:
       prefix: "deps(frontend)"
 
+  # hongar-Website npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/hongar"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Vienna"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "hongar"
+    commit-message:
+      prefix: "deps(hongar)"
+
   # E2E test dependencies
   - package-ecosystem: "npm"
     directory: "/e2e"
