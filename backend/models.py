@@ -30,6 +30,10 @@ class User(Base):
     def is_member(self):
         return self.role in ("member", "household", "admin")
 
+    @property
+    def is_hongar_editor(self):
+        return self.role in ("hongar", "admin")
+
 class ShoppingItem(Base):
     __tablename__ = "shopping_items"
     id = Column(Integer, primary_key=True, index=True)
@@ -501,3 +505,51 @@ class CVEducation(Base):
     beschreibung = Column(Text, nullable=False)
     sort_order = Column(Integer, nullable=False, default=0)
 
+
+
+class HongarPage(Base):
+    __tablename__ = "hongar_pages"
+    __table_args__ = (UniqueConstraint("slug", name="uq_hongar_pages_slug"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String(100), nullable=False)
+    title = Column(String(200), nullable=False)
+    parent_id = Column(
+        Integer,
+        ForeignKey("hongar_pages.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    position = Column(Integer, nullable=False, default=0, server_default="0")
+    content_html = Column(Text, nullable=False, default="", server_default="")
+    cover_image = Column(String, nullable=True)
+    is_published = Column(Boolean, nullable=False, default=False, server_default="false")
+    show_in_nav = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    images = relationship(
+        "HongarPageImage",
+        cascade="all, delete-orphan",
+        order_by="HongarPageImage.position",
+    )
+
+
+class HongarPageImage(Base):
+    __tablename__ = "hongar_page_images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(
+        Integer,
+        ForeignKey("hongar_pages.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    filename = Column(String, nullable=False)
+    caption = Column(String(300), nullable=False, default="", server_default="")
+    position = Column(Integer, nullable=False, default=0, server_default="0")

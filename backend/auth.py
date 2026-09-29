@@ -74,6 +74,14 @@ def require_household(current_user: models.User = Depends(get_current_user)):
         )
     return current_user
 
+def require_hongar_editor(current_user: models.User = Depends(get_current_user)):
+    if not current_user.is_hongar_editor:
+        raise HTTPException(
+            status_code=403,
+            detail="Nur die hongar-Redaktion hat Zugriff"
+        )
+    return current_user
+
 def require_admin(current_user: models.User = Depends(get_current_user)):
     if not current_user.is_admin:
         raise HTTPException(
