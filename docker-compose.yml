@@ -24,6 +24,17 @@ services:
     ports:
       - "80:80"
 
+  hongar:
+    build:
+      context: ./hongar
+      args:
+        VITE_API_URL: https://api.markus-schwarz.cc
+    environment:
+      API_URL: https://api.markus-schwarz.cc
+    restart: always
+    ports:
+      - "8081:80"
+
   db:
     image: postgres:16
     restart: always

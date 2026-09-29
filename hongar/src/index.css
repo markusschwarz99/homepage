@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@plugin "@tailwindcss/typography";
+
+@theme {
+  /* Alm-Palette: Wald, Wiese, Holz, Heu */
+  --color-alm-forest: #2f4a3a;
+  --color-alm-forest-dark: #22372b;
+  --color-alm-meadow: #6f8f4e;
+  --color-alm-wood: #8a5a36;
+  --color-alm-wood-dark: #6b4428;
+  --color-alm-cream: #f7f3ea;
+  --color-alm-sand: #ece4d3;
+  --color-alm-line: #ddd3bf;
+  --color-alm-stone: #2d2a26;
+  --color-alm-muted: #6e675e;
+
+  /* Selbst gehostet via @fontsource (kein Google-Fonts-Request) */
+  --font-sans: "Source Sans 3 Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
+}
+
+@layer base {
+  body {
+    @apply bg-alm-cream font-sans text-alm-stone antialiased;
+  }
+}
+
+/* TipTap: Platzhalter im leeren Editor + markiertes Bild */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-alm-muted);
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 3px solid var(--color-alm-forest);
+}

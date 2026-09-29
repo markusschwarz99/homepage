@@ -1,0 +1,27 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Security-Header. Achtung nginx-Vererbung: Sobald eine location ein
+    # eigenes add_header hat, gelten diese hier dort NICHT mehr. Deshalb
+    # nutzt die Asset-location unten nur "expires" (kein add_header).
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
+    # Webcam-Bilder kommen (vorerst) direkt von hongar.at.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: ${API_URL} https://hongar.at; font-src 'self' data:; connect-src 'self' ${API_URL}; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+    # Solange hongar.at parallel mit denselben Inhalten läuft: nicht indexieren.
+    add_header X-Robots-Tag "noindex, nofollow" always;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Vite-Assets haben Content-Hashes im Namen -> lange cachen.
+    location /assets/ {
+        expires 1y;
+    }
+}
