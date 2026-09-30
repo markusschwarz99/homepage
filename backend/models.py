@@ -522,3 +522,20 @@ class HongarEvent(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+
+class HongarClosure(Base):
+    """Betriebsurlaub der hongar-Website (von/bis jeweils inklusive)."""
+    __tablename__ = "hongar_closures"
+
+    id = Column(Integer, primary_key=True, index=True)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False, index=True)
+    note = Column(String(300), nullable=False, default="", server_default="")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )

@@ -146,6 +146,84 @@ class TestEvents:
         assert client.get("/hongar/admin/events", headers=auth_headers).status_code == 403
 
 
+def _closure(db_session, start=1, end=7, note=""):
+    closure = models.HongarClosure(
+        start_date=date.today() + timedelta(days=start),
+        end_date=date.today() + timedelta(days=end),
+        note=note,
+    )
+    db_session.add(closure)
+    db_session.commit()
+    db_session.refresh(closure)
+    return closure
+
+
+class TestClosures:
+    def test_private_mode_gated(self, client, private_mode):
+        assert client.get("/hongar/closures").status_code == 401
+
+    def test_public_list_current_and_upcoming_sorted(self, client, public_mode, db_session):
+        _closure(db_session, start=-10, end=-1, note="Vorbei")
+        _closure(db_session, start=30, end=40, note="Später")
+        _closure(db_session, start=-2, end=0, note="Läuft")
+        notes = [c["note"] for c in client.get("/hongar/closures").json()]
+        assert notes == ["Läuft", "Später"]
+
+    def test_admin_list_includes_past(self, client, hongar_headers, db_session):
+        _closure(db_session, start=-10, end=-1, note="Vorbei")
+        _closure(db_session, start=1, end=2, note="Bald")
+        r = client.get("/hongar/admin/closures", headers=hongar_headers)
+        assert [c["note"] for c in r.json()] == ["Vorbei", "Bald"]
+
+    def test_create_update_delete(self, client, hongar_headers):
+        r = client.post("/hongar/closures", headers=hongar_headers, json={
+            "start_date": "2030-11-03",
+            "end_date": "2030-11-20",
+            "note": " Ab 21. November wieder für euch da ",
+        })
+        assert r.status_code == 200
+        closure = r.json()
+        assert closure["start_date"] == "2030-11-03"
+        assert closure["note"] == "Ab 21. November wieder für euch da"
+
+        r = client.patch(f"/hongar/closures/{closure['id']}", headers=hongar_headers, json={
+            "end_date": "2030-11-25",
+        })
+        assert r.status_code == 200
+        assert r.json()["end_date"] == "2030-11-25"
+        assert r.json()["start_date"] == "2030-11-03"
+
+        assert client.delete(f"/hongar/closures/{closure['id']}", headers=hongar_headers).status_code == 200
+        assert client.delete(f"/hongar/closures/{closure['id']}", headers=hongar_headers).status_code == 404
+
+    def test_single_day_allowed(self, client, hongar_headers):
+        r = client.post("/hongar/closures", headers=hongar_headers, json={
+            "start_date": "2030-12-24", "end_date": "2030-12-24",
+        })
+        assert r.status_code == 200
+
+    def test_end_before_start_rejected(self, client, hongar_headers, db_session):
+        assert client.post("/hongar/closures", headers=hongar_headers, json={
+            "start_date": "2030-11-20", "end_date": "2030-11-03",
+        }).status_code == 422
+        closure = _closure(db_session, start=10, end=20)
+        r = client.patch(f"/hongar/closures/{closure.id}", headers=hongar_headers, json={
+            "start_date": (date.today() + timedelta(days=30)).isoformat(),
+        })
+        assert r.status_code == 400
+        db_session.refresh(closure)
+        assert closure.start_date == date.today() + timedelta(days=10)
+
+    def test_member_and_guest_cannot_write(self, client, auth_headers, guest_headers, db_session):
+        body = {"start_date": "2030-01-01", "end_date": "2030-01-02"}
+        assert client.post("/hongar/closures", headers=auth_headers, json=body).status_code == 403
+        assert client.post("/hongar/closures", headers=guest_headers, json=body).status_code == 403
+        closure = _closure(db_session)
+        assert client.patch(f"/hongar/closures/{closure.id}", headers=auth_headers, json={"note": "x"}).status_code == 403
+        assert client.delete(f"/hongar/closures/{closure.id}", headers=auth_headers).status_code == 403
+        assert client.get("/hongar/admin/closures", headers=auth_headers).status_code == 403
+
+
 class TestEditorPermissions:
     def test_guest_cannot_write_settings(self, client, guest_headers):
         r = client.patch("/hongar/settings", headers=guest_headers, json={"news": "x"})

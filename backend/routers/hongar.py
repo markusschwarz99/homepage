@@ -4,20 +4,25 @@ hongar.markus-schwarz.cc – API für die Almgasthof-Website.
 Die Seiten sind im hongar-Frontend fest gestaltet; ihre Texte liegen als JSON
 im site_settings-Key "hongar_content" (nicht im öffentlichen Repo, Pflege per
 scripts/hongar_content.py). Über die Redaktion bearbeitbar sind nur die
-globalen Texte (Aktuelles, Öffnungszeiten, Kontakt, Links) und die
-Veranstaltungen.
+globalen Texte (Aktuelles, Öffnungszeiten, Kontakt, Links), die
+Veranstaltungen und der Betriebsurlaub.
 
 Lesen (öffentlich bei HONGAR_PUBLIC=true, sonst nur hongar-Redaktion/Admin):
 - GET    /hongar/config                      — {public: bool}, immer offen
 - GET    /hongar/content                     — Seiteninhalte (JSON)
 - GET    /hongar/settings                    — globale Texte (Öffnungszeiten, …)
 - GET    /hongar/events                      — kommende Veranstaltungen
+- GET    /hongar/closures                    — aktueller + kommender Betriebsurlaub
 
 Redaktion (Rolle hongar oder admin):
 - GET    /hongar/admin/events                — alle Veranstaltungen inkl. vergangener
 - POST   /hongar/events                      — Veranstaltung anlegen
 - PATCH  /hongar/events/{id}                 — Veranstaltung ändern
 - DELETE /hongar/events/{id}                 — Veranstaltung löschen
+- GET    /hongar/admin/closures              — Betriebsurlaub inkl. vergangener
+- POST   /hongar/closures                    — Betriebsurlaub anlegen
+- PATCH  /hongar/closures/{id}               — Betriebsurlaub ändern
+- DELETE /hongar/closures/{id}               — Betriebsurlaub löschen
 - PATCH  /hongar/settings                    — globale Texte ändern
 
 Rich-Text wird beim Speichern serverseitig mit nh3 gegen eine Allowlist
@@ -32,7 +37,7 @@ from typing import Optional
 import nh3
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.orm import Session
 
 from auth import get_current_user, require_hongar_editor
@@ -121,6 +126,24 @@ class EventUpdate(BaseModel):
         return None if v is None else EventCreate._title(v)
 
 
+class ClosureCreate(BaseModel):
+    start_date: date
+    end_date: date
+    note: str = Field(default="", max_length=300)
+
+    @model_validator(mode="after")
+    def _range(self):
+        if self.end_date < self.start_date:
+            raise ValueError("Ende darf nicht vor dem Beginn liegen")
+        return self
+
+
+class ClosureUpdate(BaseModel):
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    note: Optional[str] = Field(default=None, max_length=300)
+
+
 class HongarSettings(BaseModel):
     opening_hours: str = ""
     news: str = ""
@@ -172,6 +195,28 @@ def _get_event(db: Session, event_id: int) -> models.HongarEvent:
     return event
 
 
+def _serialize_closure(closure: models.HongarClosure) -> dict:
+    return {
+        "id": closure.id,
+        "start_date": closure.start_date.isoformat(),
+        "end_date": closure.end_date.isoformat(),
+        "note": closure.note,
+    }
+
+
+def _ordered_closures(db: Session):
+    return db.query(models.HongarClosure).order_by(
+        models.HongarClosure.start_date, models.HongarClosure.id
+    )
+
+
+def _get_closure(db: Session, closure_id: int) -> models.HongarClosure:
+    closure = db.query(models.HongarClosure).filter(models.HongarClosure.id == closure_id).first()
+    if not closure:
+        raise HTTPException(status_code=404, detail="Betriebsurlaub nicht gefunden")
+    return closure
+
+
 def _check_https_lines(field: str, value: str):
     for line in value.splitlines():
         line = line.strip()
@@ -206,6 +251,12 @@ def get_content(db: Session = Depends(get_db), _=Depends(hongar_viewer)):
 def list_upcoming_events(db: Session = Depends(get_db), _=Depends(hongar_viewer)):
     events = _ordered_events(db).filter(models.HongarEvent.event_date >= date.today()).all()
     return [_serialize_event(e) for e in events]
+
+
+@router.get("/closures")
+def list_current_closures(db: Session = Depends(get_db), _=Depends(hongar_viewer)):
+    closures = _ordered_closures(db).filter(models.HongarClosure.end_date >= date.today()).all()
+    return [_serialize_closure(c) for c in closures]
 
 
 @router.get("/settings", response_model=HongarSettings)
@@ -256,6 +307,53 @@ def delete_event(event_id: int, db: Session = Depends(get_db), _=Depends(require
     db.delete(_get_event(db, event_id))
     db.commit()
     return {"message": "Veranstaltung gelöscht"}
+
+
+# ---------- Redaktion: Betriebsurlaub ----------
+
+@router.get("/admin/closures")
+def list_all_closures(db: Session = Depends(get_db), _=Depends(require_hongar_editor)):
+    return [_serialize_closure(c) for c in _ordered_closures(db).all()]
+
+
+@router.post("/closures")
+def create_closure(data: ClosureCreate, db: Session = Depends(get_db), _=Depends(require_hongar_editor)):
+    closure = models.HongarClosure(
+        start_date=data.start_date,
+        end_date=data.end_date,
+        note=data.note.strip(),
+    )
+    db.add(closure)
+    db.commit()
+    db.refresh(closure)
+    return _serialize_closure(closure)
+
+
+@router.patch("/closures/{closure_id}")
+def update_closure(
+    closure_id: int,
+    data: ClosureUpdate,
+    db: Session = Depends(get_db),
+    _=Depends(require_hongar_editor),
+):
+    closure = _get_closure(db, closure_id)
+    for key, value in data.model_dump(exclude_unset=True).items():
+        if value is None:
+            continue
+        setattr(closure, key, value.strip() if isinstance(value, str) else value)
+    if closure.end_date < closure.start_date:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Ende darf nicht vor dem Beginn liegen")
+    db.commit()
+    db.refresh(closure)
+    return _serialize_closure(closure)
+
+
+@router.delete("/closures/{closure_id}")
+def delete_closure(closure_id: int, db: Session = Depends(get_db), _=Depends(require_hongar_editor)):
+    db.delete(_get_closure(db, closure_id))
+    db.commit()
+    return {"message": "Betriebsurlaub gelöscht"}
 
 
 # ---------- Redaktion: globale Texte ----------
