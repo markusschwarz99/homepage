@@ -206,9 +206,9 @@ def upgrade() -> None:
     seasonal_items_table = sa.table(
         'seasonal_items',
         sa.column('name', sa.String),
-        sa.column('category', sa.String),
+        sa.column('category', postgresql.ENUM(name='seasonal_category', create_type=False)),
         sa.column('months', postgresql.ARRAY(sa.Integer())),
-        sa.column('availability', sa.String),
+        sa.column('availability', postgresql.ENUM(name='seasonal_availability', create_type=False)),
         sa.column('notes', sa.Text),
     )
     op.bulk_insert(seasonal_items_table, SEED_ITEMS)
