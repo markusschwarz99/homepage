@@ -83,6 +83,32 @@ Persönliche Homepage mit vier Hauptbereichen:
   bzw. `~/hongar-content/`. Beispielbilder (Wikimedia Commons, CC BY/BY-SA) liegen in
   `hongar/public/img/` als WebP; jedes neue Bild MUSS in `src/lib/credits.ts`
   (Bildnachweis im Impressum).
+- **Teamretreat-App** (`rp.markus-schwarz.cc`, Teneriffa 18.–23.10.2026, kurzlebig):
+  komplett eigener Stack unter `retreat/` mit EIGENEM Compose-File
+  `retreat/docker-compose.yml` (`name: retreat`, Services `retreat-backend` +
+  `retreat-frontend`, Volume `retreat_data`, Host-Port 8083 via `RETREAT_PORT`) –
+  unabhängig vom Homepage-Compose (dessen `build`/`up` fasst ihn nicht an).
+  Backend: FastAPI + SQLAlchemy mit **SQLite** (`/data/retreat.db`), **bewusst ohne
+  Alembic** (`create_all` beim Start; Schema-Änderung = `export` → Volume neu → `load`).
+  Keine Secrets/kein env_file. Frontend (Vite/React/Tailwind wie hongar) proxyt `/api`
+  per nginx auf das Backend → same origin, kein CORS, kein `VITE_API_URL`.
+  Zugriff: persönlicher Link `?k=<token>` (Token in Tabelle `people`, Bearer-Header,
+  localStorage `retreat_token`), Orga-Rechte über `is_orga`. Nur die Orga ändert
+  Auto-/Apartmentzuteilung (`PATCH /api/people/{id}`). Agenda/Orte/Aktivitäten sind
+  read-only JSON (`content`-Tabelle), Zeiten = lokale Zeit Atlantic/Canary.
+  Farbpalette (Royal Blue/Green/…) im `@theme` von `retreat/frontend/src/index.css`,
+  Tailwind-Defaultfarben dort per `--color-*: initial` deaktiviert.
+  **Teilnehmer-Daten NIE ins Repo** – Seed unter `~/retreat-content/seed.json`, im Repo
+  nur `seed.example.json` (Fake-Namen). Daten-Skript:
+  `docker compose -f retreat/docker-compose.yml exec -T retreat-backend python
+  scripts/retreat_data.py load|export|links|rotate` (`load` idempotent, Tokens bleiben,
+  Zuteilung nur für neue Personen außer `--reset-assignments`; `--dry-run`).
+  Deploy: `docker compose -f retreat/docker-compose.yml up -d --build`. Lokaler Test
+  ohne Prod-Impact: `RETREAT_PORT=8093 docker compose -p retreat-test -f
+  retreat/docker-compose.yml up -d --build`. CI `retreat-tests.yml` (paths-Filter
+  `retreat/**`), `backup-db.sh` exportiert den Stand mit nach `backups/`.
+  **Nach dem Retreat abbauen**: Stack `down -v` (vorher export), Dependabot-Einträge
+  `retreat` entfernen, Tunnel-Hostname löschen.
 
 Der frühere Bereich **"Mein Account"** heißt jetzt **"Einstellungen"** und nutzt ein
 eigenes `SettingsLayout` (spiegelt das `AdminLayout`-Tab-Muster) mit Unterregistern
@@ -148,6 +174,8 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
   serviert über Nginx im Container auf Port 80
 - hongar-Website baut aus `./hongar` (gleiches Muster), Host-Port 8081. Im Test-Stack
   als `hongar-test` auf 8082, nur mit `--profile hongar` (E2E-CI baut ihn nicht mit)
+- Teamretreat-App: eigener Compose-Stack `retreat/docker-compose.yml` (Projekt `retreat`),
+  Host-Port 8083 (Tunnel `rp.markus-schwarz.cc` → `http://localhost:8083`), Test-Port 8093
 - DB nur intern erreichbar (Container-Netzwerk, kein Port-Mapping)
 - Backend hat IPv6 disabled via sysctl
 - **Cloudflare Tunnel** (`cloudflared` als systemd-Service, Token-Mode) zeigt direkt
@@ -184,6 +212,7 @@ homepage/
 │   └── Dockerfile
 ├── frontend/                 # React + Vite
 ├── hongar/                   # hongar-Website (React + Vite, eigener Container)
+├── retreat/                  # Teamretreat-App (eigenes Backend+Frontend+Compose-File)
 ├── e2e/                      # Playwright-Tests
 ├── scripts/
 │   └── backup-db.sh          # DB-Backup-Skript
@@ -212,7 +241,7 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
   Dependencies) ein `feature/<name>`-Branch + PR + grüne CI vor Merge.
   Hintergrund: siehe Abschnitt "Prod-Deploy-Disziplin". Triviale Änderungen
   (README, Kommentare, Primer-Updates, `.env.example`) dürfen direkt auf `main`.
-- **Dependabot** aktiv für backend, frontend, e2e, hongar, ci
+- **Dependabot** aktiv für backend, frontend, e2e, hongar, retreat (backend+frontend), ci
 - **CI**: GitHub Actions — Backend-Tests + Frontend-Tests (Vitest) + E2E-Tests +
   Codecov, müssen grün sein. Workflow `frontend-tests.yml` macht `tsc -b --noEmit`
   + `npm run test`, `hongar-tests.yml` macht `tsc -b --noEmit` + Build für `hongar/`.
@@ -716,7 +745,12 @@ Daraus folgt:
      Damit ist `main` immer deploy-bereit.
   6. Nach Merge: `git checkout main && git pull && git branch -d feature/<name>`
      Der Remote-Branch wird durch `--delete-branch` im `gh pr merge`-Befehl
-     automatisch gelöscht. **Pflicht**: Nach jedem Merge sicherstellen, dass
+     automatisch gelöscht. **Stolperfalle Worktree**: Läuft `gh pr merge` in einem
+     Git-Worktree, während `main` im Haupt-Checkout ausgecheckt ist, meldet gh
+     `'main' is already used by worktree` – der Merge auf GitHub ist trotzdem
+     passiert (`gh pr view --json state`), nur Branch-Löschen und lokaler Checkout
+     fehlen → Remote-Branch per `git push origin --delete <branch>` nachlöschen.
+     **Pflicht**: Nach jedem Merge sicherstellen, dass
      der Branch auf GitHub wirklich weg ist — `git fetch --prune && git branch -r`
      darf den Branch nicht mehr zeigen. Übrig gebliebene Remote-Branches mit
      `git push origin --delete <branch>` nachlöschen.
