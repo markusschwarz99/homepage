@@ -97,11 +97,20 @@ Persönliche Homepage mit vier Hauptbereichen:
   Auto-/Apartmentzuteilung (`PATCH /api/people/{id}`), vergibt/entzieht Orga-Rechte
   (`is_orga` im selben PATCH, UI „Ich“ → „Orga verwalten“; letzte Orga-Person nicht
   entfernbar → 409) und pflegt Termine (Tabelle `events`, `POST/PATCH/DELETE
-  /api/events`, Dialog im Tab Kalender). **Aktivitäten sind KEINE eigene Entität**,
-  sondern Termine mit `category="activity"`; Tab „Aktivitäten & Orte“ und „Wo ich dabei
-  bin“ leiten sich aus dem Kalender ab (wie die Orte). Jeder Termin (jede Kategorie) hat
-  optional `maps_url`, `url`, Koordination (`coordinator_id`) und Teilnehmende
-  (`event_participants`); das UI zeigt nur Befülltes. URL-Felder nur `http(s)://`
+  /api/events`, Sheet im Tab Kalender). **Alles läuft über den Kalender**: keine
+  eigenen Tabs für Aktivitäten/Orte; Aktivitäten sind Termine mit
+  `category="activity"`, Ort-Infos (Adresse/Maps/Telefon) stehen im Termin-Detail.
+  Jeder Termin (jede Kategorie) hat optional `maps_url`, `url`, Koordination
+  (`coordinator_id`) und Teilnehmende (`event_participants`); das UI zeigt nur
+  Befülltes. Umschalter „Mein Kalender | Alle“ (Heute + Kalender, localStorage
+  `retreat_scope`), Regel `isMine()` in `src/lib/agenda.ts`: Koordination/eingetragen
+  → ja; Teilnehmende eingetragen, ich nicht → nein; niemand eingetragen →
+  Arbeitsblock/Mahlzeit/Transfer für alle, Aktivität für niemanden. Tabs: Heute,
+  Kalender, Ich, Autos, Apartments. **iOS-Design** in der Palette: Bausteine in
+  `components/ui.tsx` (`Section`/`Row`/`ValueRow` = inset grouped list, `Segmented`,
+  `Switch`, `CheckRow`), `WeekStrip.tsx`, Sheets über `components/Modal.tsx`
+  (`SheetHeader` mit Abbrechen/Sichern); Hintergrund `--color-canvas` = Tönung von
+  Grey-25 auf Weiß. URL-Felder nur `http(s)://`
   (Pydantic-Pattern `Url` in `schemas.py`, gegen `javascript:` in href).
   Validierungsfehler liefert ein globaler Handler als EIN deutscher String in `detail`.
   SQLite läuft mit `PRAGMA foreign_keys=ON` (`database.py`), sonst greift kein
@@ -118,7 +127,6 @@ Persönliche Homepage mit vier Hauptbereichen:
   Retreat-Stack!) → `up -d --build` → `load --reset-assignments --reset-events` →
   Export mit Vorher-Stand vergleichen (Personen/Tokens/Zuteilung müssen identisch sein).
   Vorher IMMER auf dem Test-Stack mit einer Kopie der Live-Daten durchspielen.
-  Dialoge über `components/Modal.tsx` (Bottom-Sheet mobil, zentriert am Desktop).
   Farbpalette (Royal Blue/Green/…) im `@theme` von `retreat/frontend/src/index.css`,
   Tailwind-Defaultfarben dort per `--color-*: initial` deaktiviert.
   **Teilnehmer-Daten NIE ins Repo** – Seed unter `~/retreat-content/seed.json`, im Repo
