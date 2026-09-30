@@ -93,7 +93,9 @@ Persönliche Homepage mit vier Hauptbereichen:
   Keine Secrets/kein env_file. Frontend (Vite/React/Tailwind wie hongar) proxyt `/api`
   per nginx auf das Backend → same origin, kein CORS, kein `VITE_API_URL`.
   Zugriff: persönlicher Link `?k=<token>` (Token in Tabelle `people`, Bearer-Header,
-  localStorage `retreat_token`), Orga-Rechte über `is_orga`. Nur die Orga ändert
+  localStorage `retreat_token`), Orga-Rechte über `is_orga`. `?k=` bleibt BEWUSST in der
+  URL (`keepTokenInUrl()` nach jedem Tab-Wechsel): iOS-„Zum Home-Bildschirm“ speichert
+  die aktuelle URL und die Home-Bildschirm-App hat eigenen, leeren localStorage. Nur die Orga ändert
   Auto-/Apartmentzuteilung (`PATCH /api/people/{id}`), vergibt/entzieht Orga-Rechte
   (`is_orga` im selben PATCH, UI „Ich“ → „Orga verwalten“; letzte Orga-Person nicht
   entfernbar → 409) und pflegt Termine (Tabelle `events`, `POST/PATCH/DELETE
