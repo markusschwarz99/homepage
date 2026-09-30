@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { useRetreatContext } from './lib/retreat'
 import { Apartments } from './pages/Apartments'
+import { Calendar } from './pages/Calendar'
 import { Cars } from './pages/Cars'
 import { Me } from './pages/Me'
 import { Places } from './pages/Places'
@@ -36,6 +37,7 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Today />} />
+          <Route path="kalender" element={<Calendar />} />
           <Route path="ich" element={<Me />} />
           <Route path="autos" element={<Cars />} />
           <Route path="apartments" element={<Apartments />} />

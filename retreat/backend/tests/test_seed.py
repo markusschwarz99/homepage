@@ -44,3 +44,28 @@ def test_event_end_after_start(seed):
     data["content"]["events"][0]["end"] = data["content"]["events"][0]["start"]
     with pytest.raises(ValidationError):
         Seed.model_validate(data)
+
+
+def test_reload_keeps_edited_events(db, seed):
+    from models import Event
+
+    db.query(Event).first().title = "Geändert"
+    db.commit()
+    load_seed(db, seed)
+    assert db.query(Event).filter(Event.title == "Geändert").count() == 1
+    load_seed(db, seed, reset_events=True)
+    assert db.query(Event).filter(Event.title == "Geändert").count() == 0
+    assert db.query(Event).count() == len(seed.content.events)
+
+
+def test_legacy_content_blob_migrates_events(db, seed):
+    """Alt-DB: Events lagen im Content-Blob, Tabelle leer -> load übernimmt sie."""
+    from models import Content, Event
+
+    db.query(Event).delete()
+    db.get(Content, 1).data = seed.content.model_dump(mode="json")
+    db.commit()
+    log = load_seed(db, seed)
+    assert db.query(Event).count() == len(seed.content.events)
+    assert "events" not in db.get(Content, 1).data
+    assert "~ content" in log

@@ -1,12 +1,13 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Response, status
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 import models
 from auth import require_orga, require_person
 from database import Base, engine, get_db
-from schemas import Content, PersonOut, PersonUpdate, StateOut
+from schemas import ContentOut, Event, EventOut, EventUpdate, PersonOut, PersonUpdate, StateOut
 
 
 @asynccontextmanager
@@ -47,8 +48,75 @@ def get_state(
         apartments=db.query(models.Apartment)
         .order_by(models.Apartment.sort, models.Apartment.id)
         .all(),
-        content=Content.model_validate(content.data),
+        content=ContentOut.model_validate({**content.data, "events": _events(db)}),
     )
+
+
+def _events(db: Session) -> list[EventOut]:
+    rows = db.query(models.Event).order_by(models.Event.start, models.Event.end, models.Event.id)
+    return [EventOut.model_validate(e) for e in rows]
+
+
+def _check_place(db: Session, place: str | None) -> None:
+    if place is None:
+        return
+    content = db.get(models.Content, 1)
+    ids = {p["id"] for p in (content.data.get("places", []) if content else [])}
+    if place not in ids:
+        raise HTTPException(status_code=422, detail="Unbekannter Ort.")
+
+
+@app.post("/api/events", response_model=EventOut, status_code=status.HTTP_201_CREATED)
+def create_event(
+    body: Event,
+    _orga: models.Person = Depends(require_orga),
+    db: Session = Depends(get_db),
+):
+    _check_place(db, body.place)
+    event = models.Event(**body.model_dump())
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+@app.patch("/api/events/{event_id}", response_model=EventOut)
+def update_event(
+    event_id: int,
+    body: EventUpdate,
+    _orga: models.Person = Depends(require_orga),
+    db: Session = Depends(get_db),
+):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Termin nicht gefunden.")
+    values = Event.model_validate(event, from_attributes=True).model_dump()
+    values.update(body.model_dump(exclude_unset=True))
+    try:
+        merged = Event.model_validate(values)
+    except ValidationError as e:
+        msg = e.errors()[0]["msg"].removeprefix("Value error, ")
+        raise HTTPException(status_code=422, detail=msg) from None
+    _check_place(db, merged.place)
+    for key, value in merged.model_dump().items():
+        setattr(event, key, value)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+@app.delete("/api/events/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_event(
+    event_id: int,
+    _orga: models.Person = Depends(require_orga),
+    db: Session = Depends(get_db),
+):
+    event = db.get(models.Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Termin nicht gefunden.")
+    db.delete(event)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _conflict(detail: str) -> HTTPException:

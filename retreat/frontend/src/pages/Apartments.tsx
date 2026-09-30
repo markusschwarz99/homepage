@@ -12,7 +12,7 @@ export function Apartments() {
       {me.is_orga && (
         <p className="mb-3 text-sm text-grey">Orga: Personen per Auswahl in ein anderes Apartment verschieben.</p>
       )}
-      <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {apartments.map(apt => {
           const members = people.filter(p => p.apartment_id === apt.id)
           return (

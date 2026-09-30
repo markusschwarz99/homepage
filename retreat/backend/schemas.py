@@ -26,16 +26,33 @@ class Place(BaseModel):
 class Event(BaseModel):
     start: LocalDateTime
     end: LocalDateTime
-    title: str
+    title: str = Field(min_length=1, max_length=200)
     category: Category
     place: str | None = None
-    note: str | None = None
+    note: str | None = Field(default=None, max_length=500)
 
     @model_validator(mode="after")
     def _end_after_start(self):
         if self.end <= self.start:
             raise ValueError(f"Event '{self.title}': end muss nach start liegen")
         return self
+
+
+class EventOut(Event):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
+class EventUpdate(BaseModel):
+    """Teil-Update; wird mit dem bestehenden Termin zu einem Event gemerged."""
+
+    start: str | None = None
+    end: str | None = None
+    title: str | None = None
+    category: Category | None = None
+    place: str | None = None
+    note: str | None = None
 
 
 class Activity(BaseModel):
@@ -155,12 +172,16 @@ class ApartmentOut(BaseModel):
     capacity: int
 
 
+class ContentOut(Content):
+    events: list[EventOut] = []
+
+
 class StateOut(BaseModel):
     me: PersonOut
     people: list[PersonOut]
     cars: list[CarOut]
     apartments: list[ApartmentOut]
-    content: Content
+    content: ContentOut
 
 
 class PersonUpdate(BaseModel):
