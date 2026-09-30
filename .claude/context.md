@@ -234,7 +234,8 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
   Wird E2E auf `main` nach einem harmlosen Merge rot, zuerst im CI-Log
   (`Wait for backend`) nach Import-Fehlern schauen — der Bruch kommt dann oft
   von upstream, nicht vom PR. Beispiel: SQLAlchemy 2.1 erwartet für
-  `postgresql://` den psycopg-v3-Treiber → gepinnt auf `sqlalchemy<2.1` (#131).
+  `postgresql://` den psycopg-v3-Treiber → war zeitweise auf `sqlalchemy<2.1`
+  gepinnt (#131), seit #157 läuft das Backend auf SQLAlchemy 2.1 + `psycopg[binary]`.
 - **Migrations**: Alembic — bei Schema-Änderungen immer `alembic revision --autogenerate
   -m "..."` im Backend-Container generieren, dann `docker cp` ins Repo (Backend hat
   keinen Volume-Mount). Migrations laufen automatisch beim Container-Start via
@@ -267,6 +268,10 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
   Das File, dessen `revision`-Wert in keinem `down_revision` auftaucht, ist der
   echte Head. Falsche `down_revision` erzeugt "Multiple head revisions" beim
   `alembic upgrade head`.
+  **Stolperfalle psycopg 3 + `bulk_insert`**: psycopg 3 castet Bind-Parameter
+  explizit (`::VARCHAR`). In `sa.table()`-Hilfstabellen Enum-Spalten daher als
+  `postgresql.ENUM(name='<enum>', create_type=False)` typisieren, NICHT als
+  `sa.String` — sonst `DatatypeMismatch` auf frischer DB (pytest/SQLite merkt es nicht).
   **Stolperfalle bei handgeschriebenen Revision-IDs**: keine "schönen" IDs wie
   `a7b8c9d0e1f2` ausdenken – genau die gab es schon, Folge: "Cycle is detected in
   revisions". Neue ID zufällig erzeugen
@@ -344,11 +349,12 @@ selbst ausführen. Trotzdem gilt:
   (pytest/TS-Check) laufen NIE über den Prod-Stack, sondern immer über den
   Test-Stack (siehe `docker compose build`-Abschnitt).
 
-- **Primer-Updates** liefere immer als Bash-Befehl (nicht als "ergänze
-  Zeile X in Datei Y"). Die Datei liegt unter `~/homepage/.claude/context.md`.
+- **Primer-Updates** führe ich (Claude) selbst durch: Datei
+  `~/homepage/.claude/context.md` patchen, direkt auf `main` committen und
+  pushen (triviale Änderung, kein Feature-Branch). Den Diff zeige ich im Verlauf.
   Format wie alle anderen File-Edits: `python3 << 'PYEOF'` für punktuelle
   Replaces, `cat > ... << 'EOF'` für komplette Abschnitte, `sed -i` für
-  einfache Substitutionen. Ich committe selbst.
+  einfache Substitutionen.
 
 ## Arbeitsweise vor dem Code
 
@@ -746,8 +752,8 @@ ausrollen wollen, ohne sie vorher gesehen zu haben?"* Wenn nein → Feature-Bran
 ## Am Ende dieses Chats
 
 Bevor wir den Chat beenden, prüfe bitte aktiv, ob dieser Context-Primer aktualisiert
-werden sollte. Erinnere mich am Ende des Chats explizit daran und schlage konkrete
-Diffs vor, falls einer dieser Punkte zutrifft:
+werden sollte, und führe das Update selbst durch (patchen, auf `main` committen,
+pushen), falls einer dieser Punkte zutrifft:
 
 - Es wurde eine neue Dependency, ein neuer Service oder ein neues Tool hinzugefügt
   oder entfernt
@@ -761,6 +767,4 @@ Diffs vor, falls einer dieser Punkte zutrifft:
 
 Wenn nichts davon zutrifft, sag das einfach kurz — kein Update nötig.
 
-Format der Update-Vorschläge: konkreter Vorher/Nachher-Diff oder "ergänze unter
-Abschnitt X folgende Zeile: …", damit ich es direkt mit `nano .claude/context.md`
-übernehmen und committen kann.
+Am Ende kurz zusammenfassen, was im Primer geändert wurde (Commit-Hash + Stichpunkte).
