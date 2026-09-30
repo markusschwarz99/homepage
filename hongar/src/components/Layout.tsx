@@ -5,6 +5,7 @@ import { isEditor, useAuth } from '../lib/auth'
 import { buildNav } from '../lib/nav'
 import { useSite } from '../lib/site'
 import { webcamUrls } from '../lib/webcam'
+import { ClosureBanner, ClosureList } from './Closures'
 import Logo from './Logo'
 import RichText from './RichText'
 
@@ -21,6 +22,7 @@ export default function Layout() {
     <div className="flex min-h-screen flex-col">
       <EditorBar />
       <Header />
+      <ClosureBanner />
       <main className="flex-1">
         <Outlet />
       </main>
@@ -183,6 +185,7 @@ function Footer() {
           ) : (
             <p className="mt-3 text-sm text-alm-cream/70">Bitte telefonisch nachfragen.</p>
           )}
+          <ClosureList tone="dark" className="mt-4" />
         </div>
         <div>
           <h2 className="font-display text-lg font-semibold">Mehr</h2>

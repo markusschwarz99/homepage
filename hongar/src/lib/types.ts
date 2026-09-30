@@ -21,3 +21,10 @@ export interface User {
   email: string
   role: string
 }
+
+export interface HongarClosure {
+  id: number
+  start_date: string // YYYY-MM-DD
+  end_date: string // YYYY-MM-DD, inklusive
+  note: string
+}

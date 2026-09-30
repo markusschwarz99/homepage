@@ -24,6 +24,7 @@ import { childPages } from '../lib/nav'
 import { useSite } from '../lib/site'
 import type { HongarEvent } from '../lib/types'
 import { webcamUrls, withCacheBuster } from '../lib/webcam'
+import { ClosureList } from './Closures'
 import Gallery from './Gallery'
 import Icon from './Icon'
 import RichText from './RichText'
@@ -492,8 +493,8 @@ function InfoBlock({ first }: { first: boolean }) {
   const { settings } = useSite()
   const cards = [
     settings.news && { title: 'Aktuelles', html: settings.news, highlight: true },
-    settings.opening_hours && { title: 'Öffnungszeiten', html: settings.opening_hours, highlight: false },
-  ].filter((c): c is { title: string; html: string; highlight: boolean } => !!c)
+    settings.opening_hours && { title: 'Öffnungszeiten', html: settings.opening_hours, highlight: false, closures: true },
+  ].filter((c): c is { title: string; html: string; highlight: boolean; closures?: boolean } => !!c)
   if (cards.length === 0) return null
   return (
     <section className={`grid items-start gap-4 ${first ? 'relative z-10 -mt-12' : ''} ${cards.length > 1 ? 'md:grid-cols-2' : ''}`}>
@@ -510,6 +511,7 @@ function InfoBlock({ first }: { first: boolean }) {
             <EditLink to="/admin">Bearbeiten</EditLink>
           </div>
           <RichText html={card.html} tone={card.highlight ? 'dark' : 'light'} className="mt-4" />
+          {card.closures && <ClosureList className="mt-5" />}
         </div>
       ))}
     </section>
@@ -687,6 +689,7 @@ function ContactBlock({ block }: { block: Extract<Block, { type: 'contact' }> })
         ) : (
           <p className="mt-5 text-alm-muted">Bitte telefonisch nachfragen.</p>
         )}
+        <ClosureList className="mt-5" />
       </div>
     </div>
   )

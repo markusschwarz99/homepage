@@ -2,12 +2,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import { api } from './api'
 import type { SiteContent } from './content'
-import type { SiteSettings } from './types'
+import type { HongarClosure, SiteSettings } from './types'
 
 interface SiteContextValue {
   isPublic: boolean
   content: SiteContent
   settings: SiteSettings
+  /** aktueller + kommender Betriebsurlaub */
+  closures: HongarClosure[]
   loaded: boolean
   reload: () => void
 }
@@ -27,6 +29,7 @@ const SiteContext = createContext<SiteContextValue | null>(null)
 export function SiteProvider({ isPublic, children }: { isPublic: boolean; children: ReactNode }) {
   const [content, setContent] = useState<SiteContent>({ pages: [] })
   const [settings, setSettings] = useState<SiteSettings>(EMPTY_SETTINGS)
+  const [closures, setClosures] = useState<HongarClosure[]>([])
   const [loaded, setLoaded] = useState(false)
   const [version, setVersion] = useState(0)
 
@@ -44,6 +47,10 @@ export function SiteProvider({ isPublic, children }: { isPublic: boolean; childr
       .finally(() => {
         if (!cancelled) setLoaded(true)
       })
+    // Getrennt geladen: fehlt der Betriebsurlaub, soll die Seite trotzdem stehen.
+    api<HongarClosure[]>('/hongar/closures')
+      .then(c => !cancelled && setClosures(c))
+      .catch(() => {})
     return () => {
       cancelled = true
     }
@@ -52,8 +59,8 @@ export function SiteProvider({ isPublic, children }: { isPublic: boolean; childr
   const reload = useCallback(() => setVersion(v => v + 1), [])
 
   const value = useMemo(
-    () => ({ isPublic, content, settings, loaded, reload }),
-    [isPublic, content, settings, loaded, reload],
+    () => ({ isPublic, content, settings, closures, loaded, reload }),
+    [isPublic, content, settings, closures, loaded, reload],
   )
   return <SiteContext.Provider value={value}>{children}</SiteContext.Provider>
 }
