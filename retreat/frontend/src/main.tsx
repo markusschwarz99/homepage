@@ -6,7 +6,7 @@ import { initNowOverride } from './lib/agenda'
 import { initTokenFromUrl } from './lib/api'
 import { RetreatProvider } from './lib/retreat'
 
-// Vor dem ersten Render: ?k=<token> übernehmen (und aus der URL entfernen)
+// Vor dem ersten Render: ?k=<token> übernehmen
 initTokenFromUrl()
 initNowOverride()
 

@@ -28,14 +28,24 @@ export function clearToken() {
   }
 }
 
-/** Persönlichen Link (?k=<token>) übernehmen und aus der URL entfernen. */
+/** Persönlichen Link (?k=<token>) übernehmen. */
 export function initTokenFromUrl() {
+  const token = new URL(window.location.href).searchParams.get('k')
+  if (token) setToken(token)
+}
+
+/**
+ * ?k=<token> in der aktuellen URL halten. iOS übernimmt beim „Zum Home-Bildschirm“
+ * die aktuelle URL, und die Home-Bildschirm-App hat einen eigenen, leeren
+ * localStorage – ohne Token in der URL stünde sie dort ohne Zugang da.
+ */
+export function keepTokenInUrl() {
+  const token = getToken()
   const url = new URL(window.location.href)
-  const token = url.searchParams.get('k')
-  if (!token) return
-  setToken(token)
-  url.searchParams.delete('k')
-  window.history.replaceState(null, '', url.pathname + url.search + url.hash)
+  if (!token || url.searchParams.get('k') === token) return
+  url.searchParams.set('k', token)
+  // history.state behalten, React Router speichert dort seinen Index
+  window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash)
 }
 
 export class ApiError extends Error {
