@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { BedDouble, CalendarClock, CalendarDays, Car, UserRound, X } from 'lucide-react'
+import { keepTokenInUrl } from '../lib/api'
 import { useRetreat, useRetreatContext } from '../lib/retreat'
 
 const TABS = [
@@ -13,8 +15,11 @@ const TABS = [
 export function Layout() {
   const { content } = useRetreat()
   const { message, dismissMessage } = useRetreatContext()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const current = TABS.find(t => t.to === pathname) ?? TABS[0]
+
+  // Token nach jedem Tab-Wechsel wieder in die URL (für „Zum Home-Bildschirm“)
+  useEffect(keepTokenInUrl, [pathname, search])
 
   return (
     <div className="min-h-dvh pb-[calc(env(safe-area-inset-bottom)+5rem)] md:pb-12">
