@@ -67,6 +67,11 @@ Persönliche Homepage mit vier Hauptbereichen:
   `ALLOWED_KEYS`) und Veranstaltungen (Tabelle `hongar_events`, öffentlich nur
   kommende; je Termin „In Kalender eintragen“ (.ics) + Google-Kalender-Link, rein
   clientseitig in `hongar/src/lib/calendar.ts`, Uhrzeit aus Freitext `time_label`).
+  **Betriebsurlaub**: Tabelle `hongar_closures` (von/bis inklusive + Hinweis), Redaktion
+  unter `/admin/betriebsurlaub`, öffentlich `GET /hongar/closures` (laufend + kommend).
+  Besucher sehen ein Banner unter dem Menü (während + 60 Tage vorher,
+  `BANNER_LEAD_DAYS` in `src/lib/closures.ts`) und alle kommenden Termine bei den
+  Öffnungszeiten (`components/Closures.tsx`).
   Router `hongar.py`. Redaktion unter `hongar.markus-schwarz.cc/admin`
   (TipTap) mit dem normalen Konto, Rolle `hongar` oder `admin` (`require_hongar_editor`). Rich-Text wird beim
   Speichern mit `nh3` gesäubert (`sanitize_html`), beim Anzeigen zusätzlich mit
