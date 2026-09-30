@@ -95,12 +95,21 @@ Persönliche Homepage mit vier Hauptbereichen:
   Zugriff: persönlicher Link `?k=<token>` (Token in Tabelle `people`, Bearer-Header,
   localStorage `retreat_token`), Orga-Rechte über `is_orga`. Nur die Orga ändert
   Auto-/Apartmentzuteilung (`PATCH /api/people/{id}`) und Termine (Tabelle `events`,
-  `POST/PATCH/DELETE /api/events`, Editor-Dialog im Tab Kalender). Orte/Aktivitäten
-  sind read-only JSON (`content`-Tabelle). Zeiten werden als lokale Teneriffa-Zeit
+  `POST/PATCH/DELETE /api/events`, Editor-Dialog im Tab Kalender) und Aktivitäten
+  (Tabellen `activities` + `activity_participants`: Name, Tag, Google-Maps-Link,
+  Koordination = Person, Teilnehmende = Personen, optional Beschreibung/Info-Link;
+  `/api/activities`, Editor im Tab „Aktivitäten & Orte“). URL-Felder nur `http(s)://`
+  (Pydantic-Pattern `Url` in `schemas.py`, gegen `javascript:` in href). Validierungs-
+  fehler liefert ein globaler Handler als EIN deutscher String in `detail`. Eckdaten/
+  Orte sind read-only JSON (`content`-Tabelle). Zeiten werden als lokale Teneriffa-Zeit
   gespeichert (`"2026-10-19T07:00"`, Atlantic/Canary); Kalender `/kalender` zeigt
   zusätzlich Österreich-Zeit (`convertZone()` in `src/lib/agenda.ts`, via Intl →
-  DST-sicher). `load` übernimmt Seed-Termine NUR bei leerer `events`-Tabelle (sonst
-  würden Orga-Änderungen überschrieben) – `--reset-events` erzwingt es.
+  DST-sicher). `load` übernimmt Seed-Termine/-Aktivitäten NUR bei leerer Tabelle
+  (sonst würden Orga-Änderungen überschrieben) – `--reset-events` bzw.
+  `--reset-activities` erzwingt es. Seed-Format: `activities` auf oberster Ebene,
+  Teilnehmende als Person-Keys oder `"alle"`. Nach Go-live ist die App die Quelle
+  für Termine/Aktivitäten, NICHT `seed.json` (Backup = `export` via `backup-db.sh`).
+  Dialoge über `components/Modal.tsx` (Bottom-Sheet mobil, zentriert am Desktop).
   Farbpalette (Royal Blue/Green/…) im `@theme` von `retreat/frontend/src/index.css`,
   Tailwind-Defaultfarben dort per `--color-*: initial` deaktiviert.
   **Teilnehmer-Daten NIE ins Repo** – Seed unter `~/retreat-content/seed.json`, im Repo
