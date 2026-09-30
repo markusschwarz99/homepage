@@ -17,6 +17,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { api, assetUrl } from '../lib/api'
 import { isEditor, useAuth } from '../lib/auth'
+import { downloadIcs, googleCalendarUrl } from '../lib/calendar'
 import type { Block, ContentPage, Img, LinkItem } from '../lib/content'
 import { IMAGE_CREDITS } from '../lib/credits'
 import { childPages } from '../lib/nav'
@@ -523,6 +524,11 @@ function parseDate(value: string): Date {
   return new Date(y, m - 1, d)
 }
 
+// Link auf die aktuelle Seite (ohne Query/Hash) für den Kalendereintrag
+function pageUrl(): string {
+  return window.location.origin + window.location.pathname
+}
+
 export function EventCard({ event }: { event: HongarEvent }) {
   const day = parseDate(event.event_date)
   return (
@@ -546,6 +552,25 @@ export function EventCard({ event }: { event: HongarEvent }) {
           )}
         </p>
         {event.description && <p className="mt-2 whitespace-pre-line text-alm-stone/85">{event.description}</p>}
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-alm-forest">
+          <button
+            type="button"
+            onClick={() => downloadIcs(event, pageUrl())}
+            className="inline-flex items-center gap-1.5 hover:underline"
+          >
+            <CalendarPlus aria-hidden="true" className="h-4 w-4" />
+            In Kalender eintragen
+          </button>
+          <a
+            href={googleCalendarUrl(event, pageUrl())}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 hover:underline"
+          >
+            <ExternalLink aria-hidden="true" className="h-4 w-4" />
+            Google Kalender
+          </a>
+        </div>
       </div>
     </li>
   )
