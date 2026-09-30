@@ -9,7 +9,8 @@ export function Me() {
   const { me, people, cars, apartments, content, places } = useRetreat()
   const myActivities = sortEvents(
     content.events.filter(
-      e => e.category === 'activity' && (e.participant_ids.includes(me.id) || e.coordinator_id === me.id),
+      // alle Kategorien: überall, wo ich koordiniere oder eingetragen bin
+      e => e.participant_ids.includes(me.id) || e.coordinator_id === me.id,
     ),
   )
   const car = cars.find(c => c.id === me.car_id)
@@ -81,7 +82,7 @@ export function Me() {
         </div>
 
         <div>
-          <SectionTitle>Meine Aktivitäten</SectionTitle>
+          <SectionTitle>Wo ich dabei bin</SectionTitle>
           <Card>
             {myActivities.length ? (
               <div className="space-y-2">
@@ -97,7 +98,7 @@ export function Me() {
                 ))}
               </div>
             ) : (
-              <p>Du bist noch bei keiner Aktivität eingetragen.</p>
+              <p>Du bist noch bei keinem Programmpunkt eingetragen.</p>
             )}
           </Card>
         </div>

@@ -33,9 +33,7 @@ export function ActivityItem({ event, onEdit }: { event: RetreatEvent; onEdit?: 
       </div>
       {event.note && <p className="text-sm text-grey">{event.note}</p>}
       {place && <MapsLink place={place} className="text-sm" />}
-      <div className="mt-1">
-        <ActivityInfo event={event} />
-      </div>
+      <ActivityInfo event={event} className="mt-1" />
     </li>
   )
 }

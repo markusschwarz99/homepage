@@ -60,8 +60,8 @@ event_participants = Table(
 class Event(Base):
     """Programmpunkt; Zeiten als lokale Zeit Teneriffa ("2026-10-19T07:00").
 
-    Aktivitäten sind Termine mit category="activity" und nutzen zusätzlich
-    maps_url, url, Koordination und Teilnehmende."""
+    Aktivitäten sind Termine mit category="activity". Jede Kategorie kann
+    optional maps_url, url, Koordination und Teilnehmende haben."""
 
     __tablename__ = "events"
 

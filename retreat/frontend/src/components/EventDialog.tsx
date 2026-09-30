@@ -76,11 +76,7 @@ function EventView({ event, onEdit, onClose }: { event: RetreatEvent; onEdit: ()
         </div>
       )}
       {event.note && <p className="mt-3 text-sm">{event.note}</p>}
-      {event.category === 'activity' && (
-        <div className="mt-3">
-          <ActivityInfo event={event} expanded />
-        </div>
-      )}
+      <ActivityInfo event={event} expanded className="mt-3" />
       {error && <p className="mt-3 text-sm font-semibold">⚠ {error}</p>}
       {me.is_orga && (
         <div className="mt-5 flex gap-2">
@@ -138,6 +134,12 @@ function EventForm({
   const [coordinator, setCoordinator] = useState<number | null>(event?.coordinator_id ?? null)
   const [participants, setParticipants] = useState(() => new Set(event?.participant_ids ?? []))
   const isActivity = category === 'activity'
+  // Zusatzfelder gibt es bei jeder Kategorie; aufgeklappt, wenn schon befüllt oder Aktivität
+  const [extrasOpen] = useState(
+    () =>
+      (event?.category ?? draft?.category) === 'activity' ||
+      !!(event?.maps_url || event?.url || event?.coordinator_id || event?.participant_ids.length),
+  )
   const sortedPeople = [...people].sort((a, b) => personName(a).localeCompare(personName(b), 'de'))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -146,10 +148,9 @@ function EventForm({
   const startDt = `${day}T${start}`
   const endDt = `${end <= start ? nextDay(day) : day}T${end}`
   const valid = /^\d{4}-\d{2}-\d{2}$/.test(day) && /^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end)
-  const urlError =
-    isActivity && [mapsUrl, url].some(u => u.trim() && !/^https?:\/\/\S+$/.test(u.trim()))
-      ? 'Links müssen mit http:// oder https:// beginnen.'
-      : null
+  const urlError = [mapsUrl, url].some(u => u.trim() && !/^https?:\/\/\S+$/.test(u.trim()))
+    ? 'Links müssen mit http:// oder https:// beginnen.'
+    : null
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -162,11 +163,10 @@ function EventForm({
       category,
       place: place || null,
       note: note.trim() || null,
-      // Nur Aktivitäten haben Links, Koordination und Teilnehmende
-      maps_url: isActivity ? mapsUrl.trim() || null : null,
-      url: isActivity ? url.trim() || null : null,
-      coordinator_id: isActivity ? coordinator : null,
-      participant_ids: isActivity ? [...participants] : [],
+      maps_url: mapsUrl.trim() || null,
+      url: url.trim() || null,
+      coordinator_id: coordinator,
+      participant_ids: [...participants],
     })
     setBusy(false)
     if (err) setError(err)
@@ -243,9 +243,12 @@ function EventForm({
           <span className="font-medium">{isActivity ? 'Beschreibung' : 'Notiz'}</span>
           <textarea className={INPUT} rows={2} value={note} onChange={e => setNote(e.target.value)} maxLength={500} />
         </label>
-        {isActivity && (
-          <div className="space-y-3 rounded-lg border border-accent-lightgreen bg-accent-lightgreen-25 p-3">
-            <p className="text-sm font-semibold">Aktivität</p>
+        <details open={extrasOpen} className="rounded-lg border border-grey-50 bg-grey-25 p-3">
+          <summary className="cursor-pointer text-sm font-semibold">
+            Links, Koordination &amp; Teilnehmende (optional)
+          </summary>
+          <p className="mt-1 text-xs text-grey">Nur befüllte Angaben werden angezeigt.</p>
+          <div className="mt-3 space-y-3">
             <label className="block text-sm">
               <span className="font-medium">Google-Maps-Link</span>
               <input
@@ -317,7 +320,7 @@ function EventForm({
               />
             </label>
           </div>
-        )}
+        </details>
       </div>
       {(urlError || error) && <p className="mt-3 text-sm font-semibold">⚠ {urlError ?? error}</p>}
       <div className="mt-5 flex gap-2">

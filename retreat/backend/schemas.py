@@ -32,7 +32,7 @@ class EventBase(BaseModel):
     category: Category
     place: str | None = None
     note: str | None = Field(default=None, max_length=500)
-    # Aktivitäts-Felder (im UI nur bei category="activity")
+    # Optionale Zusatzangaben (jede Kategorie; UI zeigt nur Befülltes)
     maps_url: Url | None = None
     url: Url | None = None
 
