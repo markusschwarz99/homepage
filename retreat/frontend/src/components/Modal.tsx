@@ -41,4 +41,3 @@ export function ModalHeader({ title, onClose }: { title: ReactNode; onClose: () 
 export const INPUT = 'w-full rounded-lg border border-grey-50 bg-white px-3 py-2 text-base md:text-sm'
 export const PRIMARY_BUTTON =
   'inline-flex items-center gap-1.5 rounded-lg bg-royal-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-50'
-export const SECONDARY_BUTTON = 'inline-flex items-center gap-1.5 rounded-lg border border-grey-50 px-4 py-2 text-sm'

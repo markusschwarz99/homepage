@@ -49,8 +49,19 @@ class Person(Base):
     apartment = relationship("Apartment")
 
 
+event_participants = Table(
+    "event_participants",
+    Base.metadata,
+    Column("event_id", ForeignKey("events.id", ondelete="CASCADE"), primary_key=True),
+    Column("person_id", ForeignKey("people.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
 class Event(Base):
-    """Programmpunkt; Zeiten als lokale Zeit Teneriffa ("2026-10-19T07:00")."""
+    """Programmpunkt; Zeiten als lokale Zeit Teneriffa ("2026-10-19T07:00").
+
+    Aktivitäten sind Termine mit category="activity" und nutzen zusätzlich
+    maps_url, url, Koordination und Teilnehmende."""
 
     __tablename__ = "events"
 
@@ -61,39 +72,18 @@ class Event(Base):
     category = Column(String(10), nullable=False)  # meal | work | activity | travel
     place = Column(String(50))  # Place-ID aus dem Content
     note = Column(String(500))
-
-
-activity_participants = Table(
-    "activity_participants",
-    Base.metadata,
-    Column("activity_id", ForeignKey("activities.id", ondelete="CASCADE"), primary_key=True),
-    Column("person_id", ForeignKey("people.id", ondelete="CASCADE"), primary_key=True),
-)
-
-
-class Activity(Base):
-    """Aktivität (von der Orga editierbar), Teilnehmende = Personen."""
-
-    __tablename__ = "activities"
-
-    id = Column(Integer, primary_key=True)
-    day = Column(String(10), nullable=False)  # "2026-10-20"
-    title = Column(String(200), nullable=False)
     maps_url = Column(String(1000))
-    details = Column(String(500))
     url = Column(String(1000))
     coordinator_id = Column(Integer, ForeignKey("people.id"))
 
     coordinator = relationship("Person")
-    participants = relationship(
-        "Person", secondary=activity_participants, order_by="Person.sort"
-    )
+    participants = relationship("Person", secondary=event_participants, order_by="Person.sort")
 
 
 class Content(Base):
     """Eine Zeile (id=1): Eckdaten und Orte als validiertes JSON.
 
-    Agenda und Aktivitäten liegen in eigenen Tabellen (von der Orga editierbar)."""
+    Die Agenda (inkl. Aktivitäten) liegt in der Tabelle `events` (Orga editierbar)."""
 
     __tablename__ = "content"
 

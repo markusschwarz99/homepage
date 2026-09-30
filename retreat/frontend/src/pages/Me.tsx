@@ -1,12 +1,17 @@
-import { formatDay } from '../lib/agenda'
+import { dayOf, formatDay, sortEvents } from '../lib/agenda'
 import { useRetreat } from '../lib/retreat'
 import { byRole, firstName, personName, ROLE_LABEL } from '../lib/people'
 import { ActivityItem } from '../components/ActivityItem'
+import type { Person } from '../lib/types'
 import { Card, MapsLink, SectionTitle } from '../components/ui'
 
 export function Me() {
-  const { me, people, cars, apartments, activities, content, places } = useRetreat()
-  const myActivities = activities.filter(a => a.participant_ids.includes(me.id) || a.coordinator_id === me.id)
+  const { me, people, cars, apartments, content, places } = useRetreat()
+  const myActivities = sortEvents(
+    content.events.filter(
+      e => e.category === 'activity' && (e.participant_ids.includes(me.id) || e.coordinator_id === me.id),
+    ),
+  )
   const car = cars.find(c => c.id === me.car_id)
   const apartment = apartments.find(a => a.id === me.apartment_id)
   const carPeople = people.filter(p => car && p.car_id === car.id).sort(byRole)
@@ -82,9 +87,11 @@ export function Me() {
               <div className="space-y-2">
                 {myActivities.map(a => (
                   <div key={a.id}>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-royal-blue">{formatDay(a.day)}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-royal-blue">
+                      {formatDay(dayOf(a.start))}
+                    </p>
                     <ul>
-                      <ActivityItem activity={a} />
+                      <ActivityItem event={a} />
                     </ul>
                   </div>
                 ))}
@@ -105,6 +112,53 @@ export function Me() {
           </div>
         )}
       </div>
+
+      {me.is_orga && <OrgaAdmin />}
+    </>
+  )
+}
+
+/** Orga-Rechte vergeben/entziehen (nur für Orga sichtbar). */
+function OrgaAdmin() {
+  const { me, people, update } = useRetreat()
+  const sorted = [...people].sort((a, b) => personName(a).localeCompare(personName(b), 'de'))
+  const orgaCount = people.filter(p => p.is_orga).length
+
+  const toggle = (p: Person) => {
+    if (p.id === me.id && p.is_orga && !window.confirm('Du entziehst dir damit selbst die Orga-Rechte. Fortfahren?')) {
+      return
+    }
+    update(p.id, { is_orga: !p.is_orga })
+  }
+
+  return (
+    <>
+      <SectionTitle>Orga verwalten</SectionTitle>
+      <Card>
+        <p className="text-sm text-grey">
+          Orga-Mitglieder können Autos, Apartments, Termine und Aktivitäten bearbeiten und selbst Orga-Rechte vergeben.
+          Mindestens eine Person muss in der Orga bleiben.
+        </p>
+        <ul className="mt-3 grid gap-x-4 sm:grid-cols-2 lg:grid-cols-3">
+          {sorted.map(p => (
+            <li key={p.id}>
+              <label className="flex items-center gap-2 py-1.5">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-royal-blue"
+                  checked={p.is_orga}
+                  disabled={p.is_orga && orgaCount === 1}
+                  onChange={() => toggle(p)}
+                />
+                <span className={p.is_orga ? 'font-semibold' : ''}>
+                  {personName(p)}
+                  {p.id === me.id && ' (du)'}
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </Card>
     </>
   )
 }

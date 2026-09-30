@@ -71,20 +71,26 @@ def test_legacy_content_blob_migrates_events(db, seed):
     assert "~ content" in log
 
 
-def test_reload_keeps_edited_activities(db, seed):
-    from models import Activity
-
-    db.query(Activity).first().title = "Geändert"
-    db.commit()
-    load_seed(db, seed)
-    assert db.query(Activity).filter(Activity.title == "Geändert").count() == 1
-    load_seed(db, seed, reset_activities=True)
-    assert db.query(Activity).filter(Activity.title == "Geändert").count() == 0
-    assert db.query(Activity).count() == len(seed.activities)
-
-
-def test_seed_rejects_unknown_activity_people(seed):
+def test_seed_rejects_unknown_event_people(seed):
     data = seed.model_dump()
-    data["activities"][1]["coordinator"] = "niemand"
+    kajak = next(e for e in data["content"]["events"] if e["title"] == "Kajak")
+    kajak["coordinator"] = "niemand"
     with pytest.raises(ValidationError):
         Seed.model_validate(data)
+
+
+def test_seed_participants_alle(db, seed):
+    from models import Event, Person
+
+    strand = db.query(Event).filter(Event.title == "Strand").one()
+    assert len(strand.participants) == db.query(Person).count()
+
+
+def test_reset_events_clears_participants(db, seed):
+    from models import event_participants
+
+    before = db.execute(event_participants.select()).fetchall()
+    load_seed(db, seed, reset_events=True)
+    db.commit()
+    after = db.execute(event_participants.select()).fetchall()
+    assert len(after) == len(before)  # keine verwaisten Zeilen

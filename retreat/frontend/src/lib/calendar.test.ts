@@ -12,6 +12,10 @@ function ev(start: string, end: string): RetreatEvent {
     category: 'work',
     place: null,
     note: null,
+    maps_url: null,
+    url: null,
+    coordinator_id: null,
+    participant_ids: [],
   }
 }
 

@@ -12,8 +12,10 @@ import {
 } from './agenda'
 import type { RetreatEvent } from './types'
 
+const NO_ACTIVITY = { maps_url: null, url: null, coordinator_id: null, participant_ids: [] }
+
 function ev(start: string, end: string, title = start): RetreatEvent {
-  return { id: 0, start, end, title, category: 'work', place: null, note: null }
+  return { id: 0, start, end, title, category: 'work', place: null, note: null, ...NO_ACTIVITY }
 }
 
 const events = [
