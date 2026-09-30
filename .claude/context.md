@@ -94,8 +94,13 @@ Persönliche Homepage mit vier Hauptbereichen:
   per nginx auf das Backend → same origin, kein CORS, kein `VITE_API_URL`.
   Zugriff: persönlicher Link `?k=<token>` (Token in Tabelle `people`, Bearer-Header,
   localStorage `retreat_token`), Orga-Rechte über `is_orga`. Nur die Orga ändert
-  Auto-/Apartmentzuteilung (`PATCH /api/people/{id}`). Agenda/Orte/Aktivitäten sind
-  read-only JSON (`content`-Tabelle), Zeiten = lokale Zeit Atlantic/Canary.
+  Auto-/Apartmentzuteilung (`PATCH /api/people/{id}`) und Termine (Tabelle `events`,
+  `POST/PATCH/DELETE /api/events`, Editor-Dialog im Tab Kalender). Orte/Aktivitäten
+  sind read-only JSON (`content`-Tabelle). Zeiten werden als lokale Teneriffa-Zeit
+  gespeichert (`"2026-10-19T07:00"`, Atlantic/Canary); Kalender `/kalender` zeigt
+  zusätzlich Österreich-Zeit (`convertZone()` in `src/lib/agenda.ts`, via Intl →
+  DST-sicher). `load` übernimmt Seed-Termine NUR bei leerer `events`-Tabelle (sonst
+  würden Orga-Änderungen überschrieben) – `--reset-events` erzwingt es.
   Farbpalette (Royal Blue/Green/…) im `@theme` von `retreat/frontend/src/index.css`,
   Tailwind-Defaultfarben dort per `--color-*: initial` deaktiviert.
   **Teilnehmer-Daten NIE ins Repo** – Seed unter `~/retreat-content/seed.json`, im Repo
