@@ -144,14 +144,16 @@ export function Calendar() {
                           convertZone(event.start),
                         )}–${timeOf(convertZone(event.end))} Österreich`}
                       >
-                        <span className="block truncate font-semibold">{event.title}</span>
-                        {h >= 38 && (
+                        {/* Schmale Spalten (parallele Termine): Titel umbrechen statt abschneiden */}
+                        <span
+                          className={`block font-semibold ${lanes > 1 ? 'line-clamp-3 break-words hyphens-auto' : 'truncate'}`}
+                        >
+                          {event.title}
+                        </span>
+                        {h >= 38 && lanes < 3 && (
                           <span className="block truncate text-grey">
                             {timeOf(event.start)}–{timeOf(event.end)}
-                            <span className="text-grey-75">
-                              {' '}
-                              · AT {timeOf(convertZone(event.start))}
-                            </span>
+                            <span className="text-grey-75"> · AT {timeOf(convertZone(event.start))}</span>
                           </span>
                         )}
                         {h >= 56 && place && <span className="block truncate text-grey">{place.name}</span>}
@@ -159,7 +161,10 @@ export function Calendar() {
                     )
                   })}
                   {isToday && nowTop >= 0 && nowTop <= height && (
-                    <div className="pointer-events-none absolute inset-x-0 z-20 h-0.5 bg-royal-blue" style={{ top: nowTop }}>
+                    <div
+                      className="pointer-events-none absolute inset-x-0 z-20 h-0.5 bg-royal-blue"
+                      style={{ top: nowTop }}
+                    >
                       <span className="absolute -top-1 -left-1 h-2.5 w-2.5 rounded-full bg-royal-blue" />
                     </div>
                   )}

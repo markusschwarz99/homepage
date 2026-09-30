@@ -1,18 +1,22 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { dayOf, formatDay, timeOf } from '../lib/agenda'
-import { useRetreat } from '../lib/retreat'
-import type { Activity } from '../lib/types'
-import { ActivityDialog } from '../components/ActivityDialog'
+import { dayOf, defaultDay, formatDay, retreatDays, sortEvents, timeOf } from '../lib/agenda'
+import { useNow, useRetreat } from '../lib/retreat'
+import type { RetreatEvent } from '../lib/types'
 import { ActivityItem } from '../components/ActivityItem'
+import { EventDialog } from '../components/EventDialog'
 import { PRIMARY_BUTTON } from '../components/Modal'
 import { Card, MapsLink, PhoneLink, SectionTitle } from '../components/ui'
 
 export function Places() {
-  const { me, content, activities } = useRetreat()
-  const activityDays = [...new Set(activities.map(a => a.day))].sort()
+  const { me, content } = useRetreat()
+  const now = useNow()
+  // Aktivitäten = Kalender-Termine der Kategorie "Aktivität" (keine eigene Pflege)
+  const activities = sortEvents(content.events.filter(e => e.category === 'activity'))
+  const activityDays = [...new Set(activities.map(a => dayOf(a.start)))].sort()
   // undefined = zu, null = neue Aktivität
-  const [editing, setEditing] = useState<Activity | null | undefined>(undefined)
+  const [editing, setEditing] = useState<RetreatEvent | null | undefined>(undefined)
+  const newDay = defaultDay(retreatDays(content.events), now)
 
   return (
     <>
@@ -31,9 +35,9 @@ export function Places() {
             <h2 className="font-semibold text-royal-blue">{formatDay(day)}</h2>
             <ul className="mt-1 space-y-1">
               {activities
-                .filter(a => a.day === day)
+                .filter(a => dayOf(a.start) === day)
                 .map(a => (
-                  <ActivityItem key={a.id} activity={a} onEdit={me.is_orga ? () => setEditing(a) : undefined} />
+                  <ActivityItem key={a.id} event={a} onEdit={me.is_orga ? () => setEditing(a) : undefined} />
                 ))}
             </ul>
           </Card>
@@ -70,7 +74,14 @@ export function Places() {
         })}
       </div>
 
-      {editing !== undefined && <ActivityDialog activity={editing} onClose={() => setEditing(undefined)} />}
+      {editing !== undefined && (
+        <EventDialog
+          event={editing}
+          startEditing
+          draft={{ category: 'activity', start: `${newDay}T15:00`, end: `${newDay}T17:00` }}
+          onClose={() => setEditing(undefined)}
+        />
+      )}
     </>
   )
 }

@@ -21,20 +21,13 @@ export interface RetreatEvent {
   category: Category
   place: string | null
   note: string | null
-}
-
-export interface Activity {
-  id: number
-  day: string // "2026-10-19"
-  title: string
+  // Aktivitäts-Felder (category "activity")
   maps_url: string | null
-  details: string | null
   url: string | null
   coordinator_id: number | null
   participant_ids: number[]
 }
 
-export type ActivityInput = Omit<Activity, 'id'>
 
 export interface Content {
   info: {
@@ -79,10 +72,9 @@ export interface RetreatState {
   people: Person[]
   cars: Car[]
   apartments: Apartment[]
-  activities: Activity[]
   content: Content
 }
 
-export type PersonUpdate = Partial<Pick<Person, 'car_id' | 'car_role' | 'apartment_id'>>
+export type PersonUpdate = Partial<Pick<Person, 'car_id' | 'car_role' | 'apartment_id' | 'is_orga'>>
 
 export type EventInput = Omit<RetreatEvent, 'id'>

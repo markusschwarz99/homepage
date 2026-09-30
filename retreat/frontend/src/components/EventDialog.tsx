@@ -2,7 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { convertZone, dayOf, formatDay, timeOf } from '../lib/agenda'
 import { useRetreat } from '../lib/retreat'
+import { personName } from '../lib/people'
 import type { Category, EventInput, RetreatEvent } from '../lib/types'
+import { ActivityInfo } from './ActivityInfo'
 import { INPUT, Modal, ModalHeader as Header } from './Modal'
 import { CATEGORY, CategoryChip, MapsLink } from './ui'
 
@@ -10,18 +12,25 @@ interface Props {
   /** null = neuen Termin anlegen */
   event: RetreatEvent | null
   /** Vorbelegung für neue Termine */
-  draft?: Pick<EventInput, 'start' | 'end'>
+  draft?: Partial<EventInput>
+  /** direkt im Bearbeiten-Modus öffnen */
+  startEditing?: boolean
   onClose: () => void
 }
 
-export function EventDialog({ event, draft, onClose }: Props) {
+export function EventDialog({ event, draft, startEditing = false, onClose }: Props) {
   const { me } = useRetreat()
-  const [editing, setEditing] = useState(event === null)
+  const [editing, setEditing] = useState(event === null || startEditing)
 
   return (
     <Modal label={event ? event.title : 'Neuer Termin'} onClose={onClose}>
       {editing && me.is_orga ? (
-        <EventForm event={event} draft={draft} onDone={onClose} onCancel={event ? () => setEditing(false) : onClose} />
+        <EventForm
+          event={event}
+          draft={draft}
+          onDone={onClose}
+          onCancel={event && !startEditing ? () => setEditing(false) : onClose}
+        />
       ) : (
         event && <EventView event={event} onEdit={() => setEditing(true)} onClose={onClose} />
       )}
@@ -67,6 +76,7 @@ function EventView({ event, onEdit, onClose }: { event: RetreatEvent; onEdit: ()
         </div>
       )}
       {event.note && <p className="mt-3 text-sm">{event.note}</p>}
+      <ActivityInfo event={event} expanded className="mt-3" />
       {error && <p className="mt-3 text-sm font-semibold">⚠ {error}</p>}
       {me.is_orga && (
         <div className="mt-5 flex gap-2">
@@ -102,19 +112,35 @@ function EventForm({
   onCancel,
 }: {
   event: RetreatEvent | null
-  draft?: Pick<EventInput, 'start' | 'end'>
+  draft?: Partial<EventInput>
   onDone: () => void
   onCancel: () => void
 }) {
-  const { content, saveEvent } = useRetreat()
-  const base = event ?? draft ?? { start: '2026-10-18T09:00', end: '2026-10-18T10:00' }
+  const { content, people, saveEvent } = useRetreat()
+  const base = {
+    start: event?.start ?? draft?.start ?? '2026-10-18T09:00',
+    end: event?.end ?? draft?.end ?? '2026-10-18T10:00',
+  }
   const [day, setDay] = useState(dayOf(base.start))
   const [start, setStart] = useState(timeOf(base.start))
   const [end, setEnd] = useState(timeOf(base.end))
   const [title, setTitle] = useState(event?.title ?? '')
-  const [category, setCategory] = useState<Category>(event?.category ?? 'activity')
+  const [category, setCategory] = useState<Category>(event?.category ?? draft?.category ?? 'activity')
   const [place, setPlace] = useState(event?.place ?? '')
   const [note, setNote] = useState(event?.note ?? '')
+  // Aktivitäts-Felder
+  const [mapsUrl, setMapsUrl] = useState(event?.maps_url ?? '')
+  const [url, setUrl] = useState(event?.url ?? '')
+  const [coordinator, setCoordinator] = useState<number | null>(event?.coordinator_id ?? null)
+  const [participants, setParticipants] = useState(() => new Set(event?.participant_ids ?? []))
+  const isActivity = category === 'activity'
+  // Zusatzfelder gibt es bei jeder Kategorie; aufgeklappt, wenn schon befüllt oder Aktivität
+  const [extrasOpen] = useState(
+    () =>
+      (event?.category ?? draft?.category) === 'activity' ||
+      !!(event?.maps_url || event?.url || event?.coordinator_id || event?.participant_ids.length),
+  )
+  const sortedPeople = [...people].sort((a, b) => personName(a).localeCompare(personName(b), 'de'))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -122,9 +148,13 @@ function EventForm({
   const startDt = `${day}T${start}`
   const endDt = `${end <= start ? nextDay(day) : day}T${end}`
   const valid = /^\d{4}-\d{2}-\d{2}$/.test(day) && /^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end)
+  const urlError = [mapsUrl, url].some(u => u.trim() && !/^https?:\/\/\S+$/.test(u.trim()))
+    ? 'Links müssen mit http:// oder https:// beginnen.'
+    : null
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
+    if (urlError) return
     setBusy(true)
     const err = await saveEvent(event?.id ?? null, {
       start: startDt,
@@ -133,6 +163,10 @@ function EventForm({
       category,
       place: place || null,
       note: note.trim() || null,
+      maps_url: mapsUrl.trim() || null,
+      url: url.trim() || null,
+      coordinator_id: coordinator,
+      participant_ids: [...participants],
     })
     setBusy(false)
     if (err) setError(err)
@@ -141,7 +175,18 @@ function EventForm({
 
   return (
     <form onSubmit={submit}>
-      <Header title={event ? 'Termin bearbeiten' : 'Neuer Termin'} onClose={onCancel} />
+      <Header
+        title={
+          event
+            ? isActivity
+              ? 'Aktivität bearbeiten'
+              : 'Termin bearbeiten'
+            : isActivity
+              ? 'Neue Aktivität'
+              : 'Neuer Termin'
+        }
+        onClose={onCancel}
+      />
       <div className="mt-4 space-y-3">
         <label className="block text-sm">
           <span className="font-medium">Titel</span>
@@ -195,15 +240,93 @@ function EventForm({
           </label>
         </div>
         <label className="block text-sm">
-          <span className="font-medium">Notiz</span>
+          <span className="font-medium">{isActivity ? 'Beschreibung' : 'Notiz'}</span>
           <textarea className={INPUT} rows={2} value={note} onChange={e => setNote(e.target.value)} maxLength={500} />
         </label>
+        <details open={extrasOpen} className="rounded-lg border border-grey-50 bg-grey-25 p-3">
+          <summary className="cursor-pointer text-sm font-semibold">
+            Links, Koordination &amp; Teilnehmende (optional)
+          </summary>
+          <p className="mt-1 text-xs text-grey">Nur befüllte Angaben werden angezeigt.</p>
+          <div className="mt-3 space-y-3">
+            <label className="block text-sm">
+              <span className="font-medium">Google-Maps-Link</span>
+              <input
+                className={INPUT}
+                type="url"
+                inputMode="url"
+                placeholder="https://maps.app.goo.gl/…"
+                value={mapsUrl}
+                onChange={e => setMapsUrl(e.target.value)}
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="font-medium">Koordination</span>
+              <select
+                className={INPUT}
+                value={coordinator ?? ''}
+                onChange={e => setCoordinator(e.target.value ? Number(e.target.value) : null)}
+              >
+                <option value="">– niemand –</option>
+                {sortedPeople.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {personName(p)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <fieldset className="text-sm">
+              <div className="flex items-baseline justify-between gap-2">
+                <legend className="font-medium">Teilnehmende ({participants.size})</legend>
+                <span className="flex gap-3 text-accent-blue">
+                  <button type="button" onClick={() => setParticipants(new Set(people.map(p => p.id)))}>
+                    Alle
+                  </button>
+                  <button type="button" onClick={() => setParticipants(new Set())}>
+                    Keine
+                  </button>
+                </span>
+              </div>
+              <div className="mt-1 grid max-h-56 grid-cols-1 gap-x-3 overflow-y-auto rounded-lg border border-grey-50 bg-white p-2 sm:grid-cols-2">
+                {sortedPeople.map(p => (
+                  <label key={p.id} className="flex items-center gap-2 py-1">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-royal-blue"
+                      checked={participants.has(p.id)}
+                      onChange={() =>
+                        setParticipants(prev => {
+                          const next = new Set(prev)
+                          if (next.has(p.id)) next.delete(p.id)
+                          else next.add(p.id)
+                          return next
+                        })
+                      }
+                    />
+                    {personName(p)}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label className="block text-sm">
+              <span className="font-medium">Info-Link (optional)</span>
+              <input
+                className={INPUT}
+                type="url"
+                inputMode="url"
+                placeholder="https://…"
+                value={url}
+                onChange={e => setUrl(e.target.value)}
+              />
+            </label>
+          </div>
+        </details>
       </div>
-      {error && <p className="mt-3 text-sm font-semibold">⚠ {error}</p>}
+      {(urlError || error) && <p className="mt-3 text-sm font-semibold">⚠ {urlError ?? error}</p>}
       <div className="mt-5 flex gap-2">
         <button
           type="submit"
-          disabled={busy || !valid}
+          disabled={busy || !valid || !!urlError}
           className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
           Speichern

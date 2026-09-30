@@ -25,13 +25,16 @@ class Place(BaseModel):
     url: str | None = None
 
 
-class Event(BaseModel):
+class EventBase(BaseModel):
     start: LocalDateTime
     end: LocalDateTime
     title: str = Field(min_length=1, max_length=200)
     category: Category
     place: str | None = None
     note: str | None = Field(default=None, max_length=500)
+    # Optionale Zusatzangaben (jede Kategorie; UI zeigt nur Befülltes)
+    maps_url: Url | None = None
+    url: Url | None = None
 
     @model_validator(mode="after")
     def _end_after_start(self):
@@ -40,14 +43,22 @@ class Event(BaseModel):
         return self
 
 
-class EventOut(Event):
-    model_config = ConfigDict(from_attributes=True)
+class SeedEvent(EventBase):
+    coordinator: str | None = None  # Person-Key
+    participants: list[str] | Literal["alle"] = []  # Person-Keys
 
+
+class EventIn(EventBase):
+    coordinator_id: int | None = None
+    participant_ids: list[int] = []
+
+
+class EventOut(EventIn):
     id: int
 
 
 class EventUpdate(BaseModel):
-    """Teil-Update; wird mit dem bestehenden Termin zu einem Event gemerged."""
+    """Teil-Update; wird mit dem bestehenden Termin zu EventIn gemerged."""
 
     start: str | None = None
     end: str | None = None
@@ -55,37 +66,10 @@ class EventUpdate(BaseModel):
     category: Category | None = None
     place: str | None = None
     note: str | None = None
-
-
-class ActivityBase(BaseModel):
-    day: LocalDate
-    title: str = Field(min_length=1, max_length=200)
-    maps_url: Url | None = None
-    details: str | None = Field(default=None, max_length=500)
-    url: Url | None = None
-
-
-class ActivityIn(ActivityBase):
-    coordinator_id: int | None = None
-    participant_ids: list[int] = []
-
-
-class ActivityUpdate(BaseModel):
-    """Teil-Update; wird mit der bestehenden Aktivität zu ActivityIn gemerged."""
-
-    day: str | None = None
-    title: str | None = None
     maps_url: str | None = None
-    details: str | None = None
     url: str | None = None
     coordinator_id: int | None = None
     participant_ids: list[int] | None = None
-
-
-class ActivityOut(ActivityBase):
-    id: int
-    coordinator_id: int | None
-    participant_ids: list[int]
 
 
 class Info(BaseModel):
@@ -99,7 +83,7 @@ class Info(BaseModel):
 class Content(BaseModel):
     info: Info
     places: list[Place] = []
-    events: list[Event] = []
+    events: list[SeedEvent] = []
 
     @model_validator(mode="after")
     def _place_refs_exist(self):
@@ -142,16 +126,10 @@ class SeedPerson(BaseModel):
     token: str | None = None  # nur beim Restore aus einem Export
 
 
-class SeedActivity(ActivityBase):
-    coordinator: str | None = None  # Person-Key
-    participants: list[str] | Literal["alle"] = []  # Person-Keys
-
-
 class Seed(BaseModel):
     cars: list[SeedCar]
     apartments: list[SeedApartment]
     people: list[SeedPerson]
-    activities: list[SeedActivity] = []
     content: Content
 
     @model_validator(mode="after")
@@ -164,11 +142,11 @@ class Seed(BaseModel):
             if p.apartment and p.apartment not in apartments:
                 raise ValueError(f"{p.key}: unbekanntes Apartment '{p.apartment}'")
         people = {p.key for p in self.people}
-        for a in self.activities:
-            keys = [] if a.participants == "alle" else list(a.participants)
-            unknown = [k for k in [a.coordinator, *keys] if k and k not in people]
+        for e in self.content.events:
+            keys = [] if e.participants == "alle" else list(e.participants)
+            unknown = [k for k in [e.coordinator, *keys] if k and k not in people]
             if unknown:
-                raise ValueError(f"Aktivität '{a.title}': unbekannte Personen {unknown}")
+                raise ValueError(f"Termin '{e.title}': unbekannte Personen {unknown}")
         return self
 
 
@@ -216,7 +194,6 @@ class StateOut(BaseModel):
     people: list[PersonOut]
     cars: list[CarOut]
     apartments: list[ApartmentOut]
-    activities: list[ActivityOut]
     content: ContentOut
 
 
@@ -226,3 +203,4 @@ class PersonUpdate(BaseModel):
     car_id: int | None = None
     car_role: CarRole | None = None
     apartment_id: int | None = None
+    is_orga: bool | None = None  # Orga-Rechte vergeben/entziehen

@@ -133,3 +133,38 @@ def test_patch_unknown_ids(client, db):
                         headers=h).status_code == 404
     assert client.patch(f"/api/people/{hans.id}", json={"car_role": "pilot"},
                         headers=h).status_code == 422
+
+
+def test_orga_can_grant_and_revoke_orga(client, db):
+    ben = person(db, "ben-beispiel")
+    h = headers(db, "anna-muster")
+    res = client.patch(f"/api/people/{ben.id}", json={"is_orga": True}, headers=h)
+    assert res.status_code == 200 and res.json()["is_orga"] is True
+    # Ben darf jetzt selbst ändern, z.B. Anna die Rechte entziehen
+    anna = person(db, "anna-muster")
+    res = client.patch(f"/api/people/{anna.id}", json={"is_orga": False}, headers=headers(db, "ben-beispiel"))
+    assert res.status_code == 200 and res.json()["is_orga"] is False
+    assert client.patch(f"/api/people/{ben.id}", json={"is_orga": False}, headers=h).status_code == 403
+
+
+def test_last_orga_cannot_be_removed(client, db):
+    anna = person(db, "anna-muster")
+    res = client.patch(f"/api/people/{anna.id}", json={"is_orga": False}, headers=headers(db, "anna-muster"))
+    assert res.status_code == 409
+    assert "Orga" in res.json()["detail"]
+
+
+def test_non_orga_cannot_grant_orga(client, db):
+    ben = person(db, "ben-beispiel")
+    res = client.patch(f"/api/people/{ben.id}", json={"is_orga": True}, headers=headers(db, "ben-beispiel"))
+    assert res.status_code == 403
+
+
+def test_orga_change_skips_car_validation(client, db):
+    """Überbuchtes Auto darf einen reinen Orga-Wechsel nicht blockieren."""
+    auto1 = car(db, "auto-1")
+    auto1.seats = 1  # 3 Personen drin -> überbucht
+    db.commit()
+    ben = person(db, "ben-beispiel")
+    res = client.patch(f"/api/people/{ben.id}", json={"is_orga": True}, headers=headers(db, "anna-muster"))
+    assert res.status_code == 200

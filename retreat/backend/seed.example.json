@@ -100,25 +100,6 @@
       "last_name": "Hinz"
     }
   ],
-  "activities": [
-    {
-      "day": "2026-10-19",
-      "title": "Strand",
-      "details": "Handtuch mitnehmen",
-      "participants": "alle",
-      "maps_url": "https://www.google.com/maps/search/?api=1&query=Playa%20Beispiel"
-    },
-    {
-      "day": "2026-10-20",
-      "title": "Kajak",
-      "coordinator": "daniel-demo",
-      "participants": [
-        "ben-beispiel",
-        "clara-test"
-      ],
-      "url": "https://example.com/kajak"
-    }
-  ],
   "content": {
     "info": {
       "title": "Teamretreat 2026",
@@ -186,7 +167,22 @@
         "title": "Strand",
         "category": "activity",
         "place": "beach",
-        "note": "Sonnencreme!"
+        "note": "Sonnencreme!",
+        "participants": "alle",
+        "maps_url": "https://www.google.com/maps/search/?api=1&query=Playa%20Beispiel"
+      },
+      {
+        "start": "2026-10-20T15:00",
+        "end": "2026-10-20T17:00",
+        "title": "Kajak",
+        "category": "activity",
+        "coordinator": "daniel-demo",
+        "participants": [
+          "ben-beispiel",
+          "clara-test"
+        ],
+        "url": "https://example.com/kajak",
+        "note": "12 Plätze"
       },
       {
         "start": "2026-10-23T11:00",
