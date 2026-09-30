@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  /* Vorgegebene Palette – Tailwind-Standardfarben bewusst deaktiviert */
+  --color-*: initial;
+
+  --color-black: #000000;
+  --color-white: #ffffff;
+
+  /* Hauptakzent */
+  --color-royal-blue: #002eb1;
+  --color-royal-blue-75: #4062c5;
+  --color-royal-blue-50: #8097d8;
+  --color-royal-blue-25: #bfcbec;
+
+  /* Zweiter Akzent */
+  --color-green: #19b874;
+  --color-green-75: #53ca97;
+  --color-green-50: #8cdcba;
+  --color-green-25: #c6eddc;
+
+  /* Hellgrün: nur als Fläche mit schwarzem Text (Kontrast) */
+  --color-accent-lightgreen: #63f185;
+  --color-accent-lightgreen-75: #8af5a4;
+  --color-accent-lightgreen-50: #b1f8c2;
+  --color-accent-lightgreen-25: #d8fce1;
+
+  --color-accent-blue: #1464f4;
+  --color-accent-blue-75: #4f8bf7;
+  --color-accent-blue-50: #8ab2fa;
+  --color-accent-blue-25: #c4d8fc;
+
+  --color-grey: #556d73;
+  --color-grey-75: #809296;
+  --color-grey-50: #aab6b9;
+  --color-grey-25: #d5dbdc;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-grey-25 font-sans text-black antialiased;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent-blue;
+  }
+}

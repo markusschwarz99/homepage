@@ -1,0 +1,49 @@
+{
+  "cars": [
+    { "key": "auto-1", "name": "Auto 1", "seats": 5 },
+    { "key": "auto-2", "name": "Auto 2", "seats": 5 },
+    { "key": "taxi", "name": "Abholung/Taxi", "kind": "taxi", "seats": 8 }
+  ],
+  "apartments": [
+    { "key": "101", "number": "101", "name": "Alpha", "rooms_label": "2 Schlafzimmer", "capacity": 4 },
+    { "key": "102", "number": "102", "name": "Beta", "rooms_label": "Studio", "capacity": 2 },
+    { "key": "studio", "name": "Hotel-Studio", "rooms_label": "Studio", "capacity": 1 }
+  ],
+  "people": [
+    { "key": "anna-muster", "first_name": "Anna", "last_name": "Muster", "is_orga": true, "car": "auto-1", "car_role": "driver", "apartment": "101" },
+    { "key": "ben-beispiel", "first_name": "Ben", "last_name": "Beispiel", "car": "auto-1", "apartment": "101" },
+    { "key": "clara-test", "first_name": "Clara", "last_name": "Test", "car": "auto-1", "apartment": "101" },
+    { "key": "daniel-demo", "first_name": "Daniel", "last_name": "Demo", "display_name": "Dani", "car": "auto-2", "car_role": "driver", "apartment": "101" },
+    { "key": "eva-probe", "first_name": "Eva", "last_name": "Probe", "car": "auto-2", "car_role": "co_driver", "apartment": "102" },
+    { "key": "felix-fake", "first_name": "Felix", "last_name": "Fake", "car": "auto-2", "apartment": "102" },
+    { "key": "gina-gast", "first_name": "Gina", "last_name": "Gast", "car": "taxi", "apartment": "studio" },
+    { "key": "hans-hinz", "first_name": "Hans", "last_name": "Hinz" }
+  ],
+  "content": {
+    "info": {
+      "title": "Teamretreat 2026",
+      "location": "Teneriffa Süd",
+      "accommodation": "hotel",
+      "core_hours": "07:00–18:00",
+      "note": "Kanaren = WEST (1 h hinter MESZ)"
+    },
+    "places": [
+      { "id": "hotel", "name": "Beispiel-Hotel", "address": "Musterstraße 1, 38639 Amarilla Golf", "distance": "0 km" },
+      { "id": "cafe", "name": "Beispiel-Café", "address": "Musterstraße 3", "phone": "+34 600 00 00 00", "distance": "~300 m" },
+      { "id": "beach", "name": "Beispiel-Strand" }
+    ],
+    "events": [
+      { "start": "2026-10-18T14:20", "end": "2026-10-18T15:00", "title": "Ankunft & Transfer", "category": "travel" },
+      { "start": "2026-10-18T15:00", "end": "2026-10-18T17:00", "title": "Kick-off", "category": "work", "place": "hotel" },
+      { "start": "2026-10-18T19:00", "end": "2026-10-18T21:30", "title": "Abendessen", "category": "meal", "place": "cafe" },
+      { "start": "2026-10-19T07:00", "end": "2026-10-19T08:00", "title": "Frühstück", "category": "meal", "place": "cafe" },
+      { "start": "2026-10-19T08:00", "end": "2026-10-19T12:00", "title": "Arbeitsblock I", "category": "work" },
+      { "start": "2026-10-19T15:00", "end": "2026-10-19T17:00", "title": "Strand", "category": "activity", "place": "beach", "note": "Sonnencreme!" },
+      { "start": "2026-10-23T11:00", "end": "2026-10-23T14:25", "title": "Abreise", "category": "travel" }
+    ],
+    "activities": [
+      { "day": "2026-10-19", "title": "Strand", "details": "Handtuch mitnehmen", "participants": "alle", "place": "beach" },
+      { "day": "2026-10-20", "title": "Kajak", "participants": "12", "url": "https://example.com/kajak" }
+    ]
+  }
+}
