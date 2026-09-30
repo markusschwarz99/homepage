@@ -45,6 +45,35 @@ updates:
     commit-message:
       prefix: "deps(hongar)"
 
+  # Teamretreat-App (nach dem Retreat Okt. 2026 wieder entfernen)
+  - package-ecosystem: "pip"
+    directory: "/retreat/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Vienna"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "retreat"
+    commit-message:
+      prefix: "deps(retreat)"
+
+  - package-ecosystem: "npm"
+    directory: "/retreat/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Vienna"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "retreat"
+    commit-message:
+      prefix: "deps(retreat)"
+
   # E2E test dependencies
   - package-ecosystem: "npm"
     directory: "/e2e"
