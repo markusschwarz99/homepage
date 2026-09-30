@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { Pencil, Trash2, X } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { convertZone, dayOf, formatDay, timeOf } from '../lib/agenda'
 import { useRetreat } from '../lib/retreat'
 import type { Category, EventInput, RetreatEvent } from '../lib/types'
+import { INPUT, Modal, ModalHeader as Header } from './Modal'
 import { CATEGORY, CategoryChip, MapsLink } from './ui'
 
 interface Props {
@@ -17,42 +18,14 @@ export function EventDialog({ event, draft, onClose }: Props) {
   const { me } = useRetreat()
   const [editing, setEditing] = useState(event === null)
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 md:items-center md:p-6"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={event ? event.title : 'Neuer Termin'}
-        className="max-h-[90dvh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] shadow-xl md:max-w-lg md:rounded-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        {editing && me.is_orga ? (
-          <EventForm event={event} draft={draft} onDone={onClose} onCancel={event ? () => setEditing(false) : onClose} />
-        ) : (
-          event && <EventView event={event} onEdit={() => setEditing(true)} onClose={onClose} />
-        )}
-      </div>
-    </div>
-  )
-}
-
-function Header({ title, onClose }: { title: ReactNode; onClose: () => void }) {
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <h2 className="text-lg font-bold">{title}</h2>
-      <button type="button" onClick={onClose} aria-label="Schließen" className="-m-1 p-1 text-grey">
-        <X size={20} />
-      </button>
-    </div>
+    <Modal label={event ? event.title : 'Neuer Termin'} onClose={onClose}>
+      {editing && me.is_orga ? (
+        <EventForm event={event} draft={draft} onDone={onClose} onCancel={event ? () => setEditing(false) : onClose} />
+      ) : (
+        event && <EventView event={event} onEdit={() => setEditing(true)} onClose={onClose} />
+      )}
+    </Modal>
   )
 }
 
@@ -121,8 +94,6 @@ function nextDay(day: string): string {
   const [y, m, d] = day.split('-').map(Number)
   return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
 }
-
-const INPUT = 'w-full rounded-lg border border-grey-50 bg-white px-3 py-2 text-base md:text-sm'
 
 function EventForm({
   event,

@@ -1,16 +1,18 @@
 """Teamretreat-Daten laden, exportieren, Links ausgeben, Tokens rotieren.
 
 Aufruf im Container (Seed liegt AUSSERHALB des Repos, ~/retreat-content/):
-  python scripts/retreat_data.py load /tmp/seed.json [--reset-assignments] [--reset-events] [--dry-run]
+  python scripts/retreat_data.py load /tmp/seed.json [--reset-assignments]
+      [--reset-events] [--reset-activities] [--dry-run]
   python scripts/retreat_data.py export > backup.json
   python scripts/retreat_data.py links [--base https://rp.markus-schwarz.cc]
   python scripts/retreat_data.py rotate <person-key> [--dry-run]
 
 load ist idempotent: Upsert über `key`, bestehende Tokens bleiben erhalten,
 die Zuteilung aus dem Seed wird nur für neue Personen übernommen (außer mit
---reset-assignments). Die Termine (content.events) werden nur übernommen, wenn
-noch keine in der DB sind (außer mit --reset-events) – danach pflegt sie die Orga
-in der App. Ein Export lässt sich per load --reset-assignments --reset-events
+--reset-assignments). Termine (content.events) und Aktivitäten (activities)
+werden nur übernommen, wenn noch keine in der DB sind (außer mit --reset-events
+bzw. --reset-activities) – danach pflegt sie die Orga in der App. Ein Export
+lässt sich per load --reset-assignments --reset-events --reset-activities
 vollständig wiederherstellen (inkl. Tokens).
 """
 
@@ -49,7 +51,11 @@ def _upsert(db: Session, model, key: str, values: dict, log: list[str]):
 
 
 def load_seed(
-    db: Session, seed: Seed, reset_assignments: bool = False, reset_events: bool = False
+    db: Session,
+    seed: Seed,
+    reset_assignments: bool = False,
+    reset_events: bool = False,
+    reset_activities: bool = False,
 ) -> list[str]:
     """Wendet den Seed an (ohne Commit) und liefert ein Änderungsprotokoll."""
     log: list[str] = []
@@ -99,6 +105,20 @@ def load_seed(
             db.add(models.Event(**e.model_dump()))
         log.append(f"= events: {len(seed.content.events)} Termine aus dem Seed")
 
+    if reset_activities or db.query(models.Activity).count() == 0:
+        for old in db.query(models.Activity).all():
+            db.delete(old)
+        db.flush()
+        people = {p.key: p for p in db.query(models.Person)}
+        for a in seed.activities:
+            keys = list(people) if a.participants == "alle" else a.participants
+            db.add(models.Activity(
+                day=a.day, title=a.title, maps_url=a.maps_url, details=a.details, url=a.url,
+                coordinator=people[a.coordinator] if a.coordinator else None,
+                participants=[people[k] for k in keys],
+            ))
+        log.append(f"= activities: {len(seed.activities)} Aktivitäten aus dem Seed")
+
     content = db.get(models.Content, 1)
     data = seed.content.model_dump(mode="json", exclude={"events"})
     if content is None:
@@ -137,6 +157,15 @@ def export_state(db: Session) -> dict:
             }
             for p in db.query(models.Person).order_by(models.Person.sort, models.Person.id)
         ],
+        "activities": [
+            {
+                "day": a.day, "title": a.title, "maps_url": a.maps_url,
+                "details": a.details, "url": a.url,
+                "coordinator": a.coordinator.key if a.coordinator else None,
+                "participants": [p.key for p in a.participants],
+            }
+            for a in db.query(models.Activity).order_by(models.Activity.day, models.Activity.id)
+        ],
         "content": {
             **(content.data if content else {}),
             "events": [
@@ -157,6 +186,7 @@ def main() -> None:
     p_load.add_argument("file")
     p_load.add_argument("--reset-assignments", action="store_true")
     p_load.add_argument("--reset-events", action="store_true")
+    p_load.add_argument("--reset-activities", action="store_true")
     p_load.add_argument("--dry-run", action="store_true")
     sub.add_parser("export")
     p_links = sub.add_parser("links")
@@ -175,6 +205,7 @@ def main() -> None:
                 db, seed,
                 reset_assignments=args.reset_assignments,
                 reset_events=args.reset_events,
+                reset_activities=args.reset_activities,
             )
             print("\n".join(log) or "Keine Änderungen.")
             if args.dry_run:

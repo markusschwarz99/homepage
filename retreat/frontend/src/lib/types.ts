@@ -24,13 +24,17 @@ export interface RetreatEvent {
 }
 
 export interface Activity {
+  id: number
   day: string // "2026-10-19"
   title: string
+  maps_url: string | null
   details: string | null
-  participants: string | null
-  place: string | null
   url: string | null
+  coordinator_id: number | null
+  participant_ids: number[]
 }
+
+export type ActivityInput = Omit<Activity, 'id'>
 
 export interface Content {
   info: {
@@ -42,7 +46,6 @@ export interface Content {
   }
   places: Place[]
   events: RetreatEvent[]
-  activities: Activity[]
 }
 
 export interface Person {
@@ -76,6 +79,7 @@ export interface RetreatState {
   people: Person[]
   cars: Car[]
   apartments: Apartment[]
+  activities: Activity[]
   content: Content
 }
 

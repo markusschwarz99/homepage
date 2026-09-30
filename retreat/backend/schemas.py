@@ -5,6 +5,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 # Lokale Zeit Teneriffa (Atlantic/Canary), ohne Offset: "2026-10-19T07:00"
 LocalDateTime = Annotated[str, Field(pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$")]
 LocalDate = Annotated[str, Field(pattern=r"^\d{4}-\d{2}-\d{2}$")]
+# Nur http(s) – verhindert javascript:-Links in href
+Url = Annotated[str, Field(pattern=r"^https?://\S+$", max_length=1000)]
 
 CarKind = Literal["car", "taxi"]
 CarRole = Literal["driver", "co_driver", "passenger"]
@@ -55,13 +57,35 @@ class EventUpdate(BaseModel):
     note: str | None = None
 
 
-class Activity(BaseModel):
+class ActivityBase(BaseModel):
     day: LocalDate
-    title: str
+    title: str = Field(min_length=1, max_length=200)
+    maps_url: Url | None = None
+    details: str | None = Field(default=None, max_length=500)
+    url: Url | None = None
+
+
+class ActivityIn(ActivityBase):
+    coordinator_id: int | None = None
+    participant_ids: list[int] = []
+
+
+class ActivityUpdate(BaseModel):
+    """Teil-Update; wird mit der bestehenden Aktivität zu ActivityIn gemerged."""
+
+    day: str | None = None
+    title: str | None = None
+    maps_url: str | None = None
     details: str | None = None
-    participants: str | None = None
-    place: str | None = None
     url: str | None = None
+    coordinator_id: int | None = None
+    participant_ids: list[int] | None = None
+
+
+class ActivityOut(ActivityBase):
+    id: int
+    coordinator_id: int | None
+    participant_ids: list[int]
 
 
 class Info(BaseModel):
@@ -76,12 +100,11 @@ class Content(BaseModel):
     info: Info
     places: list[Place] = []
     events: list[Event] = []
-    activities: list[Activity] = []
 
     @model_validator(mode="after")
     def _place_refs_exist(self):
         ids = {p.id for p in self.places}
-        refs = [e.place for e in self.events] + [a.place for a in self.activities]
+        refs = [e.place for e in self.events]
         refs.append(self.info.accommodation)
         missing = sorted({r for r in refs if r and r not in ids})
         if missing:
@@ -119,10 +142,16 @@ class SeedPerson(BaseModel):
     token: str | None = None  # nur beim Restore aus einem Export
 
 
+class SeedActivity(ActivityBase):
+    coordinator: str | None = None  # Person-Key
+    participants: list[str] | Literal["alle"] = []  # Person-Keys
+
+
 class Seed(BaseModel):
     cars: list[SeedCar]
     apartments: list[SeedApartment]
     people: list[SeedPerson]
+    activities: list[SeedActivity] = []
     content: Content
 
     @model_validator(mode="after")
@@ -134,6 +163,12 @@ class Seed(BaseModel):
                 raise ValueError(f"{p.key}: unbekanntes Auto '{p.car}'")
             if p.apartment and p.apartment not in apartments:
                 raise ValueError(f"{p.key}: unbekanntes Apartment '{p.apartment}'")
+        people = {p.key for p in self.people}
+        for a in self.activities:
+            keys = [] if a.participants == "alle" else list(a.participants)
+            unknown = [k for k in [a.coordinator, *keys] if k and k not in people]
+            if unknown:
+                raise ValueError(f"Aktivität '{a.title}': unbekannte Personen {unknown}")
         return self
 
 
@@ -181,6 +216,7 @@ class StateOut(BaseModel):
     people: list[PersonOut]
     cars: list[CarOut]
     apartments: list[ApartmentOut]
+    activities: list[ActivityOut]
     content: ContentOut
 
 

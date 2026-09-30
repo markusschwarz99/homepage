@@ -1,9 +1,12 @@
+import { formatDay } from '../lib/agenda'
 import { useRetreat } from '../lib/retreat'
 import { byRole, firstName, personName, ROLE_LABEL } from '../lib/people'
+import { ActivityItem } from '../components/ActivityItem'
 import { Card, MapsLink, SectionTitle } from '../components/ui'
 
 export function Me() {
-  const { me, people, cars, apartments, content, places } = useRetreat()
+  const { me, people, cars, apartments, activities, content, places } = useRetreat()
+  const myActivities = activities.filter(a => a.participant_ids.includes(me.id) || a.coordinator_id === me.id)
   const car = cars.find(c => c.id === me.car_id)
   const apartment = apartments.find(a => a.id === me.apartment_id)
   const carPeople = people.filter(p => car && p.car_id === car.id).sort(byRole)
@@ -13,7 +16,11 @@ export function Me() {
   return (
     <>
       <h2 className="text-2xl font-bold">Hallo {firstName(me)}!</h2>
-      {me.is_orga && <p className="text-sm text-grey">Du bist in der Orga und kannst Autos und Apartments zuteilen.</p>}
+      {me.is_orga && (
+        <p className="text-sm text-grey">
+          Du bist in der Orga und kannst Autos, Apartments, Termine und Aktivitäten bearbeiten.
+        </p>
+      )}
 
       <div className="md:grid md:grid-cols-2 md:gap-6 xl:grid-cols-3">
         <div>
@@ -64,6 +71,26 @@ export function Me() {
               </>
             ) : (
               <p>Noch keinem Auto zugeteilt.</p>
+            )}
+          </Card>
+        </div>
+
+        <div>
+          <SectionTitle>Meine Aktivitäten</SectionTitle>
+          <Card>
+            {myActivities.length ? (
+              <div className="space-y-2">
+                {myActivities.map(a => (
+                  <div key={a.id}>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-royal-blue">{formatDay(a.day)}</p>
+                    <ul>
+                      <ActivityItem activity={a} />
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>Du bist noch bei keiner Aktivität eingetragen.</p>
             )}
           </Card>
         </div>

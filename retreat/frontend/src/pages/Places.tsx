@@ -1,41 +1,40 @@
+import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { dayOf, formatDay, timeOf } from '../lib/agenda'
 import { useRetreat } from '../lib/retreat'
-import { Card, MapsLink, PhoneLink, SectionTitle, WebLink } from '../components/ui'
+import type { Activity } from '../lib/types'
+import { ActivityDialog } from '../components/ActivityDialog'
+import { ActivityItem } from '../components/ActivityItem'
+import { PRIMARY_BUTTON } from '../components/Modal'
+import { Card, MapsLink, PhoneLink, SectionTitle } from '../components/ui'
 
 export function Places() {
-  const { content, places } = useRetreat()
-  const activityDays = [...new Set(content.activities.map(a => a.day))].sort()
+  const { me, content, activities } = useRetreat()
+  const activityDays = [...new Set(activities.map(a => a.day))].sort()
+  // undefined = zu, null = neue Aktivität
+  const [editing, setEditing] = useState<Activity | null | undefined>(undefined)
 
   return (
     <>
-      {activityDays.length > 0 && <SectionTitle>Aktivitäten</SectionTitle>}
+      <div className="flex items-end justify-between gap-2">
+        <SectionTitle>Aktivitäten</SectionTitle>
+        {me.is_orga && (
+          <button type="button" onClick={() => setEditing(null)} className={`${PRIMARY_BUTTON} mb-2 px-3`}>
+            <Plus size={16} /> Aktivität
+          </button>
+        )}
+      </div>
+      {activityDays.length === 0 && <p className="text-sm text-grey">Noch keine Aktivitäten.</p>}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {activityDays.map(day => (
           <Card key={day}>
             <h2 className="font-semibold text-royal-blue">{formatDay(day)}</h2>
-            <ul className="mt-1 divide-y divide-grey-25">
-              {content.activities
+            <ul className="mt-1 space-y-1">
+              {activities
                 .filter(a => a.day === day)
-                .map(a => {
-                  const place = a.place ? places.get(a.place) : undefined
-                  return (
-                    <li key={a.title} className="py-2">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="font-medium">{a.title}</span>
-                        {a.participants && (
-                          <span className="shrink-0 text-sm text-grey">
-                            {/^\d+$/.test(a.participants) ? `${a.participants} Pers.` : a.participants}
-                          </span>
-                        )}
-                      </div>
-                      {a.details && <p className="text-sm text-grey">{a.details}</p>}
-                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                        {place && <MapsLink place={place} />}
-                        {a.url && <WebLink href={a.url}>Details</WebLink>}
-                      </div>
-                    </li>
-                  )
-                })}
+                .map(a => (
+                  <ActivityItem key={a.id} activity={a} onEdit={me.is_orga ? () => setEditing(a) : undefined} />
+                ))}
             </ul>
           </Card>
         ))}
@@ -70,6 +69,8 @@ export function Places() {
           )
         })}
       </div>
+
+      {editing !== undefined && <ActivityDialog activity={editing} onClose={() => setEditing(undefined)} />}
     </>
   )
 }
