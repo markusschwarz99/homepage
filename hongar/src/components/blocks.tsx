@@ -33,12 +33,12 @@ const GpxMap = lazy(() => import('./GpxMap'))
 // ---------- kleine Helfer ----------
 
 // "**fett**" im Fließtext
-function Inline({ text }: { text: string }) {
+function Inline({ text, strongClassName = 'text-alm-stone' }: { text: string; strongClassName?: string }) {
   return (
     <>
       {text.split('**').map((part, i) =>
         i % 2 === 1 ? (
-          <strong key={i} className="font-semibold text-alm-stone">
+          <strong key={i} className={`font-semibold ${strongClassName}`}>
             {part}
           </strong>
         ) : (
@@ -444,7 +444,7 @@ function CtaBlock({ block }: { block: Extract<Block, { type: 'cta' }> }) {
         <h2 className="font-display text-3xl font-semibold md:text-4xl">{block.title}</h2>
         {block.text && (
           <p className="mt-4 text-lg leading-relaxed text-white/90">
-            <Inline text={block.text} />
+            <Inline text={block.text} strongClassName="text-white" />
           </p>
         )}
         <SmartLink
