@@ -2,6 +2,7 @@ import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import LoginScreen from '../components/LoginScreen'
 import Logo from '../components/Logo'
 import { isEditor, useAuth } from '../lib/auth'
+import ClosuresEditor from './ClosuresEditor'
 import EventsEditor from './EventsEditor'
 import SettingsEditor from './SettingsEditor'
 
@@ -11,6 +12,7 @@ export default function AdminApp() {
   if (!isEditor(user)) return <LoginScreen />
 
   const onEvents = pathname.startsWith('/admin/veranstaltungen')
+  const onClosures = pathname.startsWith('/admin/betriebsurlaub')
   const tab = (active: boolean) =>
     `rounded-lg px-3 py-1.5 font-semibold ${active ? 'bg-alm-forest text-white' : 'hover:bg-alm-sand'}`
 
@@ -23,11 +25,14 @@ export default function AdminApp() {
             <span className="font-display text-lg font-semibold">Verwaltung</span>
           </Link>
           <nav className="flex gap-1" aria-label="Verwaltung">
-            <Link to="/admin" className={tab(!onEvents)}>
+            <Link to="/admin" className={tab(!onEvents && !onClosures)}>
               Aktuelles &amp; Öffnungszeiten
             </Link>
             <Link to="/admin/veranstaltungen" className={tab(onEvents)}>
               Veranstaltungen
+            </Link>
+            <Link to="/admin/betriebsurlaub" className={tab(onClosures)}>
+              Betriebsurlaub
             </Link>
           </nav>
           <div className="ml-auto flex items-center gap-4 text-sm">
@@ -44,6 +49,7 @@ export default function AdminApp() {
         <Routes>
           <Route index element={<SettingsEditor />} />
           <Route path="veranstaltungen" element={<EventsEditor />} />
+          <Route path="betriebsurlaub" element={<ClosuresEditor />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>
