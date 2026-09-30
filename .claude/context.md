@@ -94,21 +94,30 @@ Persönliche Homepage mit vier Hauptbereichen:
   per nginx auf das Backend → same origin, kein CORS, kein `VITE_API_URL`.
   Zugriff: persönlicher Link `?k=<token>` (Token in Tabelle `people`, Bearer-Header,
   localStorage `retreat_token`), Orga-Rechte über `is_orga`. Nur die Orga ändert
-  Auto-/Apartmentzuteilung (`PATCH /api/people/{id}`) und Termine (Tabelle `events`,
-  `POST/PATCH/DELETE /api/events`, Editor-Dialog im Tab Kalender) und Aktivitäten
-  (Tabellen `activities` + `activity_participants`: Name, Tag, Google-Maps-Link,
-  Koordination = Person, Teilnehmende = Personen, optional Beschreibung/Info-Link;
-  `/api/activities`, Editor im Tab „Aktivitäten & Orte“). URL-Felder nur `http(s)://`
-  (Pydantic-Pattern `Url` in `schemas.py`, gegen `javascript:` in href). Validierungs-
-  fehler liefert ein globaler Handler als EIN deutscher String in `detail`. Eckdaten/
-  Orte sind read-only JSON (`content`-Tabelle). Zeiten werden als lokale Teneriffa-Zeit
-  gespeichert (`"2026-10-19T07:00"`, Atlantic/Canary); Kalender `/kalender` zeigt
-  zusätzlich Österreich-Zeit (`convertZone()` in `src/lib/agenda.ts`, via Intl →
-  DST-sicher). `load` übernimmt Seed-Termine/-Aktivitäten NUR bei leerer Tabelle
-  (sonst würden Orga-Änderungen überschrieben) – `--reset-events` bzw.
-  `--reset-activities` erzwingt es. Seed-Format: `activities` auf oberster Ebene,
-  Teilnehmende als Person-Keys oder `"alle"`. Nach Go-live ist die App die Quelle
-  für Termine/Aktivitäten, NICHT `seed.json` (Backup = `export` via `backup-db.sh`).
+  Auto-/Apartmentzuteilung (`PATCH /api/people/{id}`), vergibt/entzieht Orga-Rechte
+  (`is_orga` im selben PATCH, UI „Ich“ → „Orga verwalten“; letzte Orga-Person nicht
+  entfernbar → 409) und pflegt Termine (Tabelle `events`, `POST/PATCH/DELETE
+  /api/events`, Dialog im Tab Kalender). **Aktivitäten sind KEINE eigene Entität**,
+  sondern Termine mit `category="activity"`; Tab „Aktivitäten & Orte“ und „Wo ich dabei
+  bin“ leiten sich aus dem Kalender ab (wie die Orte). Jeder Termin (jede Kategorie) hat
+  optional `maps_url`, `url`, Koordination (`coordinator_id`) und Teilnehmende
+  (`event_participants`); das UI zeigt nur Befülltes. URL-Felder nur `http(s)://`
+  (Pydantic-Pattern `Url` in `schemas.py`, gegen `javascript:` in href).
+  Validierungsfehler liefert ein globaler Handler als EIN deutscher String in `detail`.
+  SQLite läuft mit `PRAGMA foreign_keys=ON` (`database.py`), sonst greift kein
+  `ON DELETE CASCADE` → verwaiste Zuordnungszeilen. Eckdaten/Orte sind read-only JSON
+  (`content`-Tabelle). Zeiten werden als lokale Teneriffa-Zeit gespeichert
+  (`"2026-10-19T07:00"`, Atlantic/Canary); Kalender `/kalender` zeigt zusätzlich
+  Österreich-Zeit (`convertZone()` in `src/lib/agenda.ts`, via Intl → DST-sicher).
+  `load` übernimmt Seed-Termine NUR bei leerer `events`-Tabelle (sonst würden
+  Orga-Änderungen überschrieben) – `--reset-events` erzwingt es. Seed-Format: Termine
+  unter `content.events` mit `coordinator` (Person-Key) und `participants` (Keys oder
+  `"alle"`). Nach Go-live ist die App die Quelle, NICHT `seed.json` (Backup = `export`
+  via `backup-db.sh`). **Schema-Änderung (kein Alembic) erprobt**: Export mit altem
+  Code → ggf. Umwandlungs-Skript → Schema gegen neuen Code validieren → `down -v` (nur
+  Retreat-Stack!) → `up -d --build` → `load --reset-assignments --reset-events` →
+  Export mit Vorher-Stand vergleichen (Personen/Tokens/Zuteilung müssen identisch sein).
+  Vorher IMMER auf dem Test-Stack mit einer Kopie der Live-Daten durchspielen.
   Dialoge über `components/Modal.tsx` (Bottom-Sheet mobil, zentriert am Desktop).
   Farbpalette (Royal Blue/Green/…) im `@theme` von `retreat/frontend/src/index.css`,
   Tailwind-Defaultfarben dort per `--color-*: initial` deaktiviert.
