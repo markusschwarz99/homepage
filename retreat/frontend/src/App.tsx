@@ -5,15 +5,17 @@ import { Apartments } from './pages/Apartments'
 import { Calendar } from './pages/Calendar'
 import { Cars } from './pages/Cars'
 import { Me } from './pages/Me'
-import { Places } from './pages/Places'
 import { Today } from './pages/Today'
 
 function Screen({ title, text }: { title: string; text: string }) {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-royal-blue p-6 text-white">
+    <div className="flex min-h-dvh items-center justify-center p-6">
       <div className="max-w-sm text-center">
-        <h1 className="text-2xl font-bold">{title}</h1>
-        <p className="mt-2 text-royal-blue-25">{text}</p>
+        <div className="mx-auto mb-4 h-16 w-16 rounded-[18px] bg-royal-blue shadow-lg" aria-hidden>
+          <img src="/favicon.svg" alt="" className="h-16 w-16 rounded-[18px]" />
+        </div>
+        <h1 className="text-[28px] font-bold tracking-tight">{title}</h1>
+        <p className="mt-2 text-grey">{text}</p>
       </div>
     </div>
   )
@@ -41,7 +43,6 @@ export default function App() {
           <Route path="ich" element={<Me />} />
           <Route path="autos" element={<Cars />} />
           <Route path="apartments" element={<Apartments />} />
-          <Route path="orte" element={<Places />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

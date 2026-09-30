@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   convertZone,
+  isMine,
   defaultDay,
   eventsOn,
   formatDay,
@@ -116,5 +117,25 @@ describe('Formatierung', () => {
     expect(formatDistance(125)).toBe('in 2 Std 5 Min')
     expect(formatDistance(120)).toBe('in 2 Std')
     expect(formatDistance(18 * 24 * 60)).toBe('in 18 Tagen')
+  })
+})
+
+describe('isMine (Mein Kalender)', () => {
+  const base = ev('2026-10-20T15:00', '2026-10-20T17:00')
+  it('Arbeitsblock/Mahlzeit/Transfer ohne Eintragung: alle', () => {
+    expect(isMine({ ...base, category: 'work' }, 7)).toBe(true)
+    expect(isMine({ ...base, category: 'meal' }, 7)).toBe(true)
+    expect(isMine({ ...base, category: 'travel' }, 7)).toBe(true)
+  })
+  it('Aktivität ohne Eintragung: niemand', () => {
+    expect(isMine({ ...base, category: 'activity' }, 7)).toBe(false)
+  })
+  it('eingetragene Teilnehmende schränken ein – bei jeder Kategorie', () => {
+    expect(isMine({ ...base, category: 'activity', participant_ids: [7] }, 7)).toBe(true)
+    expect(isMine({ ...base, category: 'travel', participant_ids: [3] }, 7)).toBe(false)
+  })
+  it('Koordination zählt immer', () => {
+    expect(isMine({ ...base, category: 'activity', coordinator_id: 7 }, 7)).toBe(true)
+    expect(isMine({ ...base, category: 'meal', participant_ids: [3], coordinator_id: 7 }, 7)).toBe(true)
   })
 })

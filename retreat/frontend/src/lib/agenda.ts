@@ -131,3 +131,16 @@ export function formatDay(day: string): string {
   return `${weekday} ${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.`
 }
 
+
+/**
+ * „Mein Kalender“: Bin ich bei diesem Termin dabei?
+ * - Koordination oder als Teilnehmer:in eingetragen -> ja
+ * - Teilnehmende eingetragen, ich nicht -> nein
+ * - niemand eingetragen: Arbeitsblock, Mahlzeit, Transfer gelten für alle,
+ *   Aktivitäten nur für Eingetragene (-> nein)
+ */
+export function isMine(event: RetreatEvent, personId: number): boolean {
+  if (event.coordinator_id === personId || event.participant_ids.includes(personId)) return true
+  if (event.participant_ids.length > 0) return false
+  return event.category !== 'activity'
+}
