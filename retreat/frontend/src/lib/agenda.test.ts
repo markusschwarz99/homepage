@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  convertZone,
   defaultDay,
   eventsOn,
   formatDay,
@@ -12,7 +13,7 @@ import {
 import type { RetreatEvent } from './types'
 
 function ev(start: string, end: string, title = start): RetreatEvent {
-  return { start, end, title, category: 'work', place: null, note: null }
+  return { id: 0, start, end, title, category: 'work', place: null, note: null }
 }
 
 const events = [
@@ -29,6 +30,21 @@ describe('localNow', () => {
   })
   it('kippt um Mitternacht auf den nächsten Tag', () => {
     expect(localNow(new Date('2026-10-19T23:15:00Z'))).toBe('2026-10-20T00:15')
+  })
+})
+
+describe('convertZone', () => {
+  it('Teneriffa -> Österreich ist im Oktober +1 h (WEST/CEST)', () => {
+    expect(convertZone('2026-10-19T07:00')).toBe('2026-10-19T08:00')
+  })
+  it('über Mitternacht', () => {
+    expect(convertZone('2026-10-19T23:30')).toBe('2026-10-20T00:30')
+  })
+  it('auch nach der Zeitumstellung (25.10.) +1 h (WET/CET)', () => {
+    expect(convertZone('2026-10-26T12:00')).toBe('2026-10-26T13:00')
+  })
+  it('Sommer: +1 h', () => {
+    expect(convertZone('2026-07-01T12:00')).toBe('2026-07-01T13:00')
   })
 })
 

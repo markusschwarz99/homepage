@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { api, ApiError, clearToken, getToken } from './api'
 import { currentNow } from './agenda'
-import type { Place, PersonUpdate, RetreatState } from './types'
+import type { EventInput, Place, PersonUpdate, RetreatState } from './types'
 
 export type Status = 'loading' | 'ready' | 'no-access' | 'error'
 
@@ -10,6 +10,9 @@ interface RetreatContextValue {
   error: string | null
   state: RetreatState | null
   update: (personId: number, patch: PersonUpdate) => Promise<void>
+  /** Liefert null bei Erfolg, sonst die Fehlermeldung (für Dialoge). */
+  saveEvent: (id: number | null, data: EventInput) => Promise<string | null>
+  deleteEvent: (id: number) => Promise<string | null>
   message: string | null
   dismissMessage: () => void
 }
@@ -69,9 +72,41 @@ export function RetreatProvider({ children }: { children: ReactNode }) {
     [load],
   )
 
+  const mutate = useCallback(
+    async (path: string, init: RequestInit): Promise<string | null> => {
+      try {
+        await api(path, init)
+        await load()
+        return null
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e)
+      }
+    },
+    [load],
+  )
+
+  const saveEvent = useCallback(
+    (id: number | null, data: EventInput) =>
+      id === null
+        ? mutate('/events', { method: 'POST', body: JSON.stringify(data) })
+        : mutate(`/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    [mutate],
+  )
+
+  const deleteEvent = useCallback((id: number) => mutate(`/events/${id}`, { method: 'DELETE' }), [mutate])
+
   return (
     <RetreatContext.Provider
-      value={{ status, error, state, update, message, dismissMessage: () => setMessage(null) }}
+      value={{
+        status,
+        error,
+        state,
+        update,
+        saveEvent,
+        deleteEvent,
+        message,
+        dismissMessage: () => setMessage(null),
+      }}
     >
       {children}
     </RetreatContext.Provider>
@@ -86,10 +121,10 @@ export function useRetreatContext(): RetreatContextValue {
 
 /** Für Seiten, die erst nach dem Laden gerendert werden. */
 export function useRetreat() {
-  const { state, update } = useRetreatContext()
+  const { state, update, saveEvent, deleteEvent } = useRetreatContext()
   if (!state) throw new Error('Daten noch nicht geladen')
   const places = new Map<string, Place>(state.content.places.map(p => [p.id, p]))
-  return { ...state, places, update }
+  return { ...state, places, update, saveEvent, deleteEvent }
 }
 
 /** Aktuelle Teneriffa-Zeit, aktualisiert alle 30 s. */

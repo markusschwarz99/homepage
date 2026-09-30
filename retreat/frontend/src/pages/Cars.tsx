@@ -12,7 +12,7 @@ export function Cars() {
   return (
     <>
       {me.is_orga && <p className="mb-3 text-sm text-grey">Orga: Personen per Auswahl in ein anderes Auto setzen.</p>}
-      <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {cars.map(car => {
           const members = people.filter(p => p.car_id === car.id).sort(byRole)
           const hasDriver = members.some(p => p.car_role === 'driver')

@@ -14,6 +14,7 @@ export interface Place {
 }
 
 export interface RetreatEvent {
+  id: number
   start: string // lokale Zeit TFS, "2026-10-19T07:00"
   end: string
   title: string
@@ -79,3 +80,5 @@ export interface RetreatState {
 }
 
 export type PersonUpdate = Partial<Pick<Person, 'car_id' | 'car_role' | 'apartment_id'>>
+
+export type EventInput = Omit<RetreatEvent, 'id'>

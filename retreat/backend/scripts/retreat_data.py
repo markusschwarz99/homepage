@@ -1,14 +1,16 @@
 """Teamretreat-Daten laden, exportieren, Links ausgeben, Tokens rotieren.
 
 Aufruf im Container (Seed liegt AUSSERHALB des Repos, ~/retreat-content/):
-  python scripts/retreat_data.py load /tmp/seed.json [--reset-assignments] [--dry-run]
+  python scripts/retreat_data.py load /tmp/seed.json [--reset-assignments] [--reset-events] [--dry-run]
   python scripts/retreat_data.py export > backup.json
   python scripts/retreat_data.py links [--base https://rp.markus-schwarz.cc]
   python scripts/retreat_data.py rotate <person-key> [--dry-run]
 
 load ist idempotent: Upsert über `key`, bestehende Tokens bleiben erhalten,
 die Zuteilung aus dem Seed wird nur für neue Personen übernommen (außer mit
---reset-assignments). Ein Export lässt sich per load --reset-assignments
+--reset-assignments). Die Termine (content.events) werden nur übernommen, wenn
+noch keine in der DB sind (außer mit --reset-events) – danach pflegt sie die Orga
+in der App. Ein Export lässt sich per load --reset-assignments --reset-events
 vollständig wiederherstellen (inkl. Tokens).
 """
 
@@ -46,7 +48,9 @@ def _upsert(db: Session, model, key: str, values: dict, log: list[str]):
     return obj
 
 
-def load_seed(db: Session, seed: Seed, reset_assignments: bool = False) -> list[str]:
+def load_seed(
+    db: Session, seed: Seed, reset_assignments: bool = False, reset_events: bool = False
+) -> list[str]:
     """Wendet den Seed an (ohne Commit) und liefert ein Änderungsprotokoll."""
     log: list[str] = []
     cars = {
@@ -89,8 +93,14 @@ def load_seed(db: Session, seed: Seed, reset_assignments: bool = False) -> list[
             values["apartment_id"] = apt.id if apt else None
         _upsert(db, models.Person, p.key, values, log)
 
+    if reset_events or db.query(models.Event).count() == 0:
+        db.query(models.Event).delete()
+        for e in seed.content.events:
+            db.add(models.Event(**e.model_dump()))
+        log.append(f"= events: {len(seed.content.events)} Termine aus dem Seed")
+
     content = db.get(models.Content, 1)
-    data = seed.content.model_dump(mode="json")
+    data = seed.content.model_dump(mode="json", exclude={"events"})
     if content is None:
         db.add(models.Content(id=1, data=data))
         log.append("+ content")
@@ -127,7 +137,16 @@ def export_state(db: Session) -> dict:
             }
             for p in db.query(models.Person).order_by(models.Person.sort, models.Person.id)
         ],
-        "content": content.data if content else None,
+        "content": {
+            **(content.data if content else {}),
+            "events": [
+                {
+                    "start": e.start, "end": e.end, "title": e.title,
+                    "category": e.category, "place": e.place, "note": e.note,
+                }
+                for e in db.query(models.Event).order_by(models.Event.start, models.Event.id)
+            ],
+        },
     }
 
 
@@ -137,6 +156,7 @@ def main() -> None:
     p_load = sub.add_parser("load")
     p_load.add_argument("file")
     p_load.add_argument("--reset-assignments", action="store_true")
+    p_load.add_argument("--reset-events", action="store_true")
     p_load.add_argument("--dry-run", action="store_true")
     sub.add_parser("export")
     p_links = sub.add_parser("links")
@@ -151,7 +171,11 @@ def main() -> None:
     try:
         if args.cmd == "load":
             seed = Seed.model_validate_json(Path(args.file).read_text())
-            log = load_seed(db, seed, reset_assignments=args.reset_assignments)
+            log = load_seed(
+                db, seed,
+                reset_assignments=args.reset_assignments,
+                reset_events=args.reset_events,
+            )
             print("\n".join(log) or "Keine Änderungen.")
             if args.dry_run:
                 db.rollback()

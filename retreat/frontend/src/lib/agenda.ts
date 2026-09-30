@@ -3,14 +3,16 @@ import type { RetreatEvent } from './types'
 // Alle Zeiten sind lokale Zeit Teneriffa ohne Offset ("2026-10-19T07:00").
 // Vergleiche laufen daher direkt auf den Strings (ISO sortiert lexikalisch).
 export const TIME_ZONE = 'Atlantic/Canary'
+/** Zweite Zeitzone für die Anzeige (Heimat) */
+export const HOME_ZONE = 'Europe/Vienna'
 
 const NOW_KEY = 'retreat_now'
 const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 
-/** Aktuelle Uhrzeit auf Teneriffa, unabhängig von der Gerätezeitzone. */
-export function localNow(date: Date = new Date()): string {
+/** Uhrzeit (Default: Teneriffa) als "YYYY-MM-DDTHH:MM", unabhängig von der Gerätezeitzone. */
+export function localNow(date: Date = new Date(), timeZone: string = TIME_ZONE): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: TIME_ZONE,
+    timeZone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -92,6 +94,18 @@ function toUtcMs(dt: string): number {
   const [y, mo, da] = d.split('-').map(Number)
   const [h, mi] = t.split(':').map(Number)
   return Date.UTC(y, mo - 1, da, h, mi)
+}
+
+function zoneOffsetMs(utcMs: number, timeZone: string): number {
+  return toUtcMs(localNow(new Date(utcMs), timeZone)) - utcMs
+}
+
+/** Teneriffa-Ortszeit -> Ortszeit in `timeZone` (DST-sicher über Intl). */
+export function convertZone(dt: string, timeZone: string = HOME_ZONE): string {
+  const naive = toUtcMs(dt)
+  let utc = naive - zoneOffsetMs(naive, TIME_ZONE)
+  utc = naive - zoneOffsetMs(utc, TIME_ZONE)
+  return localNow(new Date(utc), timeZone)
 }
 
 export function minutesBetween(from: string, to: string): number {

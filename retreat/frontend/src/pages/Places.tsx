@@ -9,7 +9,7 @@ export function Places() {
   return (
     <>
       {activityDays.length > 0 && <SectionTitle>Aktivitäten</SectionTitle>}
-      <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {activityDays.map(day => (
           <Card key={day}>
             <h2 className="font-semibold text-royal-blue">{formatDay(day)}</h2>
@@ -42,7 +42,7 @@ export function Places() {
       </div>
 
       <SectionTitle>Restaurants &amp; Orte</SectionTitle>
-      <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {content.places.map(place => {
           const visits = content.events.filter(e => e.place === place.id)
           return (
@@ -60,7 +60,7 @@ export function Places() {
               {visits.length > 0 && (
                 <ul className="mt-2 text-sm">
                   {visits.map(e => (
-                    <li key={e.start + e.title}>
+                    <li key={e.id}>
                       {formatDay(dayOf(e.start))} {timeOf(e.start)} · {e.title}
                     </li>
                   ))}

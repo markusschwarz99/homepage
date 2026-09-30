@@ -49,8 +49,24 @@ class Person(Base):
     apartment = relationship("Apartment")
 
 
+class Event(Base):
+    """Programmpunkt; Zeiten als lokale Zeit Teneriffa ("2026-10-19T07:00")."""
+
+    __tablename__ = "events"
+
+    id = Column(Integer, primary_key=True)
+    start = Column(String(16), nullable=False)
+    end = Column(String(16), nullable=False)
+    title = Column(String(200), nullable=False)
+    category = Column(String(10), nullable=False)  # meal | work | activity | travel
+    place = Column(String(50))  # Place-ID aus dem Content
+    note = Column(String(500))
+
+
 class Content(Base):
-    """Eine Zeile (id=1): Agenda, Orte, Aktivitäten als validiertes JSON."""
+    """Eine Zeile (id=1): Eckdaten, Orte, Aktivitäten als validiertes JSON.
+
+    Die Agenda liegt in der Tabelle `events` (von der Orga editierbar)."""
 
     __tablename__ = "content"
 

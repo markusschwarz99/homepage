@@ -47,6 +47,18 @@ export class ApiError extends Error {
   }
 }
 
+function detailText(data: unknown, status: number): string {
+  if (data && typeof data === 'object' && 'detail' in data) {
+    const detail = data.detail
+    if (typeof detail === 'string') return detail
+    // FastAPI-Validierungsfehler: Liste von {loc, msg}
+    if (Array.isArray(detail) && detail.length) {
+      return detail.map(d => String(d?.msg ?? '').replace(/^Value error, /, '')).join(', ')
+    }
+  }
+  return `Fehler ${status}`
+}
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`/api${path}`, {
     ...init,
@@ -55,13 +67,9 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       Authorization: `Bearer ${getToken() ?? ''}`,
     },
   })
-  const data: unknown = await res.json().catch(() => null)
+  const data: unknown = res.status === 204 ? null : await res.json().catch(() => null)
   if (!res.ok) {
-    const detail =
-      data && typeof data === 'object' && 'detail' in data && typeof data.detail === 'string'
-        ? data.detail
-        : `Fehler ${res.status}`
-    throw new ApiError(res.status, detail)
+    throw new ApiError(res.status, detailText(data, res.status))
   }
   return data as T
 }
