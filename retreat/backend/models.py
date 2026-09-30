@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, Column, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -63,10 +63,37 @@ class Event(Base):
     note = Column(String(500))
 
 
-class Content(Base):
-    """Eine Zeile (id=1): Eckdaten, Orte, Aktivitäten als validiertes JSON.
+activity_participants = Table(
+    "activity_participants",
+    Base.metadata,
+    Column("activity_id", ForeignKey("activities.id", ondelete="CASCADE"), primary_key=True),
+    Column("person_id", ForeignKey("people.id", ondelete="CASCADE"), primary_key=True),
+)
 
-    Die Agenda liegt in der Tabelle `events` (von der Orga editierbar)."""
+
+class Activity(Base):
+    """Aktivität (von der Orga editierbar), Teilnehmende = Personen."""
+
+    __tablename__ = "activities"
+
+    id = Column(Integer, primary_key=True)
+    day = Column(String(10), nullable=False)  # "2026-10-20"
+    title = Column(String(200), nullable=False)
+    maps_url = Column(String(1000))
+    details = Column(String(500))
+    url = Column(String(1000))
+    coordinator_id = Column(Integer, ForeignKey("people.id"))
+
+    coordinator = relationship("Person")
+    participants = relationship(
+        "Person", secondary=activity_participants, order_by="Person.sort"
+    )
+
+
+class Content(Base):
+    """Eine Zeile (id=1): Eckdaten und Orte als validiertes JSON.
+
+    Agenda und Aktivitäten liegen in eigenen Tabellen (von der Orga editierbar)."""
 
     __tablename__ = "content"
 

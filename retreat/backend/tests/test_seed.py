@@ -69,3 +69,22 @@ def test_legacy_content_blob_migrates_events(db, seed):
     assert db.query(Event).count() == len(seed.content.events)
     assert "events" not in db.get(Content, 1).data
     assert "~ content" in log
+
+
+def test_reload_keeps_edited_activities(db, seed):
+    from models import Activity
+
+    db.query(Activity).first().title = "Geändert"
+    db.commit()
+    load_seed(db, seed)
+    assert db.query(Activity).filter(Activity.title == "Geändert").count() == 1
+    load_seed(db, seed, reset_activities=True)
+    assert db.query(Activity).filter(Activity.title == "Geändert").count() == 0
+    assert db.query(Activity).count() == len(seed.activities)
+
+
+def test_seed_rejects_unknown_activity_people(seed):
+    data = seed.model_dump()
+    data["activities"][1]["coordinator"] = "niemand"
+    with pytest.raises(ValidationError):
+        Seed.model_validate(data)

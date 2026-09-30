@@ -1,13 +1,26 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 import models
 from auth import require_orga, require_person
 from database import Base, engine, get_db
-from schemas import ContentOut, Event, EventOut, EventUpdate, PersonOut, PersonUpdate, StateOut
+from schemas import (
+    ActivityIn,
+    ActivityOut,
+    ActivityUpdate,
+    ContentOut,
+    Event,
+    EventOut,
+    EventUpdate,
+    PersonOut,
+    PersonUpdate,
+    StateOut,
+)
 
 
 @asynccontextmanager
@@ -24,6 +37,21 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
+
+
+def _validation_detail(errors: list[dict]) -> str:
+    err = errors[0]
+    field = (err.get("loc") or ("",))[-1]
+    if err.get("type") == "string_pattern_mismatch" and field in ("maps_url", "url"):
+        return "Links müssen mit http:// oder https:// beginnen."
+    msg = str(err.get("msg", "Ungültige Eingabe")).removeprefix("Value error, ")
+    return f"{field}: {msg}" if isinstance(field, str) and field not in ("body", "") else msg
+
+
+# Validierungsfehler als ein lesbarer String (wie alle anderen Fehler im Frontend)
+@app.exception_handler(RequestValidationError)
+async def validation_handler(_request: Request, exc: RequestValidationError):
+    return JSONResponse(status_code=422, content={"detail": _validation_detail(exc.errors())})
 
 
 @app.get("/api/health")
@@ -48,6 +76,10 @@ def get_state(
         apartments=db.query(models.Apartment)
         .order_by(models.Apartment.sort, models.Apartment.id)
         .all(),
+        activities=[
+            _activity_out(a)
+            for a in db.query(models.Activity).order_by(models.Activity.day, models.Activity.id)
+        ],
         content=ContentOut.model_validate({**content.data, "events": _events(db)}),
     )
 
@@ -95,8 +127,7 @@ def update_event(
     try:
         merged = Event.model_validate(values)
     except ValidationError as e:
-        msg = e.errors()[0]["msg"].removeprefix("Value error, ")
-        raise HTTPException(status_code=422, detail=msg) from None
+        raise HTTPException(status_code=422, detail=_validation_detail(e.errors())) from None
     _check_place(db, merged.place)
     for key, value in merged.model_dump().items():
         setattr(event, key, value)
@@ -190,3 +221,82 @@ def update_person(
     db.commit()
     db.refresh(person)
     return person
+
+
+# --- Aktivitäten ---
+
+
+def _activity_out(a: models.Activity) -> ActivityOut:
+    return ActivityOut(
+        id=a.id,
+        day=a.day,
+        title=a.title,
+        maps_url=a.maps_url,
+        details=a.details,
+        url=a.url,
+        coordinator_id=a.coordinator_id,
+        participant_ids=[p.id for p in a.participants],
+    )
+
+
+def _apply_activity(db: Session, activity: models.Activity, data: ActivityIn) -> None:
+    ids = set(data.participant_ids)
+    if data.coordinator_id is not None:
+        ids.add(data.coordinator_id)
+    people = db.query(models.Person).filter(models.Person.id.in_(ids)).all() if ids else []
+    if len(people) != len(ids):
+        raise HTTPException(status_code=422, detail="Unbekannte Person.")
+    for field in ("day", "title", "maps_url", "details", "url", "coordinator_id"):
+        setattr(activity, field, getattr(data, field))
+    wanted = set(data.participant_ids)
+    activity.participants = [p for p in people if p.id in wanted]
+
+
+@app.post("/api/activities", response_model=ActivityOut, status_code=status.HTTP_201_CREATED)
+def create_activity(
+    body: ActivityIn,
+    _orga: models.Person = Depends(require_orga),
+    db: Session = Depends(get_db),
+):
+    activity = models.Activity()
+    _apply_activity(db, activity, body)
+    db.add(activity)
+    db.commit()
+    db.refresh(activity)
+    return _activity_out(activity)
+
+
+@app.patch("/api/activities/{activity_id}", response_model=ActivityOut)
+def update_activity(
+    activity_id: int,
+    body: ActivityUpdate,
+    _orga: models.Person = Depends(require_orga),
+    db: Session = Depends(get_db),
+):
+    activity = db.get(models.Activity, activity_id)
+    if activity is None:
+        raise HTTPException(status_code=404, detail="Aktivität nicht gefunden.")
+    values = _activity_out(activity).model_dump(exclude={"id"})
+    values.update(body.model_dump(exclude_unset=True))
+    try:
+        merged = ActivityIn.model_validate(values)
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=_validation_detail(e.errors())) from None
+    _apply_activity(db, activity, merged)
+    db.commit()
+    db.refresh(activity)
+    return _activity_out(activity)
+
+
+@app.delete("/api/activities/{activity_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_activity(
+    activity_id: int,
+    _orga: models.Person = Depends(require_orga),
+    db: Session = Depends(get_db),
+):
+    activity = db.get(models.Activity, activity_id)
+    if activity is None:
+        raise HTTPException(status_code=404, detail="Aktivität nicht gefunden.")
+    db.delete(activity)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

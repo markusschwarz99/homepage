@@ -9,7 +9,7 @@ const TABS = [
   { to: '/ich', label: 'Ich', short: 'Ich', icon: UserRound },
   { to: '/autos', label: 'Autos', short: 'Autos', icon: Car },
   { to: '/apartments', label: 'Apartments', short: 'Wohnen', icon: BedDouble },
-  { to: '/orte', label: 'Orte', short: 'Orte', icon: MapPinned },
+  { to: '/orte', label: 'Aktivitäten & Orte', short: 'Aktivitäten', icon: MapPinned },
 ]
 
 export function Layout() {
