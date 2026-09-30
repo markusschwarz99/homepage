@@ -1,12 +1,17 @@
 import { useEffect, type ReactNode } from 'react'
-import { X } from 'lucide-react'
 
-/** Bottom-Sheet am Handy, zentrierter Dialog am Desktop. Escape/Hintergrund schließt. */
+/** iOS-Sheet: mobil von unten mit Griff, am Desktop zentriert. Escape/Hintergrund schließt. */
 export function Modal({ label, onClose, children }: { label: string; onClose: () => void; children: ReactNode }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    // Hintergrund nicht mitscrollen
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = overflow
+    }
   }, [onClose])
 
   return (
@@ -18,26 +23,33 @@ export function Modal({ label, onClose, children }: { label: string; onClose: ()
         role="dialog"
         aria-modal="true"
         aria-label={label}
-        className="max-h-[90dvh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] shadow-xl md:max-w-lg md:rounded-2xl"
+        className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[14px] bg-canvas shadow-2xl md:max-w-lg md:rounded-[14px]"
         onClick={e => e.stopPropagation()}
       >
+        <div className="mx-auto mt-2 h-[5px] w-9 shrink-0 rounded-full bg-grey-50 md:hidden" aria-hidden />
         {children}
       </div>
     </div>
   )
 }
 
-export function ModalHeader({ title, onClose }: { title: ReactNode; onClose: () => void }) {
+/** Navigationsleiste im Sheet: links Aktion, Mitte Titel, rechts Aktion. */
+export function SheetHeader({ title, left, right }: { title: ReactNode; left?: ReactNode; right?: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-3">
-      <h2 className="text-lg font-bold">{title}</h2>
-      <button type="button" onClick={onClose} aria-label="Schließen" className="-m-1 p-1 text-grey">
-        <X size={20} />
-      </button>
+    <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 pt-2 pb-2 md:pt-3">
+      <div className="justify-self-start">{left}</div>
+      <h2 className="max-w-[14rem] truncate text-[17px] font-semibold">{title}</h2>
+      <div className="justify-self-end">{right}</div>
     </div>
   )
 }
 
-export const INPUT = 'w-full rounded-lg border border-grey-50 bg-white px-3 py-2 text-base md:text-sm'
-export const PRIMARY_BUTTON =
-  'inline-flex items-center gap-1.5 rounded-lg bg-royal-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-50'
+/** Scrollbarer Inhalt des Sheets. */
+export function SheetBody({ children }: { children: ReactNode }) {
+  return <div className="overflow-y-auto px-4 pb-[max(env(safe-area-inset-bottom),1.5rem)]">{children}</div>
+}
+
+export const TEXT_BUTTON = 'text-[17px] text-royal-blue active:opacity-50 disabled:opacity-40'
+export const TEXT_BUTTON_BOLD = `${TEXT_BUTTON} font-semibold`
+/** iOS-Eingabefeld innerhalb einer Zeile: randlos. */
+export const FIELD = 'w-full bg-transparent text-[16px] outline-none placeholder:text-grey-50'

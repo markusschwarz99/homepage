@@ -136,3 +136,31 @@ export function useNow(): string {
   }, [])
   return now
 }
+
+export type Scope = 'mine' | 'all'
+const SCOPE_KEY = 'retreat_scope'
+
+/** „Mein Kalender“ / „Alle“ – gemerkt pro Gerät, gilt für Heute und Kalender. */
+export function useScope(): [Scope, (scope: Scope) => void] {
+  const [scope, setScope] = useState<Scope>(() => {
+    try {
+      return localStorage.getItem(SCOPE_KEY) === 'all' ? 'all' : 'mine'
+    } catch {
+      return 'mine'
+    }
+  })
+  const change = (next: Scope) => {
+    setScope(next)
+    try {
+      localStorage.setItem(SCOPE_KEY, next)
+    } catch {
+      // nur für diese Sitzung
+    }
+  }
+  return [scope, change]
+}
+
+export const SCOPE_OPTIONS: { value: Scope; label: string }[] = [
+  { value: 'mine', label: 'Mein Kalender' },
+  { value: 'all', label: 'Alle' },
+]

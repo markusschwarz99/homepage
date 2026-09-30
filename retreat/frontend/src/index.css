@@ -35,12 +35,16 @@
   --color-grey-50: #aab6b9;
   --color-grey-25: #d5dbdc;
 
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* iOS-Look: gruppierter Hintergrund = Tönung von Grey-25 auf Weiß */
+  --color-canvas: color-mix(in srgb, #d5dbdc 42%, #ffffff);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
 }
 
 @layer base {
   body {
-    @apply bg-grey-25 font-sans text-black antialiased;
+    @apply bg-canvas font-sans text-[16px] text-black antialiased;
+    -webkit-tap-highlight-color: transparent;
   }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-accent-blue;

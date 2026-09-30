@@ -1,36 +1,40 @@
-import { useState, type FormEvent } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { useState, type FormEvent, type ReactNode } from 'react'
+import { Trash2 } from 'lucide-react'
 import { convertZone, dayOf, formatDay, timeOf } from '../lib/agenda'
-import { useRetreat } from '../lib/retreat'
 import { personName } from '../lib/people'
+import { useRetreat } from '../lib/retreat'
 import type { Category, EventInput, RetreatEvent } from '../lib/types'
-import { ActivityInfo } from './ActivityInfo'
-import { INPUT, Modal, ModalHeader as Header } from './Modal'
-import { CATEGORY, CategoryChip, MapsLink } from './ui'
+import { FIELD, Modal, SheetBody, SheetHeader, TEXT_BUTTON, TEXT_BUTTON_BOLD } from './Modal'
+import {
+  CATEGORY,
+  CategoryChip,
+  CheckRow,
+  MapsLink,
+  MapsUrlLink,
+  PhoneLink,
+  Row,
+  Section,
+  Select,
+  ValueRow,
+  WebLink,
+} from './ui'
 
 interface Props {
   /** null = neuen Termin anlegen */
   event: RetreatEvent | null
   /** Vorbelegung für neue Termine */
   draft?: Partial<EventInput>
-  /** direkt im Bearbeiten-Modus öffnen */
-  startEditing?: boolean
   onClose: () => void
 }
 
-export function EventDialog({ event, draft, startEditing = false, onClose }: Props) {
+export function EventDialog({ event, draft, onClose }: Props) {
   const { me } = useRetreat()
-  const [editing, setEditing] = useState(event === null || startEditing)
+  const [editing, setEditing] = useState(event === null)
 
   return (
     <Modal label={event ? event.title : 'Neuer Termin'} onClose={onClose}>
       {editing && me.is_orga ? (
-        <EventForm
-          event={event}
-          draft={draft}
-          onDone={onClose}
-          onCancel={event && !startEditing ? () => setEditing(false) : onClose}
-        />
+        <EventForm event={event} draft={draft} onDone={onClose} onCancel={event ? () => setEditing(false) : onClose} />
       ) : (
         event && <EventView event={event} onEdit={() => setEditing(true)} onClose={onClose} />
       )}
@@ -38,11 +42,12 @@ export function EventDialog({ event, draft, startEditing = false, onClose }: Pro
   )
 }
 
+// --- Ansicht --------------------------------------------------------------------
+
 function EventView({ event, onEdit, onClose }: { event: RetreatEvent; onEdit: () => void; onClose: () => void }) {
   const { me, places, deleteEvent } = useRetreat()
   const [error, setError] = useState<string | null>(null)
   const place = event.place ? places.get(event.place) : undefined
-  const home = { start: convertZone(event.start), end: convertZone(event.end) }
 
   const remove = async () => {
     if (!window.confirm(`„${event.title}“ wirklich löschen?`)) return
@@ -53,57 +58,142 @@ function EventView({ event, onEdit, onClose }: { event: RetreatEvent; onEdit: ()
 
   return (
     <>
-      <Header title={event.title} onClose={onClose} />
-      <div className="mt-2">
-        <CategoryChip category={event.category} />
-      </div>
-      <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-        <dt className="text-grey">Tag</dt>
-        <dd>{formatDay(dayOf(event.start))}</dd>
-        <dt className="text-grey">Teneriffa</dt>
-        <dd className="font-semibold">
-          {timeOf(event.start)}–{timeOf(event.end)} Uhr
-        </dd>
-        <dt className="text-grey">Österreich</dt>
-        <dd>
-          {timeOf(home.start)}–{timeOf(home.end)} Uhr
-        </dd>
-      </dl>
-      {place && (
-        <div className="mt-3 text-sm">
-          <MapsLink place={place} />
-          {place.address && <p className="text-grey">{place.address}</p>}
+      <SheetHeader
+        left={
+          <button type="button" onClick={onClose} className={TEXT_BUTTON}>
+            Schließen
+          </button>
+        }
+        title={CATEGORY[event.category].label}
+        right={
+          me.is_orga && (
+            <button type="button" onClick={onEdit} className={TEXT_BUTTON_BOLD}>
+              Bearbeiten
+            </button>
+          )
+        }
+      />
+      <SheetBody>
+        <h3 className="mt-2 px-1 text-[24px] leading-tight font-bold">{event.title}</h3>
+        <div className="mt-2 px-1">
+          <CategoryChip category={event.category} />
         </div>
+        <Section title="Zeit">
+          <ValueRow label="Tag">{formatDay(dayOf(event.start))}</ValueRow>
+          <ValueRow label="Teneriffa">
+            <span className="font-semibold text-black">
+              {timeOf(event.start)}–{timeOf(event.end)} Uhr
+            </span>
+          </ValueRow>
+          <ValueRow label="Österreich">
+            {timeOf(convertZone(event.start))}–{timeOf(convertZone(event.end))} Uhr
+          </ValueRow>
+        </Section>
+        {place && (
+          <Section title="Ort">
+            <Row>
+              <MapsLink place={place} />
+              {place.address && <p className="text-[13px] text-grey">{place.address}</p>}
+            </Row>
+            {place.phone && (
+              <Row>
+                <PhoneLink phone={place.phone} />
+              </Row>
+            )}
+          </Section>
+        )}
+        {event.note && (
+          <Section title={event.category === 'activity' ? 'Beschreibung' : 'Notiz'}>
+            <Row>
+              <p className="whitespace-pre-line">{event.note}</p>
+            </Row>
+          </Section>
+        )}
+        <EventExtras event={event} />
+        {me.is_orga && (
+          <Section>
+            <Row onClick={remove}>
+              <span className="inline-flex items-center gap-2">
+                <Trash2 size={18} aria-hidden /> Termin löschen
+              </span>
+            </Row>
+          </Section>
+        )}
+        {error && <p className="mt-3 px-4 text-[15px] font-semibold">⚠︎ {error}</p>}
+      </SheetBody>
+    </>
+  )
+}
+
+/** Koordination, Teilnehmende, Links – nur was befüllt ist. */
+function EventExtras({ event }: { event: RetreatEvent }) {
+  const { me, people } = useRetreat()
+  const byId = new Map(people.map(p => [p.id, p]))
+  const coordinator = event.coordinator_id ? byId.get(event.coordinator_id) : undefined
+  const participants = event.participant_ids.map(id => byId.get(id)).filter(p => p !== undefined)
+  const you = (id: number) => (id === me.id ? ' (du)' : '')
+
+  return (
+    <>
+      {coordinator && (
+        <Section title="Koordination">
+          <Row>
+            {personName(coordinator)}
+            {you(coordinator.id)}
+          </Row>
+        </Section>
       )}
-      {event.note && <p className="mt-3 text-sm">{event.note}</p>}
-      <ActivityInfo event={event} expanded className="mt-3" />
-      {error && <p className="mt-3 text-sm font-semibold">⚠ {error}</p>}
-      {me.is_orga && (
-        <div className="mt-5 flex gap-2">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-royal-blue px-3 py-2 text-sm font-semibold text-white"
-          >
-            <Pencil size={16} /> Bearbeiten
-          </button>
-          <button
-            type="button"
-            onClick={remove}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-grey-50 px-3 py-2 text-sm"
-          >
-            <Trash2 size={16} /> Löschen
-          </button>
-        </div>
+      {participants.length > 0 && (
+        <Section title={`Teilnehmende (${participants.length})`}>
+          {participants.length === people.length ? (
+            <Row>Alle</Row>
+          ) : (
+            participants.map(p => (
+              <Row key={p.id} highlight={p.id === me.id}>
+                {personName(p)}
+                {you(p.id)}
+              </Row>
+            ))
+          )}
+        </Section>
+      )}
+      {(event.maps_url || event.url) && (
+        <Section title="Links">
+          {event.maps_url && (
+            <Row>
+              <MapsUrlLink href={event.maps_url} />
+            </Row>
+          )}
+          {event.url && (
+            <Row>
+              <WebLink href={event.url}>Weitere Infos</WebLink>
+            </Row>
+          )}
+        </Section>
       )}
     </>
   )
 }
 
+// --- Formular (nur Orga) ----------------------------------------------------------
+
 function nextDay(day: string): string {
   const [y, m, d] = day.split('-').map(Number)
   return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
 }
+
+function FieldRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <Row>
+      <label className="flex items-center justify-between gap-3">
+        <span className="shrink-0">{label}</span>
+        {children}
+      </label>
+    </Row>
+  )
+}
+
+const PICKER = 'bg-transparent text-right text-[16px] text-royal-blue'
 
 function EventForm({
   event,
@@ -126,42 +216,43 @@ function EventForm({
   const [end, setEnd] = useState(timeOf(base.end))
   const [title, setTitle] = useState(event?.title ?? '')
   const [category, setCategory] = useState<Category>(event?.category ?? draft?.category ?? 'activity')
-  const [place, setPlace] = useState(event?.place ?? '')
+  const [place, setPlace] = useState<string | null>(event?.place ?? null)
   const [note, setNote] = useState(event?.note ?? '')
-  // Aktivitäts-Felder
   const [mapsUrl, setMapsUrl] = useState(event?.maps_url ?? '')
   const [url, setUrl] = useState(event?.url ?? '')
   const [coordinator, setCoordinator] = useState<number | null>(event?.coordinator_id ?? null)
   const [participants, setParticipants] = useState(() => new Set(event?.participant_ids ?? []))
-  const isActivity = category === 'activity'
-  // Zusatzfelder gibt es bei jeder Kategorie; aufgeklappt, wenn schon befüllt oder Aktivität
-  const [extrasOpen] = useState(
-    () =>
-      (event?.category ?? draft?.category) === 'activity' ||
-      !!(event?.maps_url || event?.url || event?.coordinator_id || event?.participant_ids.length),
-  )
-  const sortedPeople = [...people].sort((a, b) => personName(a).localeCompare(personName(b), 'de'))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+  const sortedPeople = [...people].sort((a, b) => personName(a).localeCompare(personName(b), 'de'))
   // Ende vor/gleich Start -> endet am Folgetag (z.B. 22:00–01:00)
   const startDt = `${day}T${start}`
   const endDt = `${end <= start ? nextDay(day) : day}T${end}`
-  const valid = /^\d{4}-\d{2}-\d{2}$/.test(day) && /^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end)
+  const valid =
+    title.trim() !== '' && /^\d{4}-\d{2}-\d{2}$/.test(day) && /^\d{2}:\d{2}$/.test(start) && /^\d{2}:\d{2}$/.test(end)
   const urlError = [mapsUrl, url].some(u => u.trim() && !/^https?:\/\/\S+$/.test(u.trim()))
     ? 'Links müssen mit http:// oder https:// beginnen.'
     : null
 
+  const toggle = (id: number) =>
+    setParticipants(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (urlError) return
+    if (!valid || urlError) return
     setBusy(true)
     const err = await saveEvent(event?.id ?? null, {
       start: startDt,
       end: endDt,
       title: title.trim(),
       category,
-      place: place || null,
+      place,
       note: note.trim() || null,
       maps_url: mapsUrl.trim() || null,
       url: url.trim() || null,
@@ -174,167 +265,150 @@ function EventForm({
   }
 
   return (
-    <form onSubmit={submit}>
-      <Header
-        title={
-          event
-            ? isActivity
-              ? 'Aktivität bearbeiten'
-              : 'Termin bearbeiten'
-            : isActivity
-              ? 'Neue Aktivität'
-              : 'Neuer Termin'
+    <form onSubmit={submit} className="flex min-h-0 flex-col">
+      <SheetHeader
+        left={
+          <button type="button" onClick={onCancel} className={TEXT_BUTTON}>
+            Abbrechen
+          </button>
         }
-        onClose={onCancel}
+        title={event ? 'Bearbeiten' : category === 'activity' ? 'Neue Aktivität' : 'Neuer Termin'}
+        right={
+          <button type="submit" disabled={busy || !valid || !!urlError} className={TEXT_BUTTON_BOLD}>
+            Sichern
+          </button>
+        }
       />
-      <div className="mt-4 space-y-3">
-        <label className="block text-sm">
-          <span className="font-medium">Titel</span>
-          <input className={INPUT} value={title} onChange={e => setTitle(e.target.value)} required maxLength={200} />
-        </label>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <label className="col-span-2 block text-sm sm:col-span-1">
-            <span className="font-medium">Tag</span>
-            <input type="date" className={INPUT} value={day} onChange={e => setDay(e.target.value)} required />
-          </label>
-          <label className="block text-sm">
-            <span className="font-medium">Beginn</span>
-            <input type="time" className={INPUT} value={start} onChange={e => setStart(e.target.value)} required />
-          </label>
-          <label className="block text-sm">
-            <span className="font-medium">Ende</span>
-            <input type="time" className={INPUT} value={end} onChange={e => setEnd(e.target.value)} required />
-          </label>
-        </div>
-        <p className="rounded-lg bg-royal-blue-25 px-3 py-2 text-sm">
-          Zeiten in <strong>Teneriffa-Zeit</strong>.
-          {valid && (
+      <SheetBody>
+        {(urlError || error) && (
+          <p role="alert" className="mt-2 rounded-xl bg-white p-3 text-[15px] font-semibold">
+            ⚠︎ {urlError ?? error}
+          </p>
+        )}
+        <Section>
+          <Row>
+            <input
+              className={`${FIELD} text-[17px] font-semibold`}
+              placeholder="Titel"
+              aria-label="Titel"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              required
+              maxLength={200}
+            />
+          </Row>
+        </Section>
+
+        <Section
+          footer={
             <>
-              {' '}
-              In Österreich: {timeOf(convertZone(startDt))}–{timeOf(convertZone(endDt))} Uhr
+              Zeiten in Teneriffa-Zeit – in Österreich {timeOf(convertZone(startDt))}–{timeOf(convertZone(endDt))} Uhr
+              {end <= start && ' (endet am Folgetag)'}.
             </>
-          )}
-          {valid && end <= start && ' (endet am Folgetag)'}
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          <label className="block text-sm">
-            <span className="font-medium">Kategorie</span>
-            <select className={INPUT} value={category} onChange={e => setCategory(e.target.value as Category)}>
-              {(Object.keys(CATEGORY) as Category[]).map(c => (
-                <option key={c} value={c}>
-                  {CATEGORY[c].label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="font-medium">Ort</span>
-            <select className={INPUT} value={place} onChange={e => setPlace(e.target.value)}>
-              <option value="">– kein Ort –</option>
-              {content.places.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <label className="block text-sm">
-          <span className="font-medium">{isActivity ? 'Beschreibung' : 'Notiz'}</span>
-          <textarea className={INPUT} rows={2} value={note} onChange={e => setNote(e.target.value)} maxLength={500} />
-        </label>
-        <details open={extrasOpen} className="rounded-lg border border-grey-50 bg-grey-25 p-3">
-          <summary className="cursor-pointer text-sm font-semibold">
-            Links, Koordination &amp; Teilnehmende (optional)
-          </summary>
-          <p className="mt-1 text-xs text-grey">Nur befüllte Angaben werden angezeigt.</p>
-          <div className="mt-3 space-y-3">
-            <label className="block text-sm">
-              <span className="font-medium">Google-Maps-Link</span>
-              <input
-                className={INPUT}
-                type="url"
-                inputMode="url"
-                placeholder="https://maps.app.goo.gl/…"
-                value={mapsUrl}
-                onChange={e => setMapsUrl(e.target.value)}
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="font-medium">Koordination</span>
-              <select
-                className={INPUT}
-                value={coordinator ?? ''}
-                onChange={e => setCoordinator(e.target.value ? Number(e.target.value) : null)}
-              >
-                <option value="">– niemand –</option>
-                {sortedPeople.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {personName(p)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <fieldset className="text-sm">
-              <div className="flex items-baseline justify-between gap-2">
-                <legend className="font-medium">Teilnehmende ({participants.size})</legend>
-                <span className="flex gap-3 text-accent-blue">
-                  <button type="button" onClick={() => setParticipants(new Set(people.map(p => p.id)))}>
-                    Alle
-                  </button>
-                  <button type="button" onClick={() => setParticipants(new Set())}>
-                    Keine
-                  </button>
-                </span>
-              </div>
-              <div className="mt-1 grid max-h-56 grid-cols-1 gap-x-3 overflow-y-auto rounded-lg border border-grey-50 bg-white p-2 sm:grid-cols-2">
-                {sortedPeople.map(p => (
-                  <label key={p.id} className="flex items-center gap-2 py-1">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-royal-blue"
-                      checked={participants.has(p.id)}
-                      onChange={() =>
-                        setParticipants(prev => {
-                          const next = new Set(prev)
-                          if (next.has(p.id)) next.delete(p.id)
-                          else next.add(p.id)
-                          return next
-                        })
-                      }
-                    />
-                    {personName(p)}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <label className="block text-sm">
-              <span className="font-medium">Info-Link (optional)</span>
-              <input
-                className={INPUT}
-                type="url"
-                inputMode="url"
-                placeholder="https://…"
-                value={url}
-                onChange={e => setUrl(e.target.value)}
-              />
-            </label>
-          </div>
-        </details>
-      </div>
-      {(urlError || error) && <p className="mt-3 text-sm font-semibold">⚠ {urlError ?? error}</p>}
-      <div className="mt-5 flex gap-2">
-        <button
-          type="submit"
-          disabled={busy || !valid || !!urlError}
-          className="rounded-lg bg-royal-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          }
         >
-          Speichern
-        </button>
-        <button type="button" onClick={onCancel} className="rounded-lg border border-grey-50 px-4 py-2 text-sm">
-          Abbrechen
-        </button>
-      </div>
+          <FieldRow label="Tag">
+            <input type="date" className={PICKER} value={day} onChange={e => setDay(e.target.value)} required />
+          </FieldRow>
+          <FieldRow label="Beginn">
+            <input type="time" className={PICKER} value={start} onChange={e => setStart(e.target.value)} required />
+          </FieldRow>
+          <FieldRow label="Ende">
+            <input type="time" className={PICKER} value={end} onChange={e => setEnd(e.target.value)} required />
+          </FieldRow>
+        </Section>
+
+        <Section>
+          <FieldRow label="Kategorie">
+            <Select
+              label="Kategorie"
+              value={category}
+              options={(Object.keys(CATEGORY) as Category[]).map(c => ({ value: c, label: CATEGORY[c].label }))}
+              onChange={v => v && setCategory(v)}
+            />
+          </FieldRow>
+          <FieldRow label="Ort">
+            <Select
+              label="Ort"
+              value={place}
+              emptyLabel="Keiner"
+              options={content.places.map(p => ({ value: p.id, label: p.name }))}
+              onChange={setPlace}
+            />
+          </FieldRow>
+        </Section>
+
+        <Section title={category === 'activity' ? 'Beschreibung' : 'Notiz'}>
+          <Row>
+            <textarea
+              className={`${FIELD} resize-none`}
+              rows={3}
+              placeholder="Optional"
+              aria-label={category === 'activity' ? 'Beschreibung' : 'Notiz'}
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              maxLength={500}
+            />
+          </Row>
+        </Section>
+
+        <Section title="Links & Koordination" footer="Optional – wird nur angezeigt, wenn befüllt.">
+          <Row>
+            <input
+              className={FIELD}
+              type="url"
+              inputMode="url"
+              placeholder="Google-Maps-Link"
+              aria-label="Google-Maps-Link"
+              value={mapsUrl}
+              onChange={e => setMapsUrl(e.target.value)}
+            />
+          </Row>
+          <Row>
+            <input
+              className={FIELD}
+              type="url"
+              inputMode="url"
+              placeholder="Info-Link"
+              aria-label="Info-Link"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+            />
+          </Row>
+          <FieldRow label="Koordination">
+            <Select
+              label="Koordination"
+              value={coordinator}
+              emptyLabel="Niemand"
+              options={sortedPeople.map(p => ({ value: p.id, label: personName(p) }))}
+              onChange={setCoordinator}
+            />
+          </FieldRow>
+        </Section>
+
+        <Section
+          title={`Teilnehmende (${participants.size})`}
+          action={
+            <span className="flex gap-4 text-[15px] text-royal-blue">
+              <button type="button" onClick={() => setParticipants(new Set(people.map(p => p.id)))}>
+                Alle
+              </button>
+              <button type="button" onClick={() => setParticipants(new Set())}>
+                Keine
+              </button>
+            </span>
+          }
+          footer="Ohne Eintragung gelten Arbeitsblock, Mahlzeit und Transfer im „Mein Kalender“ für alle, Aktivitäten für niemanden."
+        >
+          <div className="max-h-72 overflow-y-auto">
+            {sortedPeople.map(p => (
+              <CheckRow key={p.id} checked={participants.has(p.id)} onToggle={() => toggle(p.id)}>
+                {personName(p)}
+              </CheckRow>
+            ))}
+          </div>
+        </Section>
+      </SheetBody>
     </form>
   )
 }
