@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 import { SITE_NAME } from '../config'
 import { isEditor, useAuth } from '../lib/auth'
 import { buildNav } from '../lib/nav'
@@ -9,6 +9,14 @@ import Logo from './Logo'
 import RichText from './RichText'
 
 export default function Layout() {
+  const { pathname } = useLocation()
+  const navType = useNavigationType()
+
+  // Neue Seite startet oben; bei Zurück/Vor (POP) behält der Browser die Position.
+  useEffect(() => {
+    if (navType !== 'POP') window.scrollTo(0, 0)
+  }, [pathname, navType])
+
   return (
     <div className="flex min-h-screen flex-col">
       <EditorBar />
