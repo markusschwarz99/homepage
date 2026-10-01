@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { Trash2 } from 'lucide-react'
+import { CalendarPlus, Download, Trash2 } from 'lucide-react'
+import { downloadIcs, outlookUrl } from '../lib/addToCalendar'
 import { convertZone, dayOf, formatDay, timeOf } from '../lib/agenda'
 import { personName } from '../lib/people'
 import { useRetreat } from '../lib/retreat'
@@ -110,6 +111,25 @@ function EventView({ event, onEdit, onClose }: { event: RetreatEvent; onEdit: ()
           </Section>
         )}
         <EventExtras event={event} />
+        <Section title="Kalender" footer="Outlook öffnet sich im Browser mit deinem Microsoft-365-Konto. Für andere Kalender die .ics-Datei nehmen.">
+          <Row>
+            <a
+              href={outlookUrl(event, place)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-accent-blue active:opacity-60"
+            >
+              <CalendarPlus size={16} aria-hidden />
+              Zu Outlook hinzufügen
+            </a>
+          </Row>
+          <Row onClick={() => downloadIcs(event, place)}>
+            <span className="inline-flex items-center gap-1.5 text-accent-blue">
+              <Download size={16} aria-hidden />
+              Kalenderdatei (.ics)
+            </span>
+          </Row>
+        </Section>
         {me.is_orga && (
           <Section>
             <Row onClick={remove}>
