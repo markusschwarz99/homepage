@@ -149,8 +149,10 @@ Persönliche Homepage mit vier Hauptbereichen:
   ohne Prod-Impact: `RETREAT_PORT=8093 docker compose -p retreat-test -f
   retreat/docker-compose.yml up -d --build`. CI `retreat-tests.yml` (paths-Filter
   `retreat/**`), `backup-db.sh` exportiert den Stand mit nach `backups/`.
+  Fachkonzept (statische Variante ohne Backend) inkl. echter Teilnehmer-Daten liegt auf
+  Markus' ausdrücklichen Wunsch in `retreat/FACHKONZEPT.md` (Quelle `~/retreat-content/retreat-fachkonzept.md`).
   **Nach dem Retreat abbauen**: Stack `down -v` (vorher export), Dependabot-Einträge
-  `retreat` entfernen, Tunnel-Hostname löschen.
+  `retreat` entfernen, Tunnel-Hostname löschen, `FACHKONZEPT.md` entfernen.
 
 Der frühere Bereich **"Mein Account"** heißt jetzt **"Einstellungen"** und nutzt ein
 eigenes `SettingsLayout` (spiegelt das `AdminLayout`-Tab-Muster) mit Unterregistern
