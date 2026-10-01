@@ -34,11 +34,13 @@ export function EventDialog({ event, draft, onClose }: Props) {
 
   return (
     <Modal label={event ? event.title : 'Neuer Termin'} onClose={onClose}>
-      {editing && me.is_orga ? (
-        <EventForm event={event} draft={draft} onDone={onClose} onCancel={event ? () => setEditing(false) : onClose} />
-      ) : (
-        event && <EventView event={event} onEdit={() => setEditing(true)} onClose={onClose} />
-      )}
+      {close =>
+        editing && me.is_orga ? (
+          <EventForm event={event} draft={draft} onDone={close} onCancel={event ? () => setEditing(false) : close} />
+        ) : (
+          event && <EventView event={event} onEdit={() => setEditing(true)} onClose={close} />
+        )
+      }
     </Modal>
   )
 }
