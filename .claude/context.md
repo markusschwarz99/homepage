@@ -97,7 +97,7 @@ Persönliche Homepage mit vier Hauptbereichen:
   URL (`keepTokenInUrl()` nach jedem Tab-Wechsel): iOS-„Zum Home-Bildschirm“ speichert
   die aktuelle URL und die Home-Bildschirm-App hat eigenen, leeren localStorage. Nur die Orga ändert
   Auto-/Apartmentzuteilung (`PATCH /api/people/{id}`), vergibt/entzieht Orga-Rechte
-  (`is_orga` im selben PATCH, UI „Ich“ → „Orga verwalten“; letzte Orga-Person nicht
+  (`is_orga` im selben PATCH, UI „Einstellungen“ → „Orga“; letzte Orga-Person nicht
   entfernbar → 409) und pflegt Termine (Tabelle `events`, `POST/PATCH/DELETE
   /api/events`, Sheet im Tab Kalender). **Alles läuft über den Kalender**: keine
   eigenen Tabs für Aktivitäten/Orte; Aktivitäten sind Termine mit
@@ -108,7 +108,10 @@ Persönliche Homepage mit vier Hauptbereichen:
   `retreat_scope`), Regel `isMine()` in `src/lib/agenda.ts`: Koordination/eingetragen
   → ja; Teilnehmende eingetragen, ich nicht → nein; niemand eingetragen →
   Arbeitsblock/Mahlzeit/Transfer für alle, Aktivität für niemanden. Tabs: Heute,
-  Kalender, Ich, Autos, Apartments. **iOS-Design** in der Palette: Bausteine in
+  Kalender, Ich + rollenabhängig **Info** (Nicht-Orga: Autos/Fahrer:innen + Zimmer,
+  read-only) ODER **Einstellungen** (nur Orga: Autos/Zimmer zuteilen + Orga-Rechte;
+  `pages/Settings.tsx`). Beide nutzen `CarList`/`ApartmentList` mit `editable`-Prop;
+  `/info` ↔ `/einstellungen` leiten je nach `is_orga` um. **iOS-Design** in der Palette: Bausteine in
   `components/ui.tsx` (`Section`/`Row`/`ValueRow` = inset grouped list, `Segmented`,
   `Switch`, `CheckRow`), `WeekStrip.tsx`, Sheets über `components/Modal.tsx`
   (`SheetHeader` mit Abbrechen/Sichern); Hintergrund `--color-canvas` = Tönung von
