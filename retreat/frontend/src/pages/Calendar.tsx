@@ -1,9 +1,10 @@
-import { useState, type MouseEvent } from 'react'
+import { useRef, useState, type MouseEvent } from 'react'
 import { Plus } from 'lucide-react'
 import { convertZone, dayOf, defaultDay, eventsOn, formatDay, isMine, retreatDays, timeOf } from '../lib/agenda'
 import { hourRange, layoutDay, minutesOfDay } from '../lib/calendar'
 import { SCOPE_OPTIONS, useNow, useRetreat, useScope } from '../lib/retreat'
 import type { EventInput, RetreatEvent } from '../lib/types'
+import { useDaySwipe } from '../lib/useDaySwipe'
 import { EventDialog } from '../components/EventDialog'
 import { WeekStrip } from '../components/WeekStrip'
 import { CATEGORY, Segmented } from '../components/ui'
@@ -26,6 +27,12 @@ export function Calendar() {
   const hours = Array.from({ length: to - from }, (_, i) => from + i)
   const height = (to - from) * HOUR_PX
   const refDay = days.includes(day) ? day : days[0]
+  const columns = useRef<HTMLDivElement>(null)
+  useDaySwipe(
+    columns,
+    dir => days[days.indexOf(refDay) + dir] !== undefined,
+    dir => setDay(days[days.indexOf(refDay) + dir]),
+  )
 
   const createAt = (d: string, e: MouseEvent<HTMLDivElement>) => {
     if (!me.is_orga) return
@@ -69,7 +76,7 @@ export function Calendar() {
       <div className="mt-3 flex overflow-hidden rounded-xl bg-white">
         {/* Zeitachsen */}
         {(['tfs', 'at'] as const).map(axis => (
-          <div key={axis} className={`w-11 shrink-0 ${axis === 'at' ? 'border-r border-grey-25' : ''}`}>
+          <div key={axis} className={`relative z-10 w-11 shrink-0 bg-white ${axis === 'at' ? 'border-r border-grey-25' : ''}`}>
             <div className="flex h-12 items-end justify-center pb-1.5 text-[11px] font-semibold text-grey">
               {axis === 'tfs' ? 'TFS' : 'AT'}
             </div>
@@ -89,8 +96,8 @@ export function Calendar() {
           </div>
         ))}
 
-        {/* Tages-Spalten */}
-        <div className="flex min-w-0 flex-1">
+        {/* Tages-Spalten (mobil: wischen = Tag wechseln) */}
+        <div ref={columns} className="flex min-w-0 flex-1 max-md:touch-pan-y">
           {days.map(d => {
             const isToday = d === dayOf(now)
             const nowTop = (minutesOfDay(now) - from * 60) * (HOUR_PX / 60)
