@@ -117,7 +117,10 @@ Persönliche Homepage mit vier Hauptbereichen:
   `/info` ↔ `/einstellungen` leiten je nach `is_orga` um. **iOS-Design** in der Palette: Bausteine in
   `components/ui.tsx` (`Section`/`Row`/`ValueRow` = inset grouped list, `Segmented`,
   `Switch`, `CheckRow`), `WeekStrip.tsx`, Sheets über `components/Modal.tsx`
-  (`SheetHeader` mit Abbrechen/Sichern); Hintergrund `--color-canvas` = Tönung von
+  (`SheetHeader` mit Abbrechen/Sichern; `children` ist Render-Funktion `close => …`, damit
+  Buttons animiert schließen; mobil nach unten wegwischbar). Kalender mobil: Tage wischen
+  (`lib/useDaySwipe.ts`, Schwellwerte rein in `lib/gestures.ts`). Touch-Gesten mit
+  Playwright über CDP `Input.dispatchTouchEvent` testen; Hintergrund `--color-canvas` = Tönung von
   Grey-25 auf Weiß. URL-Felder nur `http(s)://`
   (Pydantic-Pattern `Url` in `schemas.py`, gegen `javascript:` in href).
   Validierungsfehler liefert ein globaler Handler als EIN deutscher String in `detail`.
