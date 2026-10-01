@@ -1,10 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { useRetreatContext } from './lib/retreat'
-import { Apartments } from './pages/Apartments'
 import { Calendar } from './pages/Calendar'
-import { Cars } from './pages/Cars'
+import { Info } from './pages/Info'
 import { Me } from './pages/Me'
+import { Settings } from './pages/Settings'
 import { Today } from './pages/Today'
 
 function Screen({ title, text }: { title: string; text: string }) {
@@ -41,8 +41,8 @@ export default function App() {
           <Route index element={<Today />} />
           <Route path="kalender" element={<Calendar />} />
           <Route path="ich" element={<Me />} />
-          <Route path="autos" element={<Cars />} />
-          <Route path="apartments" element={<Apartments />} />
+          <Route path="info" element={<Info />} />
+          <Route path="einstellungen" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

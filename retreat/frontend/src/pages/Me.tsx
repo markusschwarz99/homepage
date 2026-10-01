@@ -1,7 +1,6 @@
 import { useRetreat } from '../lib/retreat'
 import { byRole, firstName, personName, ROLE_LABEL } from '../lib/people'
-import type { Person } from '../lib/types'
-import { MapsLink, Row, Section, Switch, ValueRow } from '../components/ui'
+import { MapsLink, Row, Section, ValueRow } from '../components/ui'
 
 export function Me() {
   const { me, people, cars, apartments, content, places } = useRetreat()
@@ -16,7 +15,7 @@ export function Me() {
       <p className="px-1 text-[20px] font-semibold">Hallo {firstName(me)}!</p>
       {me.is_orga && (
         <p className="px-1 text-[15px] text-grey">
-          Du bist in der Orga und kannst Autos, Apartments und den Kalender bearbeiten.
+          Du bist in der Orga. Autos, Zimmer und Orga-Rechte verwaltest du unter Einstellungen.
         </p>
       )}
 
@@ -72,48 +71,6 @@ export function Me() {
           </Section>
         )}
       </div>
-
-      {me.is_orga && <OrgaAdmin />}
     </>
-  )
-}
-
-/** Orga-Rechte vergeben/entziehen (nur für Orga sichtbar). */
-function OrgaAdmin() {
-  const { me, people, update } = useRetreat()
-  const sorted = [...people].sort((a, b) => personName(a).localeCompare(personName(b), 'de'))
-  const orgaCount = people.filter(p => p.is_orga).length
-
-  const toggle = (p: Person) => {
-    if (p.id === me.id && p.is_orga && !window.confirm('Du entziehst dir damit selbst die Orga-Rechte. Fortfahren?')) {
-      return
-    }
-    update(p.id, { is_orga: !p.is_orga })
-  }
-
-  return (
-    <Section
-      title="Orga verwalten"
-      footer="Orga-Mitglieder können Autos, Apartments und den Kalender bearbeiten und selbst Orga-Rechte vergeben. Mindestens eine Person muss in der Orga bleiben."
-    >
-      <div className="md:grid md:grid-cols-2 xl:grid-cols-3">
-        {sorted.map(p => (
-          <Row key={p.id}>
-            <div className="flex items-center justify-between gap-3">
-              <span className={p.is_orga ? 'font-semibold' : ''}>
-                {personName(p)}
-                {p.id === me.id && ' (du)'}
-              </span>
-              <Switch
-                label={`Orga-Rechte für ${personName(p)}`}
-                checked={p.is_orga}
-                disabled={p.is_orga && orgaCount === 1}
-                onChange={() => toggle(p)}
-              />
-            </div>
-          </Row>
-        ))}
-      </div>
-    </Section>
   )
 }

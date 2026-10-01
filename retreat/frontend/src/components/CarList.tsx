@@ -5,13 +5,14 @@ import { Row, Section, Select } from '../components/ui'
 
 const ROLE_OPTIONS = (Object.keys(ROLE_LABEL) as CarRole[]).map(r => ({ value: r, label: ROLE_LABEL[r] }))
 
-export function Cars() {
-  const { me, people, cars } = useRetreat()
+/** Autos mit Besetzung; `editable` = Orga kann umsetzen. */
+export function CarList({ editable = false }: { editable?: boolean }) {
+  const { people, cars } = useRetreat()
   const unassigned = people.filter(p => p.car_id === null)
 
   return (
     <>
-      {me.is_orga && <p className="px-1 text-[15px] text-grey">Tippe auf Auto oder Rolle, um umzusetzen.</p>}
+      {editable && <p className="px-1 text-[15px] text-grey">Tippe auf Auto oder Rolle, um umzusetzen.</p>}
       <div className="md:grid md:grid-cols-2 md:gap-x-6 xl:grid-cols-3">
         {cars.map(car => {
           const members = people.filter(p => p.car_id === car.id).sort(byRole)
@@ -28,7 +29,7 @@ export function Cars() {
               footer={car.kind === 'car' && !hasDriver ? '⚠︎ Keine Fahrer:in' : undefined}
             >
               {members.map(p => (
-                <CarPersonRow key={p.id} person={p} car={car} />
+                <CarPersonRow key={p.id} person={p} car={car} editable={editable} />
               ))}
               {members.length === 0 && <Row className="text-grey">Niemand</Row>}
             </Section>
@@ -37,7 +38,7 @@ export function Cars() {
         {unassigned.length > 0 && (
           <Section title="Nicht zugeteilt">
             {unassigned.map(p => (
-              <CarPersonRow key={p.id} person={p} />
+              <CarPersonRow key={p.id} person={p} editable={editable} />
             ))}
           </Section>
         )}
@@ -46,7 +47,7 @@ export function Cars() {
   )
 }
 
-function CarPersonRow({ person, car }: { person: Person; car?: Car }) {
+function CarPersonRow({ person, car, editable }: { person: Person; car?: Car; editable: boolean }) {
   const { me, cars, update } = useRetreat()
   const showRole = car?.kind === 'car' && person.car_role
   const mine = car && car.id === me.car_id
@@ -56,7 +57,7 @@ function CarPersonRow({ person, car }: { person: Person; car?: Car }) {
       {/* Bei Platzmangel (mobil, Orga) rutschen die Auswahlfelder in eine zweite Zeile */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <span className={`min-w-0 truncate ${person.id === me.id ? 'font-semibold' : ''}`}>{personName(person)}</span>
-        {me.is_orga ? (
+        {editable ? (
           <span className="ml-auto flex items-center gap-4">
             {showRole && (
               <Select
