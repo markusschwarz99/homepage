@@ -83,74 +83,6 @@ Persönliche Homepage mit vier Hauptbereichen:
   bzw. `~/hongar-content/`. Beispielbilder (Wikimedia Commons, CC BY/BY-SA) liegen in
   `hongar/public/img/` als WebP; jedes neue Bild MUSS in `src/lib/credits.ts`
   (Bildnachweis im Impressum).
-- **Teamretreat-App** (`rp.markus-schwarz.cc`, Teneriffa 18.–23.10.2026, kurzlebig):
-  komplett eigener Stack unter `retreat/` mit EIGENEM Compose-File
-  `retreat/docker-compose.yml` (`name: retreat`, Services `retreat-backend` +
-  `retreat-frontend`, Volume `retreat_data`, Host-Port 8083 via `RETREAT_PORT`) –
-  unabhängig vom Homepage-Compose (dessen `build`/`up` fasst ihn nicht an).
-  Backend: FastAPI + SQLAlchemy mit **SQLite** (`/data/retreat.db`), **bewusst ohne
-  Alembic** (`create_all` beim Start; Schema-Änderung = `export` → Volume neu → `load`).
-  Keine Secrets/kein env_file. Frontend (Vite/React/Tailwind wie hongar) proxyt `/api`
-  per nginx auf das Backend → same origin, kein CORS, kein `VITE_API_URL`.
-  Zugriff: persönlicher Link `?k=<token>` (Token in Tabelle `people`, Bearer-Header,
-  localStorage `retreat_token`), Orga-Rechte über `is_orga`. `?k=` bleibt BEWUSST in der
-  URL (`keepTokenInUrl()` nach jedem Tab-Wechsel): iOS-„Zum Home-Bildschirm“ speichert
-  die aktuelle URL und die Home-Bildschirm-App hat eigenen, leeren localStorage. Nur die Orga ändert
-  Auto-/Apartmentzuteilung (`PATCH /api/people/{id}`), vergibt/entzieht Orga-Rechte
-  (`is_orga` im selben PATCH, UI „Einstellungen“ → „Orga“; letzte Orga-Person nicht
-  entfernbar → 409) und pflegt Termine (Tabelle `events`, `POST/PATCH/DELETE
-  /api/events`, Sheet im Tab Kalender). **Alles läuft über den Kalender**: keine
-  eigenen Tabs für Aktivitäten/Orte; Aktivitäten sind Termine mit
-  `category="activity"`, Ort-Infos (Adresse/Maps/Telefon) stehen im Termin-Detail.
-  Jeder Termin (jede Kategorie) hat optional `maps_url`, `url`, Koordination
-  (`coordinator_id`) und Teilnehmende (`event_participants`); das UI zeigt nur
-  Befülltes. Im Termin-Detail „Zu Outlook hinzufügen“ (Deeplink
-  `outlook.office.com/calendar/0/deeplink/compose`, Microsoft 365) + `.ics`-Download, rein
-  clientseitig in `src/lib/addToCalendar.ts`; Zeiten gehen als UTC raus (`convertZone(dt, 'UTC')`).
-  Umschalter „Mein Kalender | Alle“ (Heute + Kalender, localStorage
-  `retreat_scope`), Regel `isMine()` in `src/lib/agenda.ts`: Koordination/eingetragen
-  → ja; Teilnehmende eingetragen, ich nicht → nein; niemand eingetragen →
-  Arbeitsblock/Mahlzeit/Transfer für alle, Aktivität für niemanden. Tabs: Heute,
-  Kalender, Ich + rollenabhängig **Info** (Nicht-Orga: Autos/Fahrer:innen + Zimmer,
-  read-only) ODER **Einstellungen** (nur Orga: Autos/Zimmer zuteilen + Orga-Rechte;
-  `pages/Settings.tsx`). Beide nutzen `CarList`/`ApartmentList` mit `editable`-Prop;
-  `/info` ↔ `/einstellungen` leiten je nach `is_orga` um. **iOS-Design** in der Palette: Bausteine in
-  `components/ui.tsx` (`Section`/`Row`/`ValueRow` = inset grouped list, `Segmented`,
-  `Switch`, `CheckRow`), `WeekStrip.tsx`, Sheets über `components/Modal.tsx`
-  (`SheetHeader` mit Abbrechen/Sichern; `children` ist Render-Funktion `close => …`, damit
-  Buttons animiert schließen; mobil nach unten wegwischbar). Kalender mobil: Tage wischen
-  (`lib/useDaySwipe.ts`, Schwellwerte rein in `lib/gestures.ts`). Touch-Gesten mit
-  Playwright über CDP `Input.dispatchTouchEvent` testen; Hintergrund `--color-canvas` = Tönung von
-  Grey-25 auf Weiß. URL-Felder nur `http(s)://`
-  (Pydantic-Pattern `Url` in `schemas.py`, gegen `javascript:` in href).
-  Validierungsfehler liefert ein globaler Handler als EIN deutscher String in `detail`.
-  SQLite läuft mit `PRAGMA foreign_keys=ON` (`database.py`), sonst greift kein
-  `ON DELETE CASCADE` → verwaiste Zuordnungszeilen. Eckdaten/Orte sind read-only JSON
-  (`content`-Tabelle). Zeiten werden als lokale Teneriffa-Zeit gespeichert
-  (`"2026-10-19T07:00"`, Atlantic/Canary); Kalender `/kalender` zeigt zusätzlich
-  Österreich-Zeit (`convertZone()` in `src/lib/agenda.ts`, via Intl → DST-sicher).
-  `load` übernimmt Seed-Termine NUR bei leerer `events`-Tabelle (sonst würden
-  Orga-Änderungen überschrieben) – `--reset-events` erzwingt es. Seed-Format: Termine
-  unter `content.events` mit `coordinator` (Person-Key) und `participants` (Keys oder
-  `"alle"`). Nach Go-live ist die App die Quelle, NICHT `seed.json` (Backup = `export`
-  via `backup-db.sh`). **Schema-Änderung (kein Alembic) erprobt**: Export mit altem
-  Code → ggf. Umwandlungs-Skript → Schema gegen neuen Code validieren → `down -v` (nur
-  Retreat-Stack!) → `up -d --build` → `load --reset-assignments --reset-events` →
-  Export mit Vorher-Stand vergleichen (Personen/Tokens/Zuteilung müssen identisch sein).
-  Vorher IMMER auf dem Test-Stack mit einer Kopie der Live-Daten durchspielen.
-  Farbpalette (Royal Blue/Green/…) im `@theme` von `retreat/frontend/src/index.css`,
-  Tailwind-Defaultfarben dort per `--color-*: initial` deaktiviert.
-  **Teilnehmer-Daten NIE ins Repo** – Seed unter `~/retreat-content/seed.json`, im Repo
-  nur `seed.example.json` (Fake-Namen). Daten-Skript:
-  `docker compose -f retreat/docker-compose.yml exec -T retreat-backend python
-  scripts/retreat_data.py load|export|links|rotate` (`load` idempotent, Tokens bleiben,
-  Zuteilung nur für neue Personen außer `--reset-assignments`; `--dry-run`).
-  Deploy: `docker compose -f retreat/docker-compose.yml up -d --build`. Lokaler Test
-  ohne Prod-Impact: `RETREAT_PORT=8093 docker compose -p retreat-test -f
-  retreat/docker-compose.yml up -d --build`. CI `retreat-tests.yml` (paths-Filter
-  `retreat/**`), `backup-db.sh` exportiert den Stand mit nach `backups/`.
-  **Nach dem Retreat abbauen**: Stack `down -v` (vorher export), Dependabot-Einträge
-  `retreat` entfernen, Tunnel-Hostname löschen.
 
 Der frühere Bereich **"Mein Account"** heißt jetzt **"Einstellungen"** und nutzt ein
 eigenes `SettingsLayout` (spiegelt das `AdminLayout`-Tab-Muster) mit Unterregistern
@@ -216,8 +148,6 @@ Auth via Email-Verifizierung, JWT, Password-Reset per Mail.
   serviert über Nginx im Container auf Port 80
 - hongar-Website baut aus `./hongar` (gleiches Muster), Host-Port 8081. Im Test-Stack
   als `hongar-test` auf 8082, nur mit `--profile hongar` (E2E-CI baut ihn nicht mit)
-- Teamretreat-App: eigener Compose-Stack `retreat/docker-compose.yml` (Projekt `retreat`),
-  Host-Port 8083 (Tunnel `rp.markus-schwarz.cc` → `http://localhost:8083`), Test-Port 8093
 - DB nur intern erreichbar (Container-Netzwerk, kein Port-Mapping)
 - Backend hat IPv6 disabled via sysctl
 - **Cloudflare Tunnel** (`cloudflared` als systemd-Service, Token-Mode) zeigt direkt
@@ -254,7 +184,6 @@ homepage/
 │   └── Dockerfile
 ├── frontend/                 # React + Vite
 ├── hongar/                   # hongar-Website (React + Vite, eigener Container)
-├── retreat/                  # Teamretreat-App (eigenes Backend+Frontend+Compose-File)
 ├── e2e/                      # Playwright-Tests
 ├── scripts/
 │   └── backup-db.sh          # DB-Backup-Skript
@@ -283,7 +212,7 @@ Pfad, damit Git-History und Editor-Workflows unverändert bleiben.
   Dependencies) ein `feature/<name>`-Branch + PR + grüne CI vor Merge.
   Hintergrund: siehe Abschnitt "Prod-Deploy-Disziplin". Triviale Änderungen
   (README, Kommentare, Primer-Updates, `.env.example`) dürfen direkt auf `main`.
-- **Dependabot** aktiv für backend, frontend, e2e, hongar, retreat (backend+frontend), ci
+- **Dependabot** aktiv für backend, frontend, e2e, hongar, ci
 - **CI**: GitHub Actions — Backend-Tests + Frontend-Tests (Vitest) + E2E-Tests +
   Codecov, müssen grün sein. Workflow `frontend-tests.yml` macht `tsc -b --noEmit`
   + `npm run test`, `hongar-tests.yml` macht `tsc -b --noEmit` + Build für `hongar/`.
