@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { BedDouble, CalendarClock, CalendarDays, Car, UserRound, X } from 'lucide-react'
+import { CalendarClock, CalendarDays, Info, Settings, UserRound, X } from 'lucide-react'
 import { keepTokenInUrl } from '../lib/api'
 import { useRetreat, useRetreatContext } from '../lib/retreat'
 
@@ -8,15 +8,17 @@ const TABS = [
   { to: '/', label: 'Heute', icon: CalendarClock },
   { to: '/kalender', label: 'Kalender', icon: CalendarDays },
   { to: '/ich', label: 'Ich', icon: UserRound },
-  { to: '/autos', label: 'Autos', icon: Car },
-  { to: '/apartments', label: 'Apartments', icon: BedDouble },
+  // Orga bekommt Einstellungen (bearbeitbar), alle anderen Info (nur lesen)
+  { to: '/info', label: 'Info', icon: Info, orga: false },
+  { to: '/einstellungen', label: 'Einstellungen', icon: Settings, orga: true },
 ]
 
 export function Layout() {
-  const { content } = useRetreat()
+  const { me, content } = useRetreat()
   const { message, dismissMessage } = useRetreatContext()
   const { pathname, search } = useLocation()
-  const current = TABS.find(t => t.to === pathname) ?? TABS[0]
+  const tabs = TABS.filter(t => t.orga === undefined || t.orga === me.is_orga)
+  const current = tabs.find(t => t.to === pathname) ?? tabs[0]
 
   // Token nach jedem Tab-Wechsel wieder in die URL (für „Zum Home-Bildschirm“)
   useEffect(keepTokenInUrl, [pathname, search])
@@ -32,7 +34,7 @@ export function Layout() {
           </p>
           <nav className="hidden md:block" aria-label="Hauptnavigation">
             <ul className="flex gap-1 rounded-[10px] bg-grey-25/70 p-0.5">
-              {TABS.map(({ to, label, icon: Icon }) => (
+              {tabs.map(({ to, label, icon: Icon }) => (
                 <li key={to}>
                   <NavLink
                     to={to}
@@ -72,7 +74,7 @@ export function Layout() {
         aria-label="Hauptnavigation"
       >
         <ul className="mx-auto flex max-w-xl">
-          {TABS.map(({ to, label, icon: Icon }) => (
+          {tabs.map(({ to, label, icon: Icon }) => (
             <li key={to} className="flex-1">
               <NavLink
                 to={to}

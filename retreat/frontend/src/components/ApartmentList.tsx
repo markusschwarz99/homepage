@@ -3,13 +3,14 @@ import { personName } from '../lib/people'
 import type { Person } from '../lib/types'
 import { Row, Section, Select } from '../components/ui'
 
-export function Apartments() {
-  const { me, people, apartments } = useRetreat()
+/** Zimmerverteilung; `editable` = Orga kann umziehen lassen. */
+export function ApartmentList({ editable = false }: { editable?: boolean }) {
+  const { people, apartments } = useRetreat()
   const unassigned = people.filter(p => p.apartment_id === null)
 
   return (
     <>
-      {me.is_orga && <p className="px-1 text-[15px] text-grey">Tippe auf das Apartment, um umzuziehen.</p>}
+      {editable && <p className="px-1 text-[15px] text-grey">Tippe auf das Apartment, um umzuziehen.</p>}
       <div className="md:grid md:grid-cols-2 md:gap-x-6 xl:grid-cols-3">
         {apartments.map(apt => {
           const members = people.filter(p => p.apartment_id === apt.id)
@@ -27,7 +28,7 @@ export function Apartments() {
               footer={apt.rooms_label}
             >
               {members.map(p => (
-                <ApartmentPersonRow key={p.id} person={p} />
+                <ApartmentPersonRow key={p.id} person={p} editable={editable} />
               ))}
               {members.length === 0 && <Row className="text-grey">Frei</Row>}
             </Section>
@@ -36,7 +37,7 @@ export function Apartments() {
         {unassigned.length > 0 && (
           <Section title="Nicht zugeteilt">
             {unassigned.map(p => (
-              <ApartmentPersonRow key={p.id} person={p} />
+              <ApartmentPersonRow key={p.id} person={p} editable={editable} />
             ))}
           </Section>
         )}
@@ -45,14 +46,14 @@ export function Apartments() {
   )
 }
 
-function ApartmentPersonRow({ person }: { person: Person }) {
+function ApartmentPersonRow({ person, editable }: { person: Person; editable: boolean }) {
   const { me, apartments, update } = useRetreat()
 
   return (
     <Row highlight={person.id === me.id}>
       <div className="flex items-center justify-between gap-3">
         <span className={`min-w-0 truncate ${person.id === me.id ? 'font-semibold' : ''}`}>{personName(person)}</span>
-        {me.is_orga && (
+        {editable && (
           <Select
             label={`Apartment für ${personName(person)}`}
             value={person.apartment_id}
