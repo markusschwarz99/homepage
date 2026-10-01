@@ -104,7 +104,10 @@ Persönliche Homepage mit vier Hauptbereichen:
   `category="activity"`, Ort-Infos (Adresse/Maps/Telefon) stehen im Termin-Detail.
   Jeder Termin (jede Kategorie) hat optional `maps_url`, `url`, Koordination
   (`coordinator_id`) und Teilnehmende (`event_participants`); das UI zeigt nur
-  Befülltes. Umschalter „Mein Kalender | Alle“ (Heute + Kalender, localStorage
+  Befülltes. Im Termin-Detail „Zu Outlook hinzufügen“ (Deeplink
+  `outlook.office.com/calendar/0/deeplink/compose`, Microsoft 365) + `.ics`-Download, rein
+  clientseitig in `src/lib/addToCalendar.ts`; Zeiten gehen als UTC raus (`convertZone(dt, 'UTC')`).
+  Umschalter „Mein Kalender | Alle“ (Heute + Kalender, localStorage
   `retreat_scope`), Regel `isMine()` in `src/lib/agenda.ts`: Koordination/eingetragen
   → ja; Teilnehmende eingetragen, ich nicht → nein; niemand eingetragen →
   Arbeitsblock/Mahlzeit/Transfer für alle, Aktivität für niemanden. Tabs: Heute,
